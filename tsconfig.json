@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "CSISP Monorepo Root TypeScript 配置",
+  "compilerOptions": {
+    "rootDir": ".",
+    "module": "ESNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": ["apps/**/*", "packages/**/*"],
+  "exclude": [
+    "node_modules",
+    "**/node_modules/*",
+    "dist",
+    "**/dist/*",
+    "build",
+    "**/build/*",
+    ".dist",
+    "**/.dist/*",
+    ".output",
+    "**/.output/*",
+    "coverage",
+    "**/coverage/*",
+    "**/*.md",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/*",
+    "**/tests/*",
+    "**/.storybook/*",
+    "**/stories/*"
+  ]
+}
