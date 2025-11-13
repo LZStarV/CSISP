@@ -1,0 +1,31 @@
+packages:
+  # 应用层 - 可独立部署的应用
+  - 'apps/*'
+  
+  # 共享包层 - 可复用的代码模块
+  - 'packages/*'
+  
+  # 工具配置层 - 开发工具和配置
+  - 'tooling'
+  
+  # 文档层 - 项目文档和指南
+  - 'docs'
+  
+  # 测试层 - 测试相关文件
+  - 'tests'
+
+# 依赖提升模式 - 将所有依赖提升到根node_modules
+hoist-pattern:
+  - '*'
+
+# 依赖解析模式 - 使用最高版本解决依赖冲突
+resolution-mode: 'highest'
+
+# 共享依赖配置
+shared-workspace-lockfile: true
+
+# 自动安装同级依赖
+auto-install-peers: true
+
+# 严格模式 - 确保依赖版本一致性
+strict-peer-dependencies: false

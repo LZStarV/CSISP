@@ -1,0 +1,135 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Text files
+*.md text
+*.txt text
+*.json text
+*.yml text
+*.yaml text
+*.js text
+*.ts text
+*.jsx text
+*.tsx text
+*.vue text
+*.css text
+*.scss text
+*.sass text
+*.less text
+*.html text
+*.xml text
+*.sql text
+*.sh text
+*.bat text
+*.cmd text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.tiff binary
+*.tif binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.rar binary
+*.7z binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.a binary
+*.o binary
+*.class binary
+*.jar binary
+*.war binary
+*.ear binary
+
+# Documentation
+*.md linguist-detectable
+*.txt linguist-detectable
+
+# Source code
+*.js linguist-language=JavaScript
+*.ts linguist-language=TypeScript
+*.jsx linguist-language=JavaScript
+*.tsx linguist-language=TypeScript
+*.vue linguist-language=Vue
+*.css linguist-language=CSS
+*.scss linguist-language=SCSS
+*.sass linguist-language=Sass
+*.less linguist-language=Less
+*.html linguist-language=HTML
+*.json linguist-language=JSON
+*.yml linguist-language=YAML
+*.yaml linguist-language=YAML
+*.xml linguist-language=XML
+*.sql linguist-language=SQL
+*.sh linguist-language=Shell
+*.py linguist-language=Python
+*.java linguist-language=Java
+*.go linguist-language=Go
+*.rs linguist-language=Rust
+*.cpp linguist-language=C++
+*.c linguist-language=C
+*.h linguist-language=C
+
+# Git LFS for large files
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.gif filter=lfs diff=lfs merge=lfs -text
+*.ico filter=lfs diff=lfs merge=lfs -text
+*.bmp filter=lfs diff=lfs merge=lfs -text
+*.tiff filter=lfs diff=lfs merge=lfs -text
+*.tif filter=lfs diff=lfs merge=lfs -text
+*.pdf filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text
+*.tar filter=lfs diff=lfs merge=lfs -text
+*.gz filter=lfs diff=lfs merge=lfs -text
+*.rar filter=lfs diff=lfs merge=lfs -text
+*.7z filter=lfs diff=lfs merge=lfs -text
+
+# Export-ignore files for archives
+/.github export-ignore
+/.vscode export-ignore
+/.idea export-ignore
+/tests export-ignore
+/tooling export-ignore
+/docs export-ignore
+
+# Line endings
+*.sh eol=lf
+*.bat eol=crlf
+*.cmd eol=crlf
+
+# Diff settings
+*.md diff=markdown
+*.json diff=json
+*.yml diff=yaml
+*.yaml diff=yaml
+
+# Merge strategies
+package.json merge=union
+pnpm-lock.yaml merge=union
+*.lock merge=union
+
+# Custom attributes for specific files
+README.md linguist-documentation=true
+LICENSE linguist-documentation=true
+CHANGELOG.md linguist-documentation=true
+CONTRIBUTING.md linguist-documentation=true
+
+# Monorepo specific
+apps/*/dist/ export-ignore
+packages/*/dist/ export-ignore
+*.tsbuildinfo export-ignore
+
+# Build artifacts should not be tracked
+*.d.ts linguist-generated=true
+*.js.map linguist-generated=true
+*.css.map linguist-generated=true

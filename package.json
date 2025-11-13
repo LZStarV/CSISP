@@ -1,0 +1,28 @@
+{
+  "name": "csisp-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r clean",
+    "dev:admin": "pnpm --filter frontend-admin dev",
+    "dev:client": "pnpm --filter frontend-client dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "build:admin": "pnpm --filter frontend-admin build",
+    "build:client": "pnpm --filter frontend-client build",
+    "build:backend": "pnpm --filter backend build"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  }
+}
