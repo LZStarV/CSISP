@@ -30,7 +30,7 @@
       "eslint --fix"
     ],
     "**/*.{js,mjs,cjs,ts,jsx,tsx,vue,html,json,css,scss,md}": [
-      "prettier --config prettier.json --write"
+      "prettier --write"
     ],
     "**/*.{css,scss,vue}": [
       "stylelint --fix"
