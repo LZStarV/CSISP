@@ -38,7 +38,7 @@ module.exports = {
         allowNull: false,
       },
       status: {
-        type: Sequelize.TINYINT,
+        type: Sequelize.SMALLINT,
         allowNull: false,
         defaultValue: 1,
       },
@@ -161,7 +161,7 @@ module.exports = {
         allowNull: false,
       },
       status: {
-        type: Sequelize.TINYINT,
+        type: Sequelize.SMALLINT,
         allowNull: false,
         defaultValue: 1,
       },
@@ -230,7 +230,7 @@ module.exports = {
         allowNull: false,
       },
       status: {
-        type: Sequelize.TINYINT,
+        type: Sequelize.SMALLINT,
         allowNull: false,
         defaultValue: 1,
       },
@@ -461,7 +461,7 @@ module.exports = {
         allowNull: false,
       },
       status: {
-        type: Sequelize.TINYINT,
+        type: Sequelize.SMALLINT,
         allowNull: false,
         defaultValue: 1,
       },
@@ -502,7 +502,7 @@ module.exports = {
         onDelete: 'CASCADE',
       },
       status: {
-        type: Sequelize.TINYINT,
+        type: Sequelize.SMALLINT,
         allowNull: false,
       },
       remark: {
@@ -537,7 +537,7 @@ module.exports = {
         onDelete: 'CASCADE',
       },
       dayOfWeek: {
-        type: Sequelize.TINYINT,
+        type: Sequelize.SMALLINT,
         allowNull: false,
         comment: '星期几(1-5)',
       },

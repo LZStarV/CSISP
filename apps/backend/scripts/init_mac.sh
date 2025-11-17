@@ -140,43 +140,15 @@ PNPM_REQUIRED_VERSION="8.15.0"
 log_info "检查 pnpm 安装状态..."
 
 if command -v pnpm &> /dev/null; then
-    PNPM_CURRENT_VERSION=$(pnpm -v)
-
-    # 检查版本是否匹配
-    if [[ "$PNPM_CURRENT_VERSION" == "$PNPM_REQUIRED_VERSION"* ]]; then
-        log_success "pnpm 已安装且版本符合要求: $PNPM_CURRENT_VERSION"
-    else
-        log_warning "pnpm 版本不匹配: 已安装 $PNPM_CURRENT_VERSION，需要 $PNPM_REQUIRED_VERSION"
-        log_info "正在更新 pnpm..."
-        npm install -g pnpm@$PNPM_REQUIRED_VERSION || {
-            log_error "pnpm 更新失败"
-            exit 1
-        }
-        log_success "pnpm 已更新到版本: $(pnpm -v)"
+    PNPM_VERSION=$(pnpm -v)
+    log_success "pnpm 已安装: $PNPM_VERSION"
+    if [[ "$PNPM_VERSION" != "$PNPM_REQUIRED_VERSION"* ]]; then
+        log_warning "提示: pnpm 版本建议升级到 $PNPM_REQUIRED_VERSION 以获得最佳兼容性"
     fi
 else
-    log_info "pnpm 未安装，正在安装..."
-    # 尝试使用 npm 安装 pnpm
-    if ! npm install -g pnpm@$PNPM_REQUIRED_VERSION; then
-        log_warning "使用 npm 安装 pnpm 失败，尝试使用其他方法..."
-        # 备用安装方法
-        curl -fsSL https://get.pnpm.io/install.sh | sh - || {
-            log_error "pnpm 安装失败"
-            log_warning "请手动安装 pnpm: https://pnpm.io/installation"
-            exit 1
-        }
-        # 重新加载 shell 配置以确保 pnpm 可用
-        export PNPM_HOME="$HOME/Library/pnpm"
-        export PATH="$PNPM_HOME:$PATH"
-    fi
-
-    if command -v pnpm &> /dev/null; then
-        log_success "pnpm 已安装: $(pnpm -v)"
-    else
-        log_error "pnpm 安装成功但无法在当前会话中使用"
-        log_warning "请重新打开终端后再运行此脚本"
-        exit 1
-    fi
+    log_error "pnpm 未安装，环境初始化失败"
+    log_warning "请手动安装 pnpm 后重试: https://pnpm.io/installation"
+    exit 1
 fi
 
 # 注意：在monorepo项目中，依赖管理由根目录统一处理
@@ -421,17 +393,24 @@ log_success "目录结构创建完成"
 
 # 检查seed_data.js文件是否存在
 if [ ! -f "apps/backend/scripts/seed_data.js" ]; then
-    log_error "未找到种子数据脚本 (apps/backend/scripts/seed_data.js)"
-    exit 1
+    # 检查seed_data.ts文件是否存在
+    if [ ! -f "apps/backend/scripts/seed_data.ts" ]; then
+        log_error "未找到种子数据脚本 (apps/backend/scripts/seed_data.js 或 seed_data.ts)"
+        exit 1
+    else
+        # 使用tsx直接运行种子数据脚本
+        log_info "生成种子数据..."
+        (cd apps/backend && pnpm exec tsx scripts/seed_data.ts)
+    fi
+else
+    # 运行种子数据脚本
+    log_info "生成种子数据..."
+    (cd apps/backend && node scripts/seed_data.js)
 fi
-
-# 运行种子数据脚本
-log_info "生成种子数据..."
-(cd apps/backend && node scripts/seed_data.js)
 
 if [ $? -ne 0 ]; then
     log_error "种子数据生成失败"
-    log_warning "请检查seed_data.js脚本内容和数据库连接"
+    log_warning "请检查seed_data脚本内容和数据库连接"
     exit 1
 fi
 
@@ -488,5 +467,24 @@ echo "   • 请确保.env文件中的JWT密钥在生产环境中修改为安全
 echo "   • 定期备份数据库以防止数据丢失"
 echo "   • 如遇到端口冲突，请修改docker-compose.yml中的端口映射"
 
-echo -e "
-${GREEN}✨ 初始化脚本执行完毕！${NC}"
+echo -e "\n${GREEN}✨ 初始化脚本执行完毕！${NC}"
+
+# 询问是否立即启动后端服务
+echo -e "\n${BLUE}🚀 是否立即启动后端服务？${NC}"
+read -p "启动服务将占用终端窗口，确定要现在启动吗？(y/N) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    log_info "正在启动后端服务..."
+    # 调用启动脚本
+    if [ -f "$SCRIPT_DIR/start_backend.sh" ]; then
+        bash "$SCRIPT_DIR/start_backend.sh"
+    else
+        log_warning "未找到启动脚本，请手动执行："
+        log_info "  cd apps/backend && pnpm dev"
+    fi
+else
+    log_info "您可以在任何时候使用以下命令启动后端服务："
+    log_info "  cd apps/backend && pnpm dev"
+    log_info "或者使用启动脚本："
+    log_info "  bash apps/backend/scripts/start_backend.sh"
+fi

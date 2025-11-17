@@ -449,12 +449,12 @@ if not exist "apps\backend\scripts\seed_data.js" (
 :: 运行种子数据脚本
 call :log_info "生成种子数据..."
 cd /d "apps\backend"
-node scripts\seed_data.js
+pnpm exec tsx scripts\seed_data.ts
 cd /d "%PROJECT_ROOT%"
 
 if errorlevel 1 (
     call :log_error "种子数据生成失败"
-    call :log_warning "请检查seed_data.js脚本内容和数据库连接"
+    call :log_warning "请检查seed_data.ts脚本内容和数据库连接"
     pause
     exit /b 1
 )
@@ -510,7 +510,7 @@ echo.
 echo %BLUE%📚 文档位置:%NC%
 echo    • 后端设计文档: docs\project\后端设计文档.md
 echo    • 数据库设计文档: docs\project\数据库设计文档.md
-echo    • 种子数据脚本: apps\backend\scripts\seed_data.js
+echo    • 种子数据脚本: apps\backend\scripts\seed_data.ts
 
 echo.
 echo %BLUE%🔧 常用命令:%NC%
@@ -522,7 +522,7 @@ echo.
 echo %YELLOW%💡 如果需要重新生成数据:%NC%
 echo    pnpm sequelize-cli db:migrate:undo:all
 echo    pnpm sequelize-cli db:migrate
-echo    node apps\backend\scripts\seed_data.js
+echo    pnpm exec tsx apps\backend\scripts\seed_data.ts
 
 :: 显示额外的提示信息
 echo.
@@ -533,6 +533,27 @@ echo    • 如遇到端口冲突，请修改docker-compose.yml中的端口映�
 
 echo.
 echo %GREEN%✨ 初始化脚本执行完毕！%NC%
+
+:: 询问是否立即启动后端服务
+echo.
+echo %BLUE%🚀 是否立即启动后端服务？%NC%
+echo 启动服务将占用终端窗口，确定要现在启动吗？(y/N)
+set /p START_SERVICE=
+if /i "%START_SERVICE%"=="y" (
+    call :log_info "正在启动后端服务..."
+    :: 调用启动脚本
+    if exist "%SCRIPT_DIR%\start_backend_windows.bat" (
+        call "%SCRIPT_DIR%\start_backend_windows.bat"
+    ) else (
+        call :log_warning "未找到启动脚本，请手动执行："
+        call :log_info "  cd apps/backend && pnpm dev"
+    )
+) else (
+    call :log_info "您可以在任何时候使用以下命令启动后端服务："
+    call :log_info "  cd apps/backend && pnpm dev"
+    call :log_info "或者使用启动脚本："
+    call :log_info "  apps/backend/scripts/start_backend_windows.bat"
+)
 
 pause
 

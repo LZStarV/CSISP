@@ -11,11 +11,23 @@ import {
   Class as ClassType,
   Course as CourseType,
   TimeSlot as TimeSlotType,
+  SubCourse as SubCourseType,
   UserCreationAttributes,
+  Role as RoleType,
   RoleCreationAttributes,
   CourseTeacherAttributes,
   UserRoleAttributes,
   UserClassAttributes,
+  AttendanceTask as AttendanceTaskType,
+  AttendanceRecord as AttendanceRecordType,
+  CreateCourseInput,
+  CreateTeacherInput,
+  CreateClassInput,
+  CreateTimeSlotInput,
+  CreateAttendanceTaskInput,
+  CreateAttendanceRecordInput,
+  CreateSubCourseInput,
+  AttendanceStatus,
 } from '@csisp/types';
 import {
   COURSE_DATA,
@@ -24,133 +36,25 @@ import {
   MALE_NAMES,
   FEMALE_NAMES,
   MAJORS,
-} from './seed_data_sources';
+} from './seed_data_sources.js';
 
-// 接口定义
-type UserAttributes = {
-  id?: number;
-  username: string;
-  password: string;
-  realName: string;
-  studentId: string;
-  enrollmentYear: number;
-  major: string;
-  status?: Status;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-  email?: string;
-  phone?: string;
-};
+type UserAttributes = UserType;
+type RoleAttributes = RoleType;
+type CourseAttributes = CourseType;
+type TeacherAttributes = TeacherType;
+type ClassAttributes = ClassType;
+type TimeSlotAttributes = TimeSlotType;
+type SubCourseAttributes = SubCourseType;
+type AttendanceTaskAttributes = AttendanceTaskType;
+type AttendanceRecordAttributes = AttendanceRecordType;
 
-// UserCreationAttributes 已从 @csisp/types 导入
-
-interface RoleAttributes {
-  id?: number;
-  name: string;
-  description: string;
-  status?: Status;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-}
-
-// RoleCreationAttributes 已从 @csisp/types 导入
-
-interface CourseAttributes {
-  id?: number;
-  courseName: string;
-  courseCode: string;
-  semester: number;
-  academicYear: number;
-  availableMajors: string[];
-  creditHours?: number;
-  totalHours?: number;
-  status?: Status;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-}
-
-type CourseCreationAttributes = Omit<CourseAttributes, 'id' | 'createdAt' | 'updatedAt'>;
-
-interface TeacherAttributes extends TeacherType {
-  teacherId: string; // 教师工号（唯一，11位字符串）
-  department: string;
-  title: string; // 职称
-  status?: Status;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
-
-type TeacherCreationAttributes = Omit<TeacherAttributes, 'id' | 'createdAt' | 'updatedAt'>;
-
-interface ClassAttributes {
-  id?: number;
-  className: string;
-  classCode?: string;
-  courseId: number;
-  teacherId?: number;
-  semester?: number;
-  academicYear?: number;
-  maxStudents: number; // 最大学生数（默认50）
-  startTime?: string;
-  endTime?: string;
-  weekday?: string;
-  location?: string;
-  totalStudents?: number;
-  status?: Status;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-}
-
-type ClassCreationAttributes = Omit<ClassAttributes, 'id' | 'createdAt' | 'updatedAt'>;
-
-interface TimeSlotAttributes extends Omit<TimeSlotType, 'subCourseId'> {
-  id: number;
-  courseId: number;
-  weekday: number;
-  status: Status;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
-
-type TimeSlotCreationAttributes = Omit<TimeSlotAttributes, 'id' | 'createdAt' | 'updatedAt'>;
-
-interface AttendanceTaskAttributes {
-  id?: number;
-  classId: number; // 根据文档应该是classId而不是courseId
-  taskName: string; // 任务名称
-  taskType: string; // 任务类型
-  startTime: Timestamp;
-  endTime: Timestamp;
-  status?: Status;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-}
-
-type AttendanceTaskCreationAttributes = Omit<
-  AttendanceTaskAttributes,
-  'id' | 'createdAt' | 'updatedAt'
->;
-
-interface AttendanceRecordAttributes {
-  id?: number;
-  attendanceTaskId: number; // 根据文档应该是attendanceTaskId
-  userId: number; // 根据文档应该是userId
-  status: string; // 考勤状态
-  remark?: string; // 备注
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-}
-
-type AttendanceRecordCreationAttributes = Omit<
-  AttendanceRecordAttributes,
-  'id' | 'createdAt' | 'updatedAt'
->;
-
-// CourseTeacherAttributes 已从 @csisp/types 导入
-
-// UserRoleAttributes 已从 @csisp/types 导入
-
-// UserClassAttributes 已从 @csisp/types 导入
+type CourseCreationAttributes = CreateCourseInput;
+type TeacherCreationAttributes = CreateTeacherInput;
+type ClassCreationAttributes = CreateClassInput;
+type TimeSlotCreationAttributes = CreateTimeSlotInput;
+type SubCourseCreationAttributes = CreateSubCourseInput;
+type AttendanceTaskCreationAttributes = CreateAttendanceTaskInput;
+type AttendanceRecordCreationAttributes = CreateAttendanceRecordInput;
 
 // 模型定义
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -164,13 +68,12 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public status!: Status;
   public createdAt!: Timestamp;
   public updatedAt!: Timestamp;
-  public email?: string;
-  public phone!: string;
 }
 
 class Role extends Model<RoleAttributes, RoleCreationAttributes> implements RoleAttributes {
   public id!: number;
   public name!: string;
+  public code!: string;
   public description!: string;
   public status!: Status;
   public createdAt!: Timestamp;
@@ -187,8 +90,6 @@ class Course extends Model<CourseAttributes, CourseCreationAttributes> implement
   public semester!: number;
   public academicYear!: number;
   public availableMajors!: string[];
-  public creditHours?: number;
-  public totalHours?: number;
   public status!: Status;
   public createdAt!: Timestamp;
   public updatedAt!: Timestamp;
@@ -206,9 +107,9 @@ class Teacher
   public userId!: number;
   public realName!: string;
   public email!: string;
-  public teacherId!: string; // 教师工号
+  public teacherId!: string;
   public department!: string;
-  public title!: string; // 职称
+  public title!: string;
   public status!: Status;
   public createdAt!: Timestamp;
   public updatedAt!: Timestamp;
@@ -221,18 +122,12 @@ class Teacher
 class Class extends Model<ClassAttributes, ClassCreationAttributes> implements ClassAttributes {
   public id!: number;
   public className!: string;
-  public classCode?: string;
   public courseId!: number;
-  public teacherId?: number;
-  public semester?: number;
-  public academicYear?: number;
+  public teacherId!: number;
+  public semester!: number;
+  public academicYear!: number;
   public maxStudents!: number; // 最大学生数
-  public startTime?: string;
-  public endTime?: string;
-  public weekday?: string;
-  public location!: string;
-  public totalStudents?: number;
-  public status?: Status;
+  public status!: Status;
   public createdAt!: Timestamp;
   public updatedAt!: Timestamp;
 
@@ -241,9 +136,12 @@ class Class extends Model<ClassAttributes, ClassCreationAttributes> implements C
   public getUsers!: () => Promise<User[]>;
 }
 
-class TimeSlot extends Model<TimeSlotAttributes, TimeSlotCreationAttributes> implements TimeSlotAttributes {
+class TimeSlot
+  extends Model<TimeSlotAttributes, TimeSlotCreationAttributes>
+  implements TimeSlotAttributes
+{
   public id!: number;
-  public classId!: number;
+  public subCourseId!: number;
   public startTime!: string;
   public endTime!: string;
   public weekday!: WeekDay;
@@ -282,8 +180,8 @@ class AttendanceRecord
   public id!: number;
   public attendanceTaskId!: number; // 根据文档应该是attendanceTaskId
   public userId!: number; // 根据文档应该是userId
-  public status!: string; // 考勤状态
-  public remark?: string; // 备注
+  public status!: AttendanceStatus; // 考勤状态
+  public remark!: string; // 备注
   public createdAt!: Timestamp;
   public updatedAt!: Timestamp;
 
@@ -313,6 +211,20 @@ class UserClass
   public classId!: number;
 }
 
+class SubCourse
+  extends Model<SubCourseAttributes, SubCourseCreationAttributes>
+  implements SubCourseAttributes
+{
+  public id!: number;
+  public courseId!: number;
+  public subCourseCode!: string;
+  public teacherId!: number;
+  public academicYear!: number;
+  public status!: Status;
+  public createdAt!: Timestamp;
+  public updatedAt!: Timestamp;
+}
+
 // 数据库连接
 const sequelize = new Sequelize({
   dialect: 'postgres',
@@ -340,8 +252,6 @@ User.init(
     },
     major: { type: DataTypes.STRING(100), allowNull: false },
     status: { type: DataTypes.INTEGER, defaultValue: 1 },
-    email: { type: DataTypes.STRING(255) },
-    phone: { type: DataTypes.STRING(20) },
     createdAt: { type: DataTypes.DATE, field: 'created_at' },
     updatedAt: { type: DataTypes.DATE, field: 'updated_at' },
   },
@@ -358,6 +268,7 @@ Role.init(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     name: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+    code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
     description: { type: DataTypes.STRING(255), allowNull: false },
     status: { type: DataTypes.INTEGER, defaultValue: 1 },
     createdAt: { type: DataTypes.DATE, field: 'created_at' },
@@ -389,8 +300,6 @@ Course.init(
     },
     academicYear: { type: DataTypes.INTEGER, field: 'academic_year', allowNull: false },
     availableMajors: { type: DataTypes.JSON, field: 'available_majors', allowNull: false },
-    creditHours: { type: DataTypes.INTEGER, field: 'credit_hours' },
-    totalHours: { type: DataTypes.INTEGER, field: 'total_hours' },
     status: { type: DataTypes.INTEGER, defaultValue: 1 },
     createdAt: { type: DataTypes.DATE, field: 'created_at' },
     updatedAt: { type: DataTypes.DATE, field: 'updated_at' },
@@ -429,7 +338,11 @@ Class.init(
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     className: { type: DataTypes.STRING(255), field: 'class_name', allowNull: false },
     courseId: { type: DataTypes.INTEGER, field: 'course_id', allowNull: false },
+    teacherId: { type: DataTypes.INTEGER, field: 'teacher_id', allowNull: false },
+    semester: { type: DataTypes.INTEGER, allowNull: false },
+    academicYear: { type: DataTypes.INTEGER, field: 'academic_year', allowNull: false },
     maxStudents: { type: DataTypes.INTEGER, field: 'max_students', defaultValue: 50 },
+    status: { type: DataTypes.INTEGER, defaultValue: 1 },
     createdAt: { type: DataTypes.DATE, field: 'created_at' },
     updatedAt: { type: DataTypes.DATE, field: 'updated_at' },
   },
@@ -445,7 +358,7 @@ Class.init(
 TimeSlot.init(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    courseId: { type: DataTypes.INTEGER, field: 'course_id', allowNull: false },
+    subCourseId: { type: DataTypes.INTEGER, field: 'sub_course_id', allowNull: false },
     weekday: { type: DataTypes.INTEGER, field: 'weekday', allowNull: false },
     startTime: { type: DataTypes.TIME, field: 'start_time', allowNull: false },
     endTime: { type: DataTypes.TIME, field: 'end_time', allowNull: false },
@@ -539,6 +452,28 @@ UserClass.init(
   }
 );
 
+SubCourse.init(
+  {
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    courseId: { type: DataTypes.INTEGER, field: 'course_id', allowNull: false },
+    subCourseCode: {
+      type: DataTypes.STRING(50),
+      field: 'sub_course_code',
+      allowNull: false,
+      unique: true,
+    },
+    teacherId: { type: DataTypes.INTEGER, field: 'teacher_id', allowNull: false },
+    academicYear: { type: DataTypes.INTEGER, field: 'academic_year', allowNull: false },
+    status: { type: DataTypes.INTEGER, defaultValue: 1 },
+    createdAt: { type: DataTypes.DATE, field: 'created_at' },
+    updatedAt: { type: DataTypes.DATE, field: 'updated_at' },
+  },
+  {
+    tableName: 'sub_courses',
+    sequelize,
+  }
+);
+
 // 工具函数
 function getRandomInt(min: number, max: number): number {
   min = Math.ceil(min);
@@ -592,8 +527,14 @@ async function generateSeedData(): Promise<void> {
     Teacher.hasMany(Class, { foreignKey: 'teacherId', as: 'classes' });
     Class.belongsTo(Teacher, { foreignKey: 'teacherId', as: 'teacher' });
 
-    Course.hasMany(TimeSlot, { foreignKey: 'courseId', as: 'timeSlots' });
-    TimeSlot.belongsTo(Course, { foreignKey: 'courseId', as: 'course' });
+    Course.hasMany(SubCourse, { foreignKey: 'courseId', as: 'subCourses' });
+    SubCourse.belongsTo(Course, { foreignKey: 'courseId', as: 'course' });
+
+    Teacher.hasMany(SubCourse, { foreignKey: 'teacherId', as: 'subCourses' });
+    SubCourse.belongsTo(Teacher, { foreignKey: 'teacherId', as: 'teacher' });
+
+    SubCourse.hasMany(TimeSlot, { foreignKey: 'subCourseId', as: 'timeSlots' });
+    TimeSlot.belongsTo(SubCourse, { foreignKey: 'subCourseId', as: 'subCourse' });
 
     Class.hasMany(AttendanceTask, { foreignKey: 'classId', as: 'attendanceTasks' });
     AttendanceTask.belongsTo(Class, { foreignKey: 'classId', as: 'class' });
@@ -620,10 +561,10 @@ async function generateSeedData(): Promise<void> {
 
     // 创建角色
     const [adminRole, studentRole, teacherRole] = await Role.bulkCreate([
-      { name: 'admin', description: '管理员', status: Status.Active },
-      { name: 'student', description: '学生', status: Status.Active },
-      { name: 'teacher', description: '教师', status: Status.Active },
-    ] as RoleCreationAttributes[]);
+      { name: 'admin', code: 'admin', description: '管理员', status: Status.Active },
+      { name: 'student', code: 'student', description: '学生', status: Status.Active },
+      { name: 'teacher', code: 'teacher', description: '教师', status: Status.Active },
+    ] as unknown as RoleCreationAttributes[]);
     console.log('角色创建成功');
 
     // 创建管理员用户
@@ -632,16 +573,14 @@ async function generateSeedData(): Promise<void> {
       username: 'admin',
       password: hashedPassword,
       realName: '系统管理员',
-      studentId: 'ADMIN' + getRandomInt(100000000, 999999999),
+      studentId: '20232131082',
       enrollmentYear: 2023,
-      major: '系统管理',
-      email: 'admin@example.com',
-      phone: '13800138000',
+      major: '计算机科学与技术',
       status: Status.Active,
     } as UserCreationAttributes);
 
     // 关联管理员角色
-    await UserRole.create({ userId: adminUser.id, roleId: adminRole.id });
+    await UserRole.create({ userId: adminUser.dataValues.id, roleId: adminRole.dataValues.id });
     console.log('管理员用户创建成功');
 
     // 管理员用户已创建完成
@@ -654,21 +593,17 @@ async function generateSeedData(): Promise<void> {
           username: `teacher${index + 1}`,
           password: hashedPassword,
           realName: teacher.realName,
-          studentId: `T${(1000 + index + 1).toString().padStart(4, '0')}`,
-          enrollmentYear: 2020,
+          studentId: Math.floor(10000000000 + Math.random() * 9000000000).toString(),
+          enrollmentYear: 2023,
           major: '计算机科学',
           status: Status.Active,
-          email: `${teacher.realName.toLowerCase().replace(/\s+/g, '')}@example.com`,
-          phone: `138${Math.floor(Math.random() * 100000000)
-            .toString()
-            .padStart(8, '0')}`,
         } as UserCreationAttributes);
 
         await Teacher.create({
-          userId: user.id,
+          userId: user.dataValues.id,
           realName: teacher.realName,
           email: teacher.email,
-          teacherId: `T${(10000000 + index + 1).toString().substring(1)}`,
+          teacherId: Math.floor(10000000000 + Math.random() * 9000000000).toString(),
           department: teacher.department,
           title: getRandomElement(['讲师', '副教授', '教授']),
           status: Status.Active,
@@ -678,7 +613,7 @@ async function generateSeedData(): Promise<void> {
         } as TeacherCreationAttributes);
 
         // 关联教师角色
-        await UserRole.create({ userId: user.id, roleId: teacherRole.id });
+        await UserRole.create({ userId: user.dataValues.id, roleId: teacherRole.dataValues.id });
 
         return user;
       })
@@ -705,84 +640,76 @@ async function generateSeedData(): Promise<void> {
         const course = await Course.create({
           courseName: courseData.name,
           courseCode: courseData.code,
-          semester: Number(courseData.semester), // 确保是数字类型
+          semester: Number(courseData.semester.split('-')[1]), // 从'2025-1'中提取学期数字
           academicYear: courseData.academicYear || academicYear,
           availableMajors: courseData.availableMajors,
-          creditHours: courseData.credit || 0,
-          totalHours: courseData.credit * 16 || 0, // 假设每学分16学时
           status: Status.Active,
         } as CourseCreationAttributes);
 
         // 分配教师
-        const availableTeachers = teachers.filter(teacher =>
-          courseData.availableMajors.some(
-            major =>
-              major.includes('计算机科学与技术') ||
-              major.includes('网络工程') ||
-              major.includes('师范')
-          )
-        );
+        const availableTeachers = await Teacher.findAll();
 
-        let selectedTeacher = null;
+        let selectedTeacher = getRandomElement(availableTeachers);
         if (availableTeachers.length > 0) {
           selectedTeacher = getRandomElement(availableTeachers);
           await CourseTeacher.create({
-            courseId: course.id,
-            teacherId: selectedTeacher.id,
+            courseId: course.dataValues.id,
+            teacherId: selectedTeacher.dataValues.id,
           });
         }
 
+        const subCourse = await SubCourse.create({
+          courseId: course.dataValues.id,
+          subCourseCode: `${course.dataValues.courseCode}-S1`,
+          teacherId: selectedTeacher.dataValues.id,
+          academicYear: course.dataValues.academicYear,
+          status: Status.Active,
+        } as CreateSubCourseInput);
+
         // 创建班级
-        const className = `${course.courseName}-${getRandomInt(1, 5)}班`;
-        const classCode = `${course.courseCode}-CL${getRandomInt(1, 5)}`;
+        const className = `${course.dataValues.courseName}-${getRandomInt(1, 5)}班`;
         const classInstance = await Class.create({
-          courseId: course.id,
+          courseId: course.dataValues.id,
           className,
-          classCode,
-          teacherId: selectedTeacher?.id,
-          semester: course.semester,
-          academicYear: course.academicYear,
+          teacherId: selectedTeacher.dataValues.id,
+          semester: course.dataValues.semester,
+          academicYear: course.dataValues.academicYear,
           maxStudents: getRandomInt(30, 60),
-          startTime: '09:00:00',
-          endTime: '10:40:00',
-          weekday: 'Monday',
-          location: `教室${getRandomInt(1, 5)}`,
-          totalStudents: 0,
           status: Status.Active,
         } as ClassCreationAttributes);
 
-        return { course, classInstance, teacher: selectedTeacher };
+        return { course, classInstance, teacher: selectedTeacher, subCourse };
       })
     );
 
     const courses = coursesAndClasses.map(item => item.course);
     const classes = coursesAndClasses.map(item => item.classInstance);
+    const subCourses = coursesAndClasses.map(item => item.subCourse);
 
     console.log('课程和班级创建完成');
 
     // 创建时间槽
-    // 暂时注释掉时间槽创建以避免类型错误
-    // const timeSlotPromises = courses.map(async course => {
-    //   const weekDays = [1, 2, 3, 4, 5]; // 使用数字表示星期几，而不是WeekDay枚举值
-    //   const startTimes = ['08:00', '09:50', '14:00', '15:50', '19:00'];
-    //   const endTimes = ['09:40', '11:30', '15:40', '17:30', '20:40'];
-    //   const locations = ['A101', 'A102', 'B201', 'B202', 'C301', 'C302'];
+    const timeSlotPromises = subCourses.map(async subCourse => {
+      const weekDays = [1, 2, 3, 4, 5]; // 使用数字表示星期几，而不是WeekDay枚举值
+      const startTimes = ['08:00', '09:50', '14:00', '15:50', '19:00'];
+      const endTimes = ['09:40', '11:30', '15:40', '17:30', '20:40'];
+      const locations = ['A101', 'A102', 'B201', 'B202', 'C301', 'C302'];
 
-    //   const weekDay = getRandomElement(weekDays);
-    //   const timeIndex = getRandomInt(0, 4);
+      const weekDay = getRandomElement(weekDays);
+      const timeIndex = getRandomInt(0, 4);
 
-    //   const timeSlot = await TimeSlot.create({
-    //     courseId: course.id,
-    //     weekDay,
-    //     startTime: startTimes[timeIndex],
-    //     endTime: endTimes[timeIndex],
-    //     location: getRandomElement(locations),
-    //     frequency: 1,
-    //   } as TimeSlotCreationAttributes);
-    //   return timeSlot;
-    // });
-    // await Promise.all(timeSlotPromises);
-    console.log('时间槽创建已跳过以避免类型错误');
+      const timeSlot = await TimeSlot.create({
+        subCourseId: subCourse.dataValues.id,
+        weekday: weekDay,
+        startTime: startTimes[timeIndex],
+        endTime: endTimes[timeIndex],
+        location: getRandomElement(locations),
+        status: Status.Active,
+      } as CreateTimeSlotInput);
+      return timeSlot;
+    });
+    await Promise.all(timeSlotPromises);
+    console.log('时间槽创建完成');
 
     // 创建学生数据
     const studentUsers = await Promise.all(
@@ -797,7 +724,7 @@ async function generateSeedData(): Promise<void> {
           username: `student${(1000 + index + 1).toString().padStart(4, '0')}`,
           password: hashedPassword,
           realName,
-          studentId: `S${(2023000000 + index + 1).toString().substring(2)}`,
+          studentId: (2023000000 + index + 1).toString().substring(2),
           enrollmentYear: 2023,
           major: getRandomElement(MAJORS),
           status: Status.Active,
@@ -808,11 +735,11 @@ async function generateSeedData(): Promise<void> {
         } as UserCreationAttributes);
 
         // 关联学生角色
-        await UserRole.create({ userId: user.id, roleId: studentRole.id });
+        await UserRole.create({ userId: user.dataValues.id, roleId: studentRole.dataValues.id });
 
         // 随机分配到一个班级
         const randomClass = getRandomElement(classes);
-        await UserClass.create({ userId: user.id, classId: randomClass.id });
+        await UserClass.create({ userId: user.dataValues.id, classId: randomClass.dataValues.id });
 
         return user;
       })
@@ -830,22 +757,22 @@ async function generateSeedData(): Promise<void> {
       if (course) {
         const eligibleStudents = studentUsers.filter(
           student =>
-            course.availableMajors.includes(student.major) &&
+            course.dataValues.availableMajors.includes(student.major) &&
             ((student.enrollmentYear === currentYear &&
-              (course.semester === 1 || course.semester === 2)) ||
+              (course.dataValues.semester === 1 || course.dataValues.semester === 2)) ||
               (student.enrollmentYear === currentYear - 1 &&
-                (course.semester === 3 || course.semester === 4)) ||
+                (course.dataValues.semester === 3 || course.dataValues.semester === 4)) ||
               (student.enrollmentYear === currentYear - 2 &&
-                (course.semester === 5 || course.semester === 6)) ||
+                (course.dataValues.semester === 5 || course.dataValues.semester === 6)) ||
               (student.enrollmentYear === currentYear - 3 &&
-                (course.semester === 7 || course.semester === 8)))
+                (course.dataValues.semester === 7 || course.dataValues.semester === 8)))
         );
 
         const selectedStudents = getRandomSubarray(eligibleStudents, getRandomInt(10, 30));
         for (const student of selectedStudents) {
           await UserClass.create({
-            userId: student.id,
-            classId: classInstance.id,
+            userId: student.dataValues.id,
+            classId: classInstance.dataValues.id,
           });
         }
       }
@@ -865,7 +792,7 @@ async function generateSeedData(): Promise<void> {
       endTime.setHours(endTime.getHours() + 2);
 
       const task = await AttendanceTask.create({
-        classId: classInstance.id,
+        classId: classInstance.dataValues.id,
         taskName: `考勤任务${i + 1}`,
         taskType: getRandomElement(['课堂考勤', '实验考勤', '作业考勤']),
         startTime,
@@ -874,10 +801,12 @@ async function generateSeedData(): Promise<void> {
       } as AttendanceTaskCreationAttributes);
 
       // 查找该班级的学生
-      const userClasses = await UserClass.findAll({ where: { classId: classInstance.id } });
+      const userClasses = await UserClass.findAll({
+        where: { classId: classInstance.dataValues.id },
+      });
       const enrolledStudentIds = userClasses.map(uc => uc.userId);
       const enrolledStudents = studentUsers.filter(student =>
-        enrolledStudentIds.includes(student.id)
+        enrolledStudentIds.includes(student.dataValues.id)
       );
 
       // 为部分学生生成考勤记录，但要确保enrolledStudents不为空
@@ -890,8 +819,8 @@ async function generateSeedData(): Promise<void> {
       // 为出席的学生创建记录
       for (const student of presentStudents) {
         await AttendanceRecord.create({
-          attendanceTaskId: task.id,
-          userId: student.id,
+          attendanceTaskId: task.dataValues.id,
+          userId: student.dataValues.id,
           status: getRandomElement(['present', 'late', 'absent']),
           remark: getRandomElement(['正常出勤', '迟到5分钟', '请假', '']),
         } as AttendanceRecordCreationAttributes);
@@ -903,6 +832,8 @@ async function generateSeedData(): Promise<void> {
     console.log('种子数据生成完成');
   } catch (error) {
     console.error('生成种子数据时出错:', error);
+    await sequelize.close();
+    process.exit(1);
   } finally {
     await sequelize.close();
     console.log('数据库连接已关闭');

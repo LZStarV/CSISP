@@ -434,11 +434,11 @@ fi
 
 # 运行种子数据脚本
 log_info "生成种子数据..."
-(cd apps/backend && node scripts/seed_data.js)
+(cd apps/backend && pnpm exec tsx scripts/seed_data.ts)
 
 if [ $? -ne 0 ]; then
     log_error "种子数据生成失败"
-    log_warning "请检查seed_data.js脚本内容和数据库连接"
+    log_warning "请检查seed_data.ts脚本内容和数据库连接"
     exit 1
 fi
 
@@ -479,7 +479,7 @@ echo "   • 目录结构创建"
 echo -e "\n${BLUE}📚 文档位置:${NC}"
 echo "   • 后端设计文档: docs/project/后端设计文档.md"
 echo "   • 数据库设计文档: docs/project/数据库设计文档.md"
-echo "   • 种子数据脚本: apps/backend/scripts/seed_data.js"
+echo "   • 种子数据脚本: apps/backend/scripts/seed_data.ts"
 
 echo -e "\n${BLUE}🔧 常用命令:${NC}"
 echo "   • 启动开发服务器: pnpm dev"
@@ -489,7 +489,7 @@ echo "   • 停止服务: docker-compose down"
 echo -e "\n${YELLOW}💡 如果需要重新生成数据:${NC}"
 echo "   pnpm sequelize-cli db:migrate:undo:all"
 echo "   pnpm sequelize-cli db:migrate"
-echo "   node apps/backend/scripts/seed_data.js"
+echo "   pnpm exec tsx apps/backend/scripts/seed_data.ts"
 
 # 显示额外的提示信息
 echo -e "\n${YELLOW}ℹ️  注意事项:${NC}"
@@ -507,3 +507,23 @@ if ! groups $USER | grep -q "docker"; then
 fi
 
 echo -e "\n${GREEN}✨ 初始化脚本执行完毕！${NC}"
+
+# 询问是否立即启动后端服务
+echo -e "\n${BLUE}🚀 是否立即启动后端服务？${NC}"
+read -p "启动服务将占用终端窗口，确定要现在启动吗？(y/N) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    log_info "正在启动后端服务..."
+    # 调用启动脚本
+    if [ -f "$SCRIPT_DIR/start_backend_linux.sh" ]; then
+        bash "$SCRIPT_DIR/start_backend_linux.sh"
+    else
+        log_warning "未找到启动脚本，请手动执行："
+        log_info "  cd apps/backend && pnpm dev"
+    fi
+else
+    log_info "您可以在任何时候使用以下命令启动后端服务："
+    log_info "  cd apps/backend && pnpm dev"
+    log_info "或者使用启动脚本："
+    log_info "  bash apps/backend/scripts/start_backend_linux.sh"
+fi

@@ -1,10 +1,8 @@
 import { defineConfig } from 'vitepress';
-// import { MermaidPlugin } from 'vitepress-plugin-mermaid';
 
 export default defineConfig({
   title: 'CSISP 项目文档中心',
   vite: {
-    // plugins: [MermaidPlugin()],
     server: {
       port: 8173,
     },

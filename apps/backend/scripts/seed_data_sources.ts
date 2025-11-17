@@ -1,6 +1,3 @@
-// 种子数据源文件
-import { Status, WeekDay, AttendanceStatus } from '@csisp/types';
-
 // 姓氏数组
 export const FIRST_NAMES = [
   '张',
@@ -130,7 +127,7 @@ export interface CourseDataItem {
   description: string;
   credit: number;
   availableMajors: string[];
-  status: Status;
+  status: number;
 }
 
 // 教师数据类型定义
@@ -140,7 +137,7 @@ export interface TeacherDataItem {
   phone: string;
   department: string;
   userId?: number | null;
-  status: Status;
+  status: number;
 }
 
 export const COURSE_DATA: CourseDataItem[] = [
@@ -152,7 +149,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '高等数学基础课程',
     credit: 5,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '程序设计基础',
@@ -162,7 +159,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '计算机编程入门课程',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '大学英语(1)',
@@ -172,7 +169,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '大学英语基础课程',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '思想道德修养与法律基础',
@@ -182,7 +179,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '思想政治教育课程',
     credit: 3,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '体育(1)',
@@ -192,7 +189,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '体育基础课程',
     credit: 2,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '高等数学A(2)',
@@ -202,7 +199,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '高等数学进阶课程',
     credit: 5,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '数据结构',
@@ -212,7 +209,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '数据结构与算法课程',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '大学英语(2)',
@@ -222,7 +219,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '大学英语进阶课程',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '中国近现代史纲要',
@@ -232,7 +229,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '中国近现代历史课程',
     credit: 2,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '体育(2)',
@@ -242,7 +239,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '体育进阶课程',
     credit: 2,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '高等数学B(1)',
@@ -252,7 +249,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '高等数学应用课程',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '计算机组成原理',
@@ -262,7 +259,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '计算机硬件基础课程',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '离散数学',
@@ -272,7 +269,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '离散数学理论课程',
     credit: 3,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '大学英语(3)',
@@ -282,7 +279,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '大学英语高级课程',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '马克思主义基本原理',
@@ -292,7 +289,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '马克思主义理论课程',
     credit: 3,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '高等数学B(2)',
@@ -302,7 +299,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '高等数学高级应用课程',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '操作系统',
@@ -312,7 +309,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '操作系统原理与实现',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '数据库系统原理',
@@ -322,7 +319,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '数据库设计与实现课程',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '大学英语(4)',
@@ -332,7 +329,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '专业英语课程',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '毛泽东思想和中国特色社会主义理论体系概论',
@@ -342,7 +339,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '中国特色社会主义理论课程',
     credit: 3,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '计算机网络',
@@ -352,7 +349,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '计算机网络原理与技术',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '软件工程',
@@ -362,7 +359,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '软件工程方法与实践',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '网络安全',
@@ -372,7 +369,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '网络安全原理与技术',
     credit: 4,
     availableMajors: ['计算机科学与技术', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '数字逻辑',
@@ -382,7 +379,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '数字电路与逻辑设计',
     credit: 3,
     availableMajors: ['计算机科学与技术', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '人工智能导论',
@@ -392,7 +389,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '人工智能基础理论与应用',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '编译原理',
@@ -402,7 +399,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '编译器设计原理与实现',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: 'Web前端开发',
@@ -412,7 +409,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '现代Web前端技术',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '云计算技术',
@@ -422,7 +419,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '云计算原理与实践',
     credit: 4,
     availableMajors: ['计算机科学与技术', '网络工程'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '计算机图形学',
@@ -432,7 +429,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '计算机图形学原理与应用',
     credit: 3,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）'],
-    status: Status.Active,
+    status: 1,
   },
   {
     name: '数据分析',
@@ -442,7 +439,7 @@ export const COURSE_DATA: CourseDataItem[] = [
     description: '大数据分析方法与技术',
     credit: 4,
     availableMajors: ['计算机科学与技术', '计算机科学与技术（师范）'],
-    status: Status.Active,
+    status: 1,
   },
 ];
 
@@ -453,69 +450,69 @@ export const TEACHERS: TeacherDataItem[] = [
     email: 'zhang@cs.edu.cn',
     phone: '13800138011',
     department: '计算机科学与技术系',
-    status: Status.Active,
+    status: 1,
   },
   {
     realName: '李教授',
     email: 'li@cs.edu.cn',
     phone: '13800138012',
     department: '计算机科学与技术系',
-    status: Status.Active,
+    status: 1,
   },
   {
     realName: '王教授',
     email: 'wang@cs.edu.cn',
     phone: '13800138013',
     department: '计算机科学与技术系',
-    status: Status.Active,
+    status: 1,
   },
   {
     realName: '刘教授',
     email: 'liu@cs.edu.cn',
     phone: '13800138014',
     department: '计算机科学与技术系',
-    status: Status.Active,
+    status: 1,
   },
   {
     realName: '陈教授',
     email: 'chen@cs.edu.cn',
     phone: '13800138015',
     department: '计算机科学与技术系',
-    status: Status.Active,
+    status: 1,
   },
   {
     realName: '赵教授',
     email: 'zhao@cs.edu.cn',
     phone: '13800138016',
     department: '网络工程系',
-    status: Status.Active,
+    status: 1,
   },
   {
     realName: '钱教授',
     email: 'qian@cs.edu.cn',
     phone: '13800138017',
     department: '网络工程系',
-    status: Status.Active,
+    status: 1,
   },
   {
     realName: '孙教授',
     email: 'sun@cs.edu.cn',
     phone: '13800138018',
     department: '网络工程系',
-    status: Status.Active,
+    status: 1,
   },
   {
     realName: '周教授',
     email: 'zhou@cs.edu.cn',
     phone: '13800138019',
     department: '师范教育系',
-    status: Status.Active,
+    status: 1,
   },
   {
     realName: '吴教授',
     email: 'wu@cs.edu.cn',
     phone: '13800138020',
     department: '师范教育系',
-    status: Status.Active,
+    status: 1,
   },
 ];
