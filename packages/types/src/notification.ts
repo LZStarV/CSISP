@@ -1,5 +1,5 @@
 // 通知相关类型定义
-import { Timestamp } from './base';
+import type { Timestamp } from './base';
 
 /**
  * 通知基础信息

@@ -62,7 +62,11 @@
     >
       <template #toolbar-left>
         <n-space>
-          <n-button type="warning" :disabled="selectedRowKeys.length === 0" @click="handleBatchAbsent">
+          <n-button
+            type="warning"
+            :disabled="selectedRowKeys.length === 0"
+            @click="handleBatchAbsent"
+          >
             <template #icon>
               <n-icon><close-circle-outline /></n-icon>
             </template>
@@ -91,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, h } from 'vue';
 import { useMessage } from 'naive-ui';
 import {
   CheckmarkCircleOutline,
@@ -101,6 +105,7 @@ import {
 } from '@vicons/ionicons5';
 import { BaseTable, BaseSearch, PageContainer } from '@/components';
 import type { TableColumn, SearchField } from '@/types';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 // 状态管理
 const message = useMessage();
@@ -242,13 +247,13 @@ const columns: TableColumn[] = [
     width: 80,
     render: (value: number) => {
       const statusMap = {
-        0: { label: '缺勤', type: 'error' },
-        1: { label: '出勤', type: 'success' },
-        2: { label: '请假', type: 'warning' },
-        3: { label: '迟到', type: 'info' },
+        0: { label: '缺勤', type: 'error' as const },
+        1: { label: '出勤', type: 'success' as const },
+        2: { label: '请假', type: 'warning' as const },
+        3: { label: '迟到', type: 'info' as const },
       };
       const status = statusMap[value as keyof typeof statusMap];
-      return <n-tag type={status.type} size="small">{status.label}</n-tag>;
+      return h(NTag, { type: status.type, size: 'small' }, { default: () => status.label });
     },
   },
   {
@@ -266,41 +271,51 @@ const columns: TableColumn[] = [
     title: '操作',
     width: 120,
     render: (value: any, record: any) => {
-      return (
-        <n-space>
-          <n-button 
-            type="primary" 
-            size="small" 
-            quaternary
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </n-button>
-          <n-popconfirm
-            onPositiveClick={() => handleDelete(record)}
-            positive-text="确定"
-            negative-text="取消"
-          >
-            {{
-              trigger: () => (
-                <n-button type="error" size="small" quaternary>
-                  删除
-                </n-button>
-              ),
-              default: () => '确定要删除该考勤记录吗？',
-            }}
-          </n-popconfirm>
-        </n-space>
+      return h(
+        NSpace,
+        {},
+        {
+          default: () => [
+            h(
+              NButton,
+              {
+                type: 'primary',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleEdit(record),
+              },
+              { default: () => '编辑' }
+            ),
+            h(
+              NPopconfirm,
+              {
+                onPositiveClick: () => handleDelete(record),
+                positiveText: '确定',
+                negativeText: '取消',
+              },
+              {
+                trigger: () =>
+                  h(
+                    NButton,
+                    {
+                      type: 'error',
+                      size: 'small',
+                      quaternary: true,
+                    },
+                    { default: () => '删除' }
+                  ),
+                default: () => '确定要删除该考勤记录吗？',
+              }
+            ),
+          ],
+        }
       );
     },
   },
 ];
 
 // 面包屑
-const breadcrumbs = computed(() => [
-  { label: '首页', path: '/' },
-  { label: '考勤管理' },
-]);
+const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '考勤管理' }]);
 
 const pagination = computed(() => ({
   current: 1,
@@ -317,7 +332,7 @@ const handleSearch = async () => {
     // 模拟搜索逻辑
     await new Promise(resolve => setTimeout(resolve, 500));
     message.success('搜索完成');
-  } catch (error) {
+  } catch {
     message.error('搜索失败');
   } finally {
     loading.value = false;

@@ -1,0 +1,26 @@
+# 忽略构建产物
+**/dist/**
+**/build/**
+**/node_modules/**
+
+# 忽略临时文件
+**/.temp/**
+**/.cache/**
+**/.vitepress/cache/**
+
+# 忽略特定文件类型
+*.min.css
+*.min.scss
+
+# 忽略测试和文档
+tests/**
+docs/**
+
+# 忽略后端代码
+apps/backend/**
+
+# 忽略配置文件
+*.config.js
+*.config.ts
+vite.config.ts
+tsconfig*.json

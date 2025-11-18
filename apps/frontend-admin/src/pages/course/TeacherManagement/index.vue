@@ -39,12 +39,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, h } from 'vue';
 import { useMessage } from 'naive-ui';
 import { AddOutline } from '@vicons/ionicons5';
 import { BaseTable, BaseModal, BaseForm } from '@/components';
 import { useCourseStore } from '@/stores';
 import type { Teacher, TableColumn, FormField } from '@/types';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 interface Props {
   courseId?: number;
@@ -137,16 +138,12 @@ const formFields: FormField[] = [
 ];
 
 const formRules = {
-  userId: [
-    { required: true, type: 'number', message: '请选择关联用户' },
-  ],
+  userId: [{ required: true, type: 'number', message: '请选择关联用户' }],
   teacherId: [
     { required: true, message: '请输入教师工号' },
     { pattern: /^\d{11}$/, message: '工号应为11位数字' },
   ],
-  realName: [
-    { required: true, message: '请输入真实姓名' },
-  ],
+  realName: [{ required: true, message: '请输入真实姓名' }],
   email: [
     { required: true, message: '请输入邮箱地址' },
     { type: 'email', message: '请输入有效的邮箱地址' },
@@ -155,12 +152,8 @@ const formRules = {
     { required: true, message: '请输入手机号' },
     { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' },
   ],
-  department: [
-    { required: true, message: '请输入所属部门' },
-  ],
-  title: [
-    { required: true, message: '请输入职称' },
-  ],
+  department: [{ required: true, message: '请输入所属部门' }],
+  title: [{ required: true, message: '请输入职称' }],
 };
 
 // 表格列配置
@@ -207,9 +200,9 @@ const columns: TableColumn<Teacher>[] = [
     title: '状态',
     width: 80,
     render: (value: number) => {
-      return value === 1 
-        ? <n-tag type="success" size="small">启用</n-tag>
-        : <n-tag type="error" size="small">禁用</n-tag>;
+      return value === 1
+        ? h(NTag, { type: 'success' as any, size: 'small' }, { default: () => '启用' })
+        : h(NTag, { type: 'error' as any, size: 'small' }, { default: () => '禁用' });
     },
   },
   {
@@ -225,31 +218,44 @@ const columns: TableColumn<Teacher>[] = [
     title: '操作',
     width: 150,
     render: (value: any, record: Teacher) => {
-      return (
-        <n-space>
-          <n-button 
-            type="primary" 
-            size="small" 
-            quaternary
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </n-button>
-          <n-popconfirm
-            onPositiveClick={() => handleDelete(record)}
-            positive-text="确定"
-            negative-text="取消"
-          >
-            {{
-              trigger: () => (
-                <n-button type="error" size="small" quaternary>
-                  删除
-                </n-button>
-              ),
-              default: () => '确定要删除该教师吗？',
-            }}
-          </n-popconfirm>
-        </n-space>
+      return h(
+        NSpace,
+        {},
+        {
+          default: () => [
+            h(
+              NButton,
+              {
+                type: 'primary',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleEdit(record),
+              },
+              { default: () => '编辑' }
+            ),
+            h(
+              NPopconfirm,
+              {
+                onPositiveClick: () => handleDelete(record),
+                positiveText: '确定',
+                negativeText: '取消',
+              },
+              {
+                trigger: () =>
+                  h(
+                    NButton,
+                    {
+                      type: 'error',
+                      size: 'small',
+                      quaternary: true,
+                    },
+                    { default: () => '删除' }
+                  ),
+                default: () => '确定要删除该教师吗？',
+              }
+            ),
+          ],
+        }
       );
     },
   },
@@ -288,7 +294,11 @@ const handleEdit = (teacher: Teacher) => {
 
 const handleSubmit = async () => {
   try {
-    await courseStore.createTeacher(formModel);
+    const teacherData = {
+      ...formModel,
+      userId: formModel.userId || undefined,
+    };
+    await courseStore.createTeacher(teacherData);
     message.success('添加教师成功');
     showModal.value = false;
     // 刷新教师列表

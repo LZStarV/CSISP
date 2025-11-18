@@ -7,7 +7,7 @@ import type {
   Permission,
   PaginationResponse,
   ApiResponse,
-} from '@/types';
+} from '@csisp/types';
 
 export const authApi = {
   // 用户登录

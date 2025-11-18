@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { CourseState, Course, Class, Teacher, TimeSlot } from '@/types';
 import { courseApi } from '@/api';
-import { useMessage } from 'naive-ui';
 
 export const useCourseStore = defineStore('course', () => {
   const state = ref<CourseState>({
@@ -13,17 +12,14 @@ export const useCourseStore = defineStore('course', () => {
     loading: false,
   });
 
-  const message = useMessage();
-
   // 课程管理
   const getCourses = async (params?: any) => {
     state.value.loading = true;
     try {
       const response = await courseApi.getCourses(params);
-      state.value.courses = response.data.data;
+      state.value.courses = response.data?.data || [];
       return response.data;
-    } catch (error) {
-      message.error('获取课程列表失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -34,11 +30,11 @@ export const useCourseStore = defineStore('course', () => {
     state.value.loading = true;
     try {
       const response = await courseApi.createCourse(courseData);
-      state.value.courses.unshift(response.data);
-      message.success('创建课程成功');
+      if (response.data) {
+        state.value.courses.unshift(response.data);
+      }
       return response.data;
-    } catch (error) {
-      message.error('创建课程失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -50,13 +46,11 @@ export const useCourseStore = defineStore('course', () => {
     try {
       const response = await courseApi.updateCourse(id, courseData);
       const index = state.value.courses.findIndex(c => c.id === id);
-      if (index !== -1) {
+      if (index !== -1 && response.data) {
         state.value.courses[index] = { ...state.value.courses[index], ...response.data };
       }
-      message.success('更新课程成功');
       return response.data;
-    } catch (error) {
-      message.error('更新课程失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -71,9 +65,7 @@ export const useCourseStore = defineStore('course', () => {
       if (index !== -1) {
         state.value.courses.splice(index, 1);
       }
-      message.success('删除课程成功');
-    } catch (error) {
-      message.error('删除课程失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -85,10 +77,9 @@ export const useCourseStore = defineStore('course', () => {
     state.value.loading = true;
     try {
       const response = await courseApi.getClasses(params);
-      state.value.classes = response.data.data;
+      state.value.classes = response.data?.data || [];
       return response.data;
-    } catch (error) {
-      message.error('获取班级列表失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -99,11 +90,11 @@ export const useCourseStore = defineStore('course', () => {
     state.value.loading = true;
     try {
       const response = await courseApi.createClass(classData);
-      state.value.classes.unshift(response.data);
-      message.success('创建班级成功');
+      if (response.data) {
+        state.value.classes.unshift(response.data);
+      }
       return response.data;
-    } catch (error) {
-      message.error('创建班级失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -115,13 +106,11 @@ export const useCourseStore = defineStore('course', () => {
     try {
       const response = await courseApi.updateClass(id, classData);
       const index = state.value.classes.findIndex(c => c.id === id);
-      if (index !== -1) {
+      if (index !== -1 && response.data) {
         state.value.classes[index] = { ...state.value.classes[index], ...response.data };
       }
-      message.success('更新班级成功');
       return response.data;
-    } catch (error) {
-      message.error('更新班级失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -136,9 +125,7 @@ export const useCourseStore = defineStore('course', () => {
       if (index !== -1) {
         state.value.classes.splice(index, 1);
       }
-      message.success('删除班级成功');
-    } catch (error) {
-      message.error('删除班级失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -150,10 +137,9 @@ export const useCourseStore = defineStore('course', () => {
     state.value.loading = true;
     try {
       const response = await courseApi.getTeachers(params);
-      state.value.teachers = response.data.data;
+      state.value.teachers = response.data?.data || [];
       return response.data;
-    } catch (error) {
-      message.error('获取教师列表失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -164,11 +150,11 @@ export const useCourseStore = defineStore('course', () => {
     state.value.loading = true;
     try {
       const response = await courseApi.createTeacher(teacherData);
-      state.value.teachers.unshift(response.data);
-      message.success('创建教师成功');
+      if (response.data) {
+        state.value.teachers.unshift(response.data);
+      }
       return response.data;
-    } catch (error) {
-      message.error('创建教师失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -180,13 +166,11 @@ export const useCourseStore = defineStore('course', () => {
     try {
       const response = await courseApi.updateTeacher(id, teacherData);
       const index = state.value.teachers.findIndex(t => t.id === id);
-      if (index !== -1) {
+      if (index !== -1 && response.data) {
         state.value.teachers[index] = { ...state.value.teachers[index], ...response.data };
       }
-      message.success('更新教师成功');
       return response.data;
-    } catch (error) {
-      message.error('更新教师失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -201,9 +185,67 @@ export const useCourseStore = defineStore('course', () => {
       if (index !== -1) {
         state.value.teachers.splice(index, 1);
       }
-      message.success('删除教师成功');
-    } catch (error) {
-      message.error('删除教师失败');
+    } catch {
+      throw error;
+    } finally {
+      state.value.loading = false;
+    }
+  };
+
+  // 时间安排管理
+  const getTimeSlots = async (params?: any) => {
+    state.value.loading = true;
+    try {
+      const response = await courseApi.getTimeSlots(params);
+      state.value.timeSlots = response.data?.data || [];
+      return response.data;
+    } catch {
+      throw error;
+    } finally {
+      state.value.loading = false;
+    }
+  };
+
+  const createTimeSlot = async (timeSlotData: Partial<TimeSlot>) => {
+    state.value.loading = true;
+    try {
+      const response = await courseApi.createTimeSlot(timeSlotData);
+      if (response.data) {
+        state.value.timeSlots.unshift(response.data);
+      }
+      return response.data;
+    } catch {
+      throw error;
+    } finally {
+      state.value.loading = false;
+    }
+  };
+
+  const updateTimeSlot = async (id: number, timeSlotData: Partial<TimeSlot>) => {
+    state.value.loading = true;
+    try {
+      const response = await courseApi.updateTimeSlot(id, timeSlotData);
+      const index = state.value.timeSlots.findIndex(t => t.id === id);
+      if (index !== -1 && response.data) {
+        state.value.timeSlots[index] = { ...state.value.timeSlots[index], ...response.data };
+      }
+      return response.data;
+    } catch {
+      throw error;
+    } finally {
+      state.value.loading = false;
+    }
+  };
+
+  const deleteTimeSlot = async (id: number) => {
+    state.value.loading = true;
+    try {
+      await courseApi.deleteTimeSlot(id);
+      const index = state.value.timeSlots.findIndex(t => t.id === id);
+      if (index !== -1) {
+        state.value.timeSlots.splice(index, 1);
+      }
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -227,5 +269,9 @@ export const useCourseStore = defineStore('course', () => {
     createTeacher,
     updateTeacher,
     deleteTeacher,
+    getTimeSlots,
+    createTimeSlot,
+    updateTimeSlot,
+    deleteTimeSlot,
   };
 });

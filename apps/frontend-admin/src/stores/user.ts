@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, Role, Permission, LoginParams, LoginResponse, UserState } from '@/types';
 import { authApi, userApi } from '@/api';
-import { useMessage } from 'naive-ui';
 
 export const useUserStore = defineStore('user', () => {
   const state = ref<UserState>({
@@ -12,8 +11,6 @@ export const useUserStore = defineStore('user', () => {
     permissions: [],
     loading: false,
   });
-
-  const message = useMessage();
 
   // Getters
   const isLoggedIn = computed(() => !!state.value.currentUser);
@@ -29,22 +26,47 @@ export const useUserStore = defineStore('user', () => {
     state.value.loading = true;
     try {
       const response = await authApi.login(params);
-      const { token, user, roles } = response.data as LoginResponse;
+      const { token, user, roles } = response.data || {};
+
+      if (!token || !user) {
+        throw new Error('登录响应数据不完整');
+      }
 
       // 保存token
       localStorage.setItem('token', token);
 
       // 设置当前用户
       state.value.currentUser = user;
-      state.value.roles = roles;
+
+      // 转换角色数据格式
+      if (roles && Array.isArray(roles)) {
+        // 如果roles是字符串数组(UserRoleType[])，需要转换为Role对象数组
+        state.value.roles = roles.map((role: any) => {
+          if (typeof role === 'string') {
+            // 根据角色代码创建Role对象
+            return {
+              id: 0, // 临时ID
+              name: role === 'admin' ? '管理员' : role === 'teacher' ? '教师' : '学生',
+              code: role,
+              description: `${role}角色`,
+              status: 1,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+          }
+          return role;
+        });
+      } else {
+        state.value.roles = [];
+      }
 
       // 获取用户权限
-      await getUserPermissions(user.id);
+      if (user?.id) {
+        await getUserPermissions(user.id);
+      }
 
-      message.success('登录成功');
       return response;
-    } catch (error) {
-      message.error('登录失败，请检查用户名和密码');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -54,7 +76,7 @@ export const useUserStore = defineStore('user', () => {
   const logout = async () => {
     try {
       await authApi.logout();
-    } catch (error) {
+    } catch {
       console.error('Logout error:', error);
     } finally {
       // 清除本地数据
@@ -62,8 +84,6 @@ export const useUserStore = defineStore('user', () => {
       state.value.currentUser = null;
       state.value.roles = [];
       state.value.permissions = [];
-
-      message.success('退出登录成功');
     }
   };
 
@@ -74,13 +94,38 @@ export const useUserStore = defineStore('user', () => {
     state.value.loading = true;
     try {
       const response = await authApi.getUserInfo();
-      const { user, roles } = response.data;
+      const { user, roles } = response.data || {};
 
-      state.value.currentUser = user;
-      state.value.roles = roles;
+      if (user) {
+        state.value.currentUser = user;
 
-      await getUserPermissions(user.id);
-    } catch (error) {
+        // 转换角色数据格式
+        if (roles && Array.isArray(roles)) {
+          // 如果roles是字符串数组(UserRoleType[])，需要转换为Role对象数组
+          state.value.roles = roles.map((role: any) => {
+            if (typeof role === 'string') {
+              // 根据角色代码创建Role对象
+              return {
+                id: 0, // 临时ID
+                name: role === 'admin' ? '管理员' : role === 'teacher' ? '教师' : '学生',
+                code: role,
+                description: `${role}角色`,
+                status: 1,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
+            }
+            return role;
+          });
+        } else {
+          state.value.roles = [];
+        }
+
+        if (user.id) {
+          await getUserPermissions(user.id);
+        }
+      }
+    } catch {
       console.error('Get user info error:', error);
       // Token 无效，清除登录状态
       localStorage.removeItem('token');
@@ -92,9 +137,9 @@ export const useUserStore = defineStore('user', () => {
   const getUserPermissions = async (userId: number) => {
     try {
       const response = await userApi.getUserPermissions(userId);
-      state.value.permissions = response.data;
-    } catch (error) {
-      console.error('Get user permissions error:', error);
+      state.value.permissions = response.data || [];
+    } catch {
+      console.error('Get user permissions error', error);
     }
   };
 
@@ -103,10 +148,9 @@ export const useUserStore = defineStore('user', () => {
     state.value.loading = true;
     try {
       const response = await userApi.getUsers(params);
-      state.value.users = response.data.data;
+      state.value.users = response.data?.data || [];
       return response.data;
-    } catch (error) {
-      message.error('获取用户列表失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -117,11 +161,11 @@ export const useUserStore = defineStore('user', () => {
     state.value.loading = true;
     try {
       const response = await userApi.createUser(userData);
-      state.value.users.unshift(response.data);
-      message.success('创建用户成功');
+      if (response.data) {
+        state.value.users.unshift(response.data);
+      }
       return response.data;
-    } catch (error) {
-      message.error('创建用户失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -133,13 +177,11 @@ export const useUserStore = defineStore('user', () => {
     try {
       const response = await userApi.updateUser(id, userData);
       const index = state.value.users.findIndex(u => u.id === id);
-      if (index !== -1) {
+      if (index !== -1 && response.data) {
         state.value.users[index] = { ...state.value.users[index], ...response.data };
       }
-      message.success('更新用户成功');
       return response.data;
-    } catch (error) {
-      message.error('更新用户失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -154,9 +196,7 @@ export const useUserStore = defineStore('user', () => {
       if (index !== -1) {
         state.value.users.splice(index, 1);
       }
-      message.success('删除用户成功');
-    } catch (error) {
-      message.error('删除用户失败');
+    } catch {
       throw error;
     } finally {
       state.value.loading = false;
@@ -167,10 +207,9 @@ export const useUserStore = defineStore('user', () => {
   const getRoles = async () => {
     try {
       const response = await userApi.getRoles();
-      state.value.roles = response.data;
+      state.value.roles = response.data || [];
       return response.data;
-    } catch (error) {
-      message.error('获取角色列表失败');
+    } catch {
       throw error;
     }
   };
@@ -178,11 +217,11 @@ export const useUserStore = defineStore('user', () => {
   const createRole = async (roleData: Partial<Role>) => {
     try {
       const response = await userApi.createRole(roleData);
-      state.value.roles.push(response.data);
-      message.success('创建角色成功');
+      if (response.data) {
+        state.value.roles.push(response.data);
+      }
       return response.data;
-    } catch (error) {
-      message.error('创建角色失败');
+    } catch {
       throw error;
     }
   };
@@ -191,13 +230,11 @@ export const useUserStore = defineStore('user', () => {
     try {
       const response = await userApi.updateRole(id, roleData);
       const index = state.value.roles.findIndex(r => r.id === id);
-      if (index !== -1) {
+      if (index !== -1 && response.data) {
         state.value.roles[index] = { ...state.value.roles[index], ...response.data };
       }
-      message.success('更新角色成功');
       return response.data;
-    } catch (error) {
-      message.error('更新角色失败');
+    } catch {
       throw error;
     }
   };
@@ -209,9 +246,7 @@ export const useUserStore = defineStore('user', () => {
       if (index !== -1) {
         state.value.roles.splice(index, 1);
       }
-      message.success('删除角色成功');
-    } catch (error) {
-      message.error('删除角色失败');
+    } catch {
       throw error;
     }
   };

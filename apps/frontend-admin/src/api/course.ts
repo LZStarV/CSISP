@@ -1,5 +1,12 @@
 import { request } from './request';
-import type { Course, Class, Teacher, TimeSlot, PaginationResponse, ApiResponse } from '@/types';
+import type {
+  Course,
+  Class,
+  Teacher,
+  TimeSlot,
+  PaginationResponse,
+  ApiResponse,
+} from '@csisp/types';
 
 export const courseApi = {
   // 课程管理

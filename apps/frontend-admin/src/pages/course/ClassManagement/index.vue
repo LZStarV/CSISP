@@ -39,12 +39,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useMessage, useDialog } from 'naive-ui';
+import { ref, reactive, computed, onMounted, h } from 'vue';
+import { useMessage } from 'naive-ui';
 import { AddOutline } from '@vicons/ionicons5';
 import { BaseTable, BaseModal, BaseForm } from '@/components';
 import { useCourseStore } from '@/stores';
 import type { Class, TableColumn, FormField } from '@/types';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 interface Props {
   courseId?: number;
@@ -57,7 +58,6 @@ const props = withDefaults(defineProps<Props>(), {
 // 状态管理
 const courseStore = useCourseStore();
 const message = useMessage();
-const dialog = useDialog();
 
 // 数据状态
 const classes = computed(() => courseStore.state.classes);
@@ -138,12 +138,8 @@ const formRules = {
     { required: true, message: '请输入班级名称' },
     { min: 2, max: 50, message: '班级名称长度应在2-50个字符之间' },
   ],
-  teacherId: [
-    { required: true, type: 'number', message: '请选择授课教师' },
-  ],
-  semester: [
-    { required: true, type: 'number', message: '请选择学期' },
-  ],
+  teacherId: [{ required: true, type: 'number', message: '请选择授课教师' }],
+  semester: [{ required: true, type: 'number', message: '请选择学期' }],
   academicYear: [
     { required: true, type: 'number', min: 2000, max: 3000, message: '请输入有效的学年' },
   ],
@@ -199,9 +195,9 @@ const columns: TableColumn<Class>[] = [
     title: '状态',
     width: 80,
     render: (value: number) => {
-      return value === 1 
-        ? <n-tag type="success" size="small">启用</n-tag>
-        : <n-tag type="error" size="small">禁用</n-tag>;
+      return value === 1
+        ? h(NTag, { type: 'success' as any, size: 'small' }, { default: () => '启用' })
+        : h(NTag, { type: 'error' as any, size: 'small' }, { default: () => '禁用' });
     },
   },
   {
@@ -217,31 +213,44 @@ const columns: TableColumn<Class>[] = [
     title: '操作',
     width: 150,
     render: (value: any, record: Class) => {
-      return (
-        <n-space>
-          <n-button 
-            type="primary" 
-            size="small" 
-            quaternary
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </n-button>
-          <n-popconfirm
-            onPositiveClick={() => handleDelete(record)}
-            positive-text="确定"
-            negative-text="取消"
-          >
-            {{
-              trigger: () => (
-                <n-button type="error" size="small" quaternary>
-                  删除
-                </n-button>
-              ),
-              default: () => '确定要删除该班级吗？',
-            }}
-          </n-popconfirm>
-        </n-space>
+      return h(
+        NSpace,
+        {},
+        {
+          default: () => [
+            h(
+              NButton,
+              {
+                type: 'primary',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleEdit(record),
+              },
+              { default: () => '编辑' }
+            ),
+            h(
+              NPopconfirm,
+              {
+                onPositiveClick: () => handleDelete(record),
+                positiveText: '确定',
+                negativeText: '取消',
+              },
+              {
+                trigger: () =>
+                  h(
+                    NButton,
+                    {
+                      type: 'error',
+                      size: 'small',
+                      quaternary: true,
+                    },
+                    { default: () => '删除' }
+                  ),
+                default: () => '确定要删除该班级吗？',
+              }
+            ),
+          ],
+        }
       );
     },
   },
@@ -260,7 +269,7 @@ const handleAddClass = () => {
   Object.assign(formModel, {
     className: '',
     courseId: props.courseId,
-    teacherId: null,
+    teacherId: undefined,
     semester: 1,
     academicYear: new Date().getFullYear(),
     maxStudents: 50,
@@ -287,11 +296,15 @@ const handleEdit = (classItem: Class) => {
 
 const handleSubmit = async () => {
   try {
+    const classData = {
+      ...formModel,
+      teacherId: formModel.teacherId || undefined,
+    };
     if (modalType.value === 'create') {
-      await courseStore.createClass(formModel);
+      await courseStore.createClass(classData);
       message.success('创建班级成功');
     } else if (currentClass.value) {
-      await courseStore.updateClass(currentClass.value.id, formModel);
+      await courseStore.updateClass(currentClass.value.id, classData);
       message.success('更新班级成功');
     }
     showModal.value = false;

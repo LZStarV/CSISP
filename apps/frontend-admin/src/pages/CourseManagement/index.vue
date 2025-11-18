@@ -34,7 +34,11 @@
     >
       <template #toolbar-left>
         <n-space>
-          <n-button type="error" :disabled="selectedRowKeys.length === 0" @click="handleBatchDelete">
+          <n-button
+            type="error"
+            :disabled="selectedRowKeys.length === 0"
+            @click="handleBatchDelete"
+          >
             <template #icon>
               <n-icon><trash-outline /></n-icon>
             </template>
@@ -73,13 +77,16 @@
           />
         </n-tab-pane>
         <n-tab-pane name="teachers" tab="授课教师">
-          <TeacherManagement :course-id="currentCourse?.id" />
+          <!-- <TeacherManagement :course-id="currentCourse?.id" /> -->
+          <div>教师管理功能开发中...</div>
         </n-tab-pane>
         <n-tab-pane name="classes" tab="班级管理">
-          <ClassManagement :course-id="currentCourse?.id" />
+          <!-- <ClassManagement :course-id="currentCourse?.id" /> -->
+          <div>班级管理功能开发中...</div>
         </n-tab-pane>
         <n-tab-pane name="schedule" tab="课程安排">
-          <ScheduleManagement :course-id="currentCourse?.id" />
+          <!-- <ScheduleManagement :course-id="currentCourse?.id" /> -->
+          <div>课程安排功能开发中...</div>
         </n-tab-pane>
       </n-tabs>
     </BaseModal>
@@ -87,17 +94,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, h } from 'vue';
 import { useMessage, useDialog } from 'naive-ui';
-import { AddOutline, TrashOutline, RefreshOutline } from '@vicons/ionicons5';
+import { RefreshOutline, AddOutline, TrashOutline, DownloadOutline } from '@vicons/ionicons5';
 import { BaseTable, BaseSearch, BaseModal, BaseForm, PageContainer } from '@/components';
 import { useCourseStore } from '@/stores';
 import type { Course, TableColumn, SearchField, FormField } from '@/types';
+import { NSpace, NButton, NPopconfirm, NTag } from 'naive-ui';
 
-// 子组件
-const TeacherManagement = defineAsyncComponent(() => import('./course/TeacherManagement.vue'));
-const ClassManagement = defineAsyncComponent(() => import('./course/ClassManagement.vue'));
-const ScheduleManagement = defineAsyncComponent(() => import('./course/ScheduleManagement.vue'));
+// 子组件 - 临时注释掉缺失的组件
+// const TeacherManagement = () => import('./components/TeacherManagement.vue');
+// const ClassManagement = () => import('./components/ClassManagement.vue');
+// const ScheduleManagement = () => import('./components/ScheduleManagement.vue');
 
 // 状态管理
 const courseStore = useCourseStore();
@@ -149,7 +157,7 @@ const searchFields: SearchField[] = [
   {
     key: 'academicYear',
     label: '学年',
-    type: 'number',
+    type: 'input',
     placeholder: '请输入学年',
   },
   {
@@ -208,9 +216,9 @@ const columns: TableColumn<Course>[] = [
     title: '状态',
     width: 80,
     render: (value: number) => {
-      return value === 1 
-        ? <n-tag type="success" size="small">启用</n-tag>
-        : <n-tag type="error" size="small">禁用</n-tag>;
+      return value === 1
+        ? h(NTag, { type: 'success' as any, size: 'small' }, { default: () => '启用' })
+        : h(NTag, { type: 'error' as any, size: 'small' }, { default: () => '禁用' });
     },
   },
   {
@@ -227,39 +235,54 @@ const columns: TableColumn<Course>[] = [
     title: '操作',
     width: 200,
     render: (value: any, record: Course) => {
-      return (
-        <n-space>
-          <n-button 
-            type="primary" 
-            size="small" 
-            quaternary
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </n-button>
-          <n-button 
-            type="info" 
-            size="small" 
-            quaternary
-            onClick={() => handleManage(record)}
-          >
-            管理
-          </n-button>
-          <n-popconfirm
-            onPositiveClick={() => handleDelete(record)}
-            positive-text="确定"
-            negative-text="取消"
-          >
-            {{
-              trigger: () => (
-                <n-button type="error" size="small" quaternary>
-                  删除
-                </n-button>
-              ),
-              default: () => '确定要删除该课程吗？此操作不可恢复。',
-            }}
-          </n-popconfirm>
-        </n-space>
+      return h(
+        NSpace,
+        {},
+        {
+          default: () => [
+            h(
+              NButton,
+              {
+                type: 'primary',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleEdit(record),
+              },
+              { default: () => '编辑' }
+            ),
+            h(
+              NButton,
+              {
+                type: 'info',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleManage(record),
+              },
+              { default: () => '管理' }
+            ),
+            h(
+              NPopconfirm,
+              {
+                onPositiveClick: () => handleDelete(record),
+                positiveText: '确定',
+                negativeText: '取消',
+              },
+              {
+                trigger: () =>
+                  h(
+                    NButton,
+                    {
+                      type: 'error',
+                      size: 'small',
+                      quaternary: true,
+                    },
+                    { default: () => '删除' }
+                  ),
+                default: () => '确定要删除该课程吗？此操作不可恢复。',
+              }
+            ),
+          ],
+        }
       );
     },
   },
@@ -326,7 +349,7 @@ const basicFormFields: FormField[] = [
       { label: '人工智能', value: '人工智能' },
       { label: '数据科学与大数据技术', value: '数据科学与大数据技术' },
     ],
-  },
+  } as any,
   {
     key: 'status',
     label: '状态',
@@ -344,15 +367,11 @@ const basicFormRules = {
     { required: true, message: '请输入课程代码' },
     { min: 3, max: 20, message: '课程代码长度应在3-20个字符之间' },
   ],
-  semester: [
-    { required: true, type: 'number', message: '请选择学期' },
-  ],
+  semester: [{ required: true, type: 'number', message: '请选择学期' }],
   academicYear: [
     { required: true, type: 'number', min: 2000, max: 3000, message: '请输入有效的学年' },
   ],
-  availableMajors: [
-    { required: true, type: 'array', min: 1, message: '请至少选择一个适用专业' },
-  ],
+  availableMajors: [{ required: true, type: 'array', min: 1, message: '请至少选择一个适用专业' }],
 };
 
 // 计算属性
@@ -360,10 +379,7 @@ const modalTitle = computed(() => {
   return modalType.value === 'create' ? '新增课程' : '编辑课程';
 });
 
-const breadcrumbs = computed(() => [
-  { label: '首页', path: '/' },
-  { label: '课程管理' },
-]);
+const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '课程管理' }]);
 
 const pagination = computed(() => ({
   current: 1,
@@ -371,8 +387,8 @@ const pagination = computed(() => ({
   total: courses.value.length,
   showSizeChanger: true,
   showQuickJumper: true,
-  onChange: (page: number, pageSize: number) => {
-    console.log('Page changed:', page, pageSize);
+  onChange: (page: number) => {
+    console.log('Page changed:', page);
   },
 }));
 

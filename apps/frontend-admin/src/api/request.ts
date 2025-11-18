@@ -3,7 +3,7 @@ import type { ApiResponse } from '@csisp/types';
 
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: (import.meta as any).env.VITE_API_BASE_URL || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -57,34 +57,24 @@ apiClient.interceptors.response.use(
 
 // API请求工具函数
 export const request = {
-  get: <T = any>(
-    url: string,
-    config?: AxiosRequestConfig
-  ): Promise<AxiosResponse<ApiResponse<T>>> => {
-    return apiClient.get(url, config);
+  get: <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
+    return apiClient.get(url, config).then(response => response.data);
   },
 
   post: <T = any>(
     url: string,
     data?: any,
     config?: AxiosRequestConfig
-  ): Promise<AxiosResponse<ApiResponse<T>>> => {
-    return apiClient.post(url, data, config);
+  ): Promise<ApiResponse<T>> => {
+    return apiClient.post(url, data, config).then(response => response.data);
   },
 
-  put: <T = any>(
-    url: string,
-    data?: any,
-    config?: AxiosRequestConfig
-  ): Promise<AxiosResponse<ApiResponse<T>>> => {
-    return apiClient.put(url, data, config);
+  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
+    return apiClient.put(url, data, config).then(response => response.data);
   },
 
-  delete: <T = any>(
-    url: string,
-    config?: AxiosRequestConfig
-  ): Promise<AxiosResponse<ApiResponse<T>>> => {
-    return apiClient.delete(url, config);
+  delete: <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
+    return apiClient.delete(url, config).then(response => response.data);
   },
 };
 

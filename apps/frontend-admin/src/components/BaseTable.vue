@@ -17,7 +17,7 @@
       :columns="tableColumns"
       :data="data"
       :loading="loading"
-      :row-key="rowKey"
+      :row-key="rowKey as any"
       :pagination="paginationConfig"
       :scroll-x="scrollX"
       :scroll-y="scrollY"
@@ -33,7 +33,7 @@
 <script setup lang="ts" generic="T extends Record<string, any>">
 import { computed, type PropType } from 'vue';
 import { NDataTable } from 'naive-ui';
-import type { TableColumn, BaseTableProps, PaginationConfig } from '@/types';
+import type { TableColumn, PaginationConfig } from '@/types';
 
 const props = defineProps({
   data: {
@@ -55,6 +55,7 @@ const props = defineProps({
   rowKey: {
     type: [String, Function] as PropType<string | ((row: T) => string)>,
     default: 'id',
+    required: true,
   },
   selectable: {
     type: Boolean,
@@ -163,14 +164,14 @@ const paginationConfig = computed(() => {
 });
 
 // 处理选择变化
-const handleSelectionChange = (keys: string[]) => {
+const handleSelectionChange = (keys: (string | number)[]) => {
   const selectedRows = props.data.filter((row: T) => {
     const rowKey =
       typeof props.rowKey === 'function' ? props.rowKey(row) : row[props.rowKey as keyof T];
-    return keys.includes(String(rowKey));
+    return keys.includes(rowKey as string | number);
   });
 
-  emit('select', keys, selectedRows);
+  emit('select', keys as string[], selectedRows);
 };
 </script>
 

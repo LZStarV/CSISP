@@ -1,9 +1,5 @@
 <template>
-  <PageContainer
-    title="通知管理"
-    description="发布和管理系统通知公告"
-    :breadcrumbs="breadcrumbs"
-  >
+  <PageContainer title="通知管理" description="发布和管理系统通知公告" :breadcrumbs="breadcrumbs">
     <template #actions>
       <n-button type="primary" @click="handleCreate">
         <template #icon>
@@ -34,7 +30,11 @@
     >
       <template #toolbar-left>
         <n-space>
-          <n-button type="error" :disabled="selectedRowKeys.length === 0" @click="handleBatchDelete">
+          <n-button
+            type="error"
+            :disabled="selectedRowKeys.length === 0"
+            @click="handleBatchDelete"
+          >
             <template #icon>
               <n-icon><trash-outline /></n-icon>
             </template>
@@ -57,11 +57,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, h } from 'vue';
 import { useMessage, useDialog } from 'naive-ui';
-import { AddOutline, TrashOutline, RefreshOutline } from '@vicons/ionicons5';
+import { RefreshOutline, AddOutline, TrashOutline, DownloadOutline } from '@vicons/ionicons5';
 import { BaseTable, BaseSearch, PageContainer } from '@/components';
 import type { TableColumn, SearchField } from '@/types';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 // 状态管理
 const message = useMessage();
@@ -160,7 +161,7 @@ const columns: TableColumn[] = [
     key: 'type',
     title: '类型',
     width: 100,
-    render: (value: number) => {
+    render: (value: any) => {
       const typeMap = {
         1: { label: '系统通知', type: 'info' },
         2: { label: '课程通知', type: 'success' },
@@ -168,7 +169,7 @@ const columns: TableColumn[] = [
         4: { label: '考试通知', type: 'error' },
       };
       const type = typeMap[value as keyof typeof typeMap];
-      return <n-tag type={type.type} size="small">{type.label}</n-tag>;
+      return h(NTag, { type: type.type as any, size: 'small' }, { default: () => type.label });
     },
   },
   {
@@ -182,7 +183,11 @@ const columns: TableColumn[] = [
         3: { label: '低', type: 'info' },
       };
       const priority = priorityMap[value as keyof typeof priorityMap];
-      return <n-tag type={priority.type} size="small">{priority.label}</n-tag>;
+      return h(
+        NTag,
+        { type: priority.type as any, size: 'small' },
+        { default: () => priority.label }
+      );
     },
   },
   {
@@ -213,7 +218,7 @@ const columns: TableColumn[] = [
         2: { label: '已撤回', type: 'warning' },
       };
       const status = statusMap[value as keyof typeof statusMap];
-      return <n-tag type={status.type} size="small">{status.label}</n-tag>;
+      return h(NTag, { type: status.type as any, size: 'small' }, { default: () => status.label });
     },
   },
   {
@@ -221,51 +226,63 @@ const columns: TableColumn[] = [
     title: '操作',
     width: 200,
     render: (value: any, record: any) => {
-      return (
-        <n-space>
-          <n-button 
-            type="primary" 
-            size="small" 
-            quaternary
-            onClick={() => handleView(record)}
-          >
-            查看
-          </n-button>
-          {record.status === 1 && (
-            <n-button 
-              type="warning" 
-              size="small" 
-              quaternary
-              onClick={() => handleWithdraw(record)}
-            >
-              撤回
-            </n-button>
-          )}
-          <n-popconfirm
-            onPositiveClick={() => handleDelete(record)}
-            positive-text="确定"
-            negative-text="取消"
-          >
-            {{
-              trigger: () => (
-                <n-button type="error" size="small" quaternary>
-                  删除
-                </n-button>
-              ),
-              default: () => '确定要删除该通知吗？',
-            }}
-          </n-popconfirm>
-        </n-space>
+      return h(
+        NSpace,
+        {},
+        {
+          default: () => [
+            h(
+              NButton,
+              {
+                type: 'primary',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleView(record),
+              },
+              { default: () => '查看' }
+            ),
+            record.status === 1
+              ? h(
+                  NButton,
+                  {
+                    type: 'warning',
+                    size: 'small',
+                    quaternary: true,
+                    onClick: () => handleWithdraw(record),
+                  },
+                  { default: () => '撤回' }
+                )
+              : null,
+            h(
+              NPopconfirm,
+              {
+                onPositiveClick: () => handleDelete(record),
+                positiveText: '确定',
+                negativeText: '取消',
+              },
+              {
+                trigger: () =>
+                  h(
+                    NButton,
+                    {
+                      type: 'error',
+                      size: 'small',
+                      quaternary: true,
+                    },
+                    { default: () => '删除' }
+                  ),
+                default: () => '确定要删除该通知吗？',
+              }
+            ),
+          ],
+        }
       );
     },
   },
 ];
 
 // 面包屑
-const breadcrumbs = computed(() => [
-  { label: '首页', path: '/' },
-  { label: '通知管理' },
-]);
+const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '通知管理' }]);
 
 const pagination = computed(() => ({
   current: 1,
@@ -282,7 +299,7 @@ const handleSearch = async () => {
     // 模拟搜索逻辑
     await new Promise(resolve => setTimeout(resolve, 500));
     message.success('搜索完成');
-  } catch (error) {
+  } catch {
     message.error('搜索失败');
   } finally {
     loading.value = false;

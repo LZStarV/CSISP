@@ -36,7 +36,7 @@ const goHome = () => {
       font-weight: 700;
       line-height: 1;
       margin-bottom: 16px;
-      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      text-shadow: 0 4px 20px rgb(0 0 0 / 30%);
     }
 
     .error-title {

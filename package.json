@@ -20,7 +20,7 @@
     "docs:build": "pnpm -C docs build",
     "docs:preview": "pnpm -C docs preview"
   },
-  "packageManager": "pnpm@8.15.0",
+  "packageManager": "pnpm@10.22.0",
   "workspaces": [
     "apps/*",
     "packages/*"

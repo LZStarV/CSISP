@@ -39,12 +39,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useMessage, useDialog } from 'naive-ui';
+import { ref, reactive, computed, onMounted, h } from 'vue';
+import { useMessage } from 'naive-ui';
 import { AddOutline } from '@vicons/ionicons5';
 import { BaseTable, BaseModal, BaseForm } from '@/components';
 import { useCourseStore } from '@/stores';
 import type { TimeSlot, TableColumn, FormField } from '@/types';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 interface Props {
   courseId?: number;
@@ -57,7 +58,6 @@ const props = withDefaults(defineProps<Props>(), {
 // 状态管理
 const courseStore = useCourseStore();
 const message = useMessage();
-const dialog = useDialog();
 
 // 数据状态
 const timeSlots = computed(() => courseStore.state.timeSlots);
@@ -132,12 +132,8 @@ const formFields: FormField[] = [
 ];
 
 const formRules = {
-  subCourseId: [
-    { required: true, type: 'number', message: '请选择子课程' },
-  ],
-  weekday: [
-    { required: true, type: 'number', message: '请选择星期' },
-  ],
+  subCourseId: [{ required: true, type: 'number', message: '请选择子课程' }],
+  weekday: [{ required: true, type: 'number', message: '请选择星期' }],
   startTime: [
     { required: true, message: '请输入开始时间' },
     { pattern: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, message: '请输入有效的时间格式，如: 08:00' },
@@ -146,9 +142,7 @@ const formRules = {
     { required: true, message: '请输入结束时间' },
     { pattern: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, message: '请输入有效的时间格式，如: 09:40' },
   ],
-  location: [
-    { required: true, message: '请输入上课地点' },
-  ],
+  location: [{ required: true, message: '请输入上课地点' }],
 };
 
 // 表格列配置
@@ -187,9 +181,9 @@ const columns: TableColumn<TimeSlot>[] = [
     title: '状态',
     width: 80,
     render: (value: number) => {
-      return value === 1 
-        ? <n-tag type="success" size="small">启用</n-tag>
-        : <n-tag type="error" size="small">禁用</n-tag>;
+      return value === 1
+        ? h(NTag, { type: 'success' as any, size: 'small' }, { default: () => '启用' })
+        : h(NTag, { type: 'error' as any, size: 'small' }, { default: () => '禁用' });
     },
   },
   {
@@ -205,31 +199,44 @@ const columns: TableColumn<TimeSlot>[] = [
     title: '操作',
     width: 150,
     render: (value: any, record: TimeSlot) => {
-      return (
-        <n-space>
-          <n-button 
-            type="primary" 
-            size="small" 
-            quaternary
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </n-button>
-          <n-popconfirm
-            onPositiveClick={() => handleDelete(record)}
-            positive-text="确定"
-            negative-text="取消"
-          >
-            {{
-              trigger: () => (
-                <n-button type="error" size="small" quaternary>
-                  删除
-                </n-button>
-              ),
-              default: () => '确定要删除该时间段吗？',
-            }}
-          </n-popconfirm>
-        </n-space>
+      return h(
+        NSpace,
+        {},
+        {
+          default: () => [
+            h(
+              NButton,
+              {
+                type: 'primary',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleEdit(record),
+              },
+              { default: () => '编辑' }
+            ),
+            h(
+              NPopconfirm,
+              {
+                onPositiveClick: () => handleDelete(record),
+                positiveText: '确定',
+                negativeText: '取消',
+              },
+              {
+                trigger: () =>
+                  h(
+                    NButton,
+                    {
+                      type: 'error',
+                      size: 'small',
+                      quaternary: true,
+                    },
+                    { default: () => '删除' }
+                  ),
+                default: () => '确定要删除该时间段吗？',
+              }
+            ),
+          ],
+        }
       );
     },
   },
@@ -246,7 +253,7 @@ const handleAddSchedule = () => {
   currentTimeSlot.value = null;
   // 重置表单
   Object.assign(formModel, {
-    subCourseId: null,
+    subCourseId: undefined,
     weekday: 1,
     startTime: '',
     endTime: '',
@@ -273,11 +280,15 @@ const handleEdit = (timeSlot: TimeSlot) => {
 
 const handleSubmit = async () => {
   try {
+    const timeSlotData = {
+      ...formModel,
+      subCourseId: formModel.subCourseId || undefined,
+    };
     if (modalType.value === 'create') {
-      await courseStore.createTimeSlot(formModel);
+      await courseStore.createTimeSlot(timeSlotData);
       message.success('添加时间段成功');
     } else if (currentTimeSlot.value) {
-      await courseStore.updateTimeSlot(currentTimeSlot.value.id, formModel);
+      await courseStore.updateTimeSlot(currentTimeSlot.value.id, timeSlotData);
       message.success('更新时间段成功');
     }
     showModal.value = false;

@@ -1,5 +1,5 @@
 // 考勤相关类型定义
-import { Status, Timestamp } from './base';
+import type { Status, Timestamp } from './base';
 
 /**
  * 考勤状态枚举
@@ -115,3 +115,8 @@ export interface StudentAttendanceStat extends AttendanceStat {
   studentId: number;
   studentName: string;
 }
+
+/**
+ * 考勤记录（兼容旧接口）
+ */
+export type Attendance = AttendanceRecord;

@@ -9,7 +9,7 @@
           </n-icon>
         </n-button>
         <div class="logo">
-          <img src="/logo.svg" alt="CSISP" />
+          <img src="@/assets/logo.svg" alt="CSISP" />
           <span>CSISP 管理系统</span>
         </div>
       </div>
@@ -236,9 +236,10 @@ const menuOptions = computed<MenuOption[]>(() => {
       const option: MenuOption = {
         label: item.label,
         key: item.key,
-        icon: iconMap[item.icon]
-          ? () => h(NIcon, null, { default: () => h(iconMap[item.icon]) })
-          : undefined,
+        icon:
+          item.icon && iconMap[item.icon as keyof typeof iconMap]
+            ? () => h(NIcon, null, { default: () => h(iconMap[item.icon as keyof typeof iconMap]) })
+            : undefined,
       };
 
       if (item.children) {
@@ -382,7 +383,7 @@ const handleLogout = () => {
         await userStore.logout();
         router.push('/login');
         message.success('退出登录成功');
-      } catch (error) {
+      } catch {
         message.error('退出登录失败');
       }
     },
@@ -409,7 +410,7 @@ onMounted(() => {
   padding: 0 24px;
   height: 64px;
   background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
 
   .header-left {
     display: flex;

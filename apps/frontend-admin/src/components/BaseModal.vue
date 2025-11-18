@@ -39,7 +39,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { NModal } from 'naive-ui';
-import type { ModalConfig } from '@/types';
 
 interface Props {
   show: boolean;
@@ -97,12 +96,12 @@ watch(showModal, newVal => {
 });
 
 // 处理确定按钮点击
-const handleOk = (e: MouseEvent) => {
+const handleOk = () => {
   emit('ok');
 };
 
 // 处理取消按钮点击
-const handleCancel = (e: MouseEvent) => {
+const handleCancel = () => {
   emit('cancel');
   showModal.value = false;
 };

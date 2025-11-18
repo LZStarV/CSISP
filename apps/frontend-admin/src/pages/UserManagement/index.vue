@@ -34,7 +34,11 @@
     >
       <template #toolbar-left>
         <n-space>
-          <n-button type="error" :disabled="selectedRowKeys.length === 0" @click="handleBatchDelete">
+          <n-button
+            type="error"
+            :disabled="selectedRowKeys.length === 0"
+            @click="handleBatchDelete"
+          >
             <template #icon>
               <n-icon><trash-outline /></n-icon>
             </template>
@@ -80,12 +84,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, h } from 'vue';
 import { useMessage, useDialog } from 'naive-ui';
 import { AddOutline, TrashOutline, DownloadOutline, RefreshOutline } from '@vicons/ionicons5';
 import { BaseTable, BaseSearch, BaseModal, BaseForm, PageContainer } from '@/components';
 import { useUserStore } from '@/stores';
 import type { User, TableColumn, SearchField, FormField } from '@/types';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 // 状态管理
 const userStore = useUserStore();
@@ -188,9 +193,9 @@ const columns: TableColumn<User>[] = [
     title: '状态',
     width: 80,
     render: (value: number) => {
-      return value === 1 
-        ? <n-tag type="success" size="small">启用</n-tag>
-        : <n-tag type="error" size="small">禁用</n-tag>;
+      return value === 1
+        ? h(NTag, { type: 'success', size: 'small' }, { default: () => '启用' })
+        : h(NTag, { type: 'error', size: 'small' }, { default: () => '禁用' });
     },
   },
   {
@@ -207,39 +212,54 @@ const columns: TableColumn<User>[] = [
     title: '操作',
     width: 200,
     render: (value: any, record: User) => {
-      return (
-        <n-space>
-          <n-button 
-            type="primary" 
-            size="small" 
-            quaternary
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </n-button>
-          <n-button 
-            type={record.status === 1 ? 'error' : 'success'}
-            size="small" 
-            quaternary
-            onClick={() => handleToggleStatus(record)}
-          >
-            {record.status === 1 ? '禁用' : '启用'}
-          </n-button>
-          <n-popconfirm
-            onPositiveClick={() => handleDelete(record)}
-            positive-text="确定"
-            negative-text="取消"
-          >
-            {{
-              trigger: () => (
-                <n-button type="error" size="small" quaternary>
-                  删除
-                </n-button>
-              ),
-              default: () => '确定要删除该用户吗？此操作不可恢复。',
-            }}
-          </n-popconfirm>
-        </n-space>
+      return h(
+        NSpace,
+        {},
+        {
+          default: () => [
+            h(
+              NButton,
+              {
+                type: 'primary',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleEdit(record),
+              },
+              { default: () => '编辑' }
+            ),
+            h(
+              NButton,
+              {
+                type: record.status === 1 ? 'error' : 'success',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleToggleStatus(record),
+              },
+              { default: () => (record.status === 1 ? '禁用' : '启用') }
+            ),
+            h(
+              NPopconfirm,
+              {
+                onPositiveClick: () => handleDelete(record),
+                positiveText: '确定',
+                negativeText: '取消',
+              },
+              {
+                trigger: () =>
+                  h(
+                    NButton,
+                    {
+                      type: 'error',
+                      size: 'small',
+                      quaternary: true,
+                    },
+                    { default: () => '删除' }
+                  ),
+                default: () => '确定要删除该用户吗？此操作不可恢复。',
+              }
+            ),
+          ],
+        }
       );
     },
   },
@@ -316,16 +336,12 @@ const formRules = {
     { required: true, message: '请输入密码' },
     { min: 6, message: '密码长度至少为6个字符' },
   ],
-  realName: [
-    { required: true, message: '请输入真实姓名' },
-  ],
+  realName: [{ required: true, message: '请输入真实姓名' }],
   studentId: [
     { required: true, message: '请输入学号' },
     { pattern: /^\d{11}$/, message: '学号应为11位数字' },
   ],
-  major: [
-    { required: true, message: '请输入专业' },
-  ],
+  major: [{ required: true, message: '请输入专业' }],
   enrollmentYear: [
     { required: true, type: 'number', min: 2000, max: 3000, message: '请输入有效的入学年份' },
   ],
@@ -336,10 +352,7 @@ const modalTitle = computed(() => {
   return modalType.value === 'create' ? '新增用户' : '编辑用户';
 });
 
-const breadcrumbs = computed(() => [
-  { label: '首页', path: '/' },
-  { label: '用户管理' },
-]);
+const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '用户管理' }]);
 
 const pagination = computed(() => ({
   current: 1,
@@ -347,8 +360,8 @@ const pagination = computed(() => ({
   total: users.value.length,
   showSizeChanger: true,
   showQuickJumper: true,
-  onChange: (page: number, pageSize: number) => {
-    console.log('Page changed:', page, pageSize);
+  onChange: (page: number) => {
+    console.log('Page changed:', page);
   },
 }));
 

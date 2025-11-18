@@ -63,6 +63,22 @@ export interface FormField {
   options?: { label: string; value: any }[];
   rules?: any[];
   placeholder?: string;
+  dateType?: 'date' | 'datetime' | 'daterange' | 'datetimerange';
+  format?: string;
+  clearable?: boolean;
+  disabled?: boolean;
+  size?: 'small' | 'medium' | 'large';
+  checkedText?: string;
+  uncheckedText?: string;
+  render?: any;
+  maxlength?: number;
+  showCount?: boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+  rows?: number;
+  multiple?: boolean;
+  filterable?: boolean;
 }
 
 export interface SearchField {
@@ -141,8 +157,8 @@ export interface PaginationConfig {
   total: number;
   showSizeChanger?: boolean;
   showQuickJumper?: boolean;
-  pageSizeOptions?: string[];
-  onChange?: (page: number, pageSize: number) => void;
+  pageSizeOptions?: number[];
+  onChange?: (page: number) => void;
 }
 
 // 状态管理类型

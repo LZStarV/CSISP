@@ -81,7 +81,7 @@ export default [
   },
   ...ts.configs.recommended,
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.{ts,tsx,vue}'],
     languageOptions: {
       parserOptions: {
         project: ['./tsconfig.json', './tsconfig.node.json'],
@@ -108,6 +108,7 @@ export default [
       'vue/multi-word-component-names': 'off',
       'vue/no-v-model-argument': 'off',
       'vue/script-setup-no-uses-vars': 'off',
+      '@typescript-eslint/no-explicit-any': 'off', // 明确为Vue文件关闭any检查
     },
   },
 ];

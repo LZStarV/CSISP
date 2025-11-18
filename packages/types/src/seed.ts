@@ -1,4 +1,4 @@
-import { Teacher } from './course';
+import type { Teacher } from './course';
 
 // 课程数据类型定义
 export interface CourseDataItem {

@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <img src="/logo.svg" alt="CSISP" class="logo" />
+        <img src="@/assets/logo.svg" alt="CSISP" class="logo" />
         <h1>CSISP 管理系统</h1>
         <p>计算机学院综合服务平台</p>
       </div>
@@ -137,7 +137,7 @@ const handleLogin = async () => {
   max-width: 400px;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 10%);
   padding: 40px 30px;
   text-align: center;
 }

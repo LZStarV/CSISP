@@ -1,5 +1,5 @@
 // 课程相关类型定义
-import { Status, Semester, Timestamp, MajorList } from './base';
+import type { Status, Semester, Timestamp, MajorList } from './base';
 
 /**
  * 课程基础信息

@@ -15,32 +15,47 @@ export default defineConfig({
       { text: '技术文档', link: '/src/architecture/技术架构设计文档' },
     ],
 
-    sidebar: [
-      {
-        text: '项目概览',
-        items: [
-          { text: '首页', link: '/' },
-          { text: '业务文档', link: '/src/business/业务文档' },
-        ],
-      },
-      {
-        text: '架构设计',
-        items: [
-          { text: '总体架构设计文档', link: '/src/architecture/总体架构设计文档' },
-          { text: '技术架构设计文档', link: '/src/architecture/技术架构设计文档' },
-        ],
-      },
-      {
-        text: '后端开发',
-        items: [{ text: '后端设计文档', link: '/src/backend/后端设计文档' }],
-      },
-      {
-        text: '数据设计',
-        items: [
-          { text: '数据库设计文档', link: '/src/database/数据库设计文档' },
-          { text: '数据模型类型说明文档', link: '/src/database/数据模型类型说明文档' },
-        ],
-      },
-    ],
+    sidebar: {
+      '/architecture/': [
+        {
+          text: '架构设计',
+          items: [
+            { text: '总体架构', link: '/architecture/总体架构设计文档' },
+            { text: '技术架构', link: '/architecture/技术架构设计文档' },
+          ],
+        },
+      ],
+      '/backend/': [
+        {
+          text: '后端开发',
+          items: [
+            { text: '后端设计', link: '/backend/后端设计文档' },
+            { text: '项目初始化', link: '/backend/后端项目初始化指南' },
+            { text: '中间件设计', link: '/backend/中间件设计文档' },
+          ],
+        },
+      ],
+      '/database/': [
+        {
+          text: '数据设计',
+          items: [
+            { text: '数据库设计', link: '/database/数据库设计文档' },
+            { text: '数据模型类型', link: '/database/数据模型类型说明文档' },
+          ],
+        },
+      ],
+      '/business/': [
+        {
+          text: '业务文档',
+          items: [{ text: '业务说明', link: '/business/业务文档' }],
+        },
+      ],
+      '/frontend/': [
+        {
+          text: '前端开发',
+          items: [{ text: '前端中台设计', link: '/frontend/前端中台设计文档' }],
+        },
+      ],
+    },
   },
 });

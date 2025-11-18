@@ -1,5 +1,5 @@
 // 作业相关类型定义
-import { Status, Timestamp } from './base';
+import type { Status, Timestamp } from './base';
 
 /**
  * 作业基础信息

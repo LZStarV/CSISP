@@ -1,5 +1,5 @@
 // 用户相关类型定义
-import { Status, Timestamp, UserRoleType } from './base';
+import type { Status, Timestamp, UserRoleType } from './base';
 
 /**
  * 用户基础信息

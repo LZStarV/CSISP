@@ -50,7 +50,7 @@ interface Props {
   showHeader?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   showHeader: true,
 });
 
@@ -71,7 +71,7 @@ const handleBreadcrumbClick = (item: BreadcrumbItem) => {
   margin: 16px;
   background: #fff;
   border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
 
   .page-header {
     display: flex;

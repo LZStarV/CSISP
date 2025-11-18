@@ -13,7 +13,8 @@
       <!-- 输入框 -->
       <n-input
         v-if="field.type === 'input'"
-        v-model:value="model[field.key]"
+        :value="model[field.key]"
+        @update:value="value => handleFieldChange(field.key, value)"
         :placeholder="field.placeholder || `请输入${field.label}`"
         :disabled="field.disabled"
         :maxlength="field.maxlength"
@@ -23,7 +24,8 @@
       <!-- 数字输入框 -->
       <n-input-number
         v-else-if="field.type === 'number'"
-        v-model:value="model[field.key]"
+        :value="model[field.key]"
+        @update:value="value => handleFieldChange(field.key, value)"
         :placeholder="field.placeholder || `请输入${field.label}`"
         :disabled="field.disabled"
         :min="field.min"
@@ -35,7 +37,8 @@
       <!-- 文本域 -->
       <n-input
         v-else-if="field.type === 'textarea'"
-        v-model:value="model[field.key]"
+        :value="model[field.key]"
+        @update:value="value => handleFieldChange(field.key, value)"
         type="textarea"
         :placeholder="field.placeholder || `请输入${field.label}`"
         :disabled="field.disabled"
@@ -47,7 +50,8 @@
       <!-- 选择器 -->
       <n-select
         v-else-if="field.type === 'select'"
-        v-model:value="model[field.key]"
+        :value="model[field.key]"
+        @update:value="value => handleFieldChange(field.key, value)"
         :placeholder="field.placeholder || `请选择${field.label}`"
         :disabled="field.disabled"
         :options="field.options"
@@ -59,7 +63,8 @@
       <!-- 日期选择器 -->
       <n-date-picker
         v-else-if="field.type === 'date'"
-        v-model:value="model[field.key]"
+        :value="model[field.key]"
+        @update:value="value => handleFieldChange(field.key, value)"
         :placeholder="field.placeholder || `请选择${field.label}`"
         :disabled="field.disabled"
         :type="field.dateType || 'date'"
@@ -71,7 +76,8 @@
       <!-- 开关 -->
       <n-switch
         v-else-if="field.type === 'switch'"
-        v-model:value="model[field.key]"
+        :value="model[field.key]"
+        @update:value="value => handleFieldChange(field.key, value)"
         :disabled="field.disabled"
         :size="field.size"
       >
@@ -85,7 +91,13 @@
 
       <!-- 自定义渲染 -->
       <template v-else-if="field.render">
-        <component :is="field.render" v-model="model[field.key]" :field="field" :model="model" />
+        <component
+          :is="field.render"
+          :model-value="model[field.key]"
+          @update:model-value="value => handleFieldChange(field.key, value)"
+          :field="field"
+          :model="model"
+        />
       </template>
     </n-form-item>
   </n-form>
@@ -94,7 +106,7 @@
 <script setup lang="ts">
 import { ref, type PropType } from 'vue';
 import { NForm, NFormItem, NInput, NInputNumber, NSelect, NDatePicker, NSwitch } from 'naive-ui';
-import type { FormField, BaseFormProps } from '@/types';
+import type { FormField } from '@/types';
 
 const props = defineProps({
   fields: {
@@ -134,9 +146,16 @@ const props = defineProps({
 const emit = defineEmits<{
   submit: [];
   reset: [];
+  'update:model': [model: Record<string, any>];
 }>();
 
 const formRef = ref();
+
+// 处理字段值变化
+const handleFieldChange = (key: string, value: any) => {
+  const newModel = { ...props.model, [key]: value };
+  emit('update:model', newModel);
+};
 
 // 表单验证
 const validate = async () => {
@@ -144,7 +163,6 @@ const validate = async () => {
     await formRef.value?.validate();
     return true;
   } catch (errors) {
-    console.error('表单验证失败:', errors);
     return false;
   }
 };

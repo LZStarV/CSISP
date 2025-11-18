@@ -34,7 +34,11 @@
     >
       <template #toolbar-left>
         <n-space>
-          <n-button type="error" :disabled="selectedRowKeys.length === 0" @click="handleBatchDelete">
+          <n-button
+            type="error"
+            :disabled="selectedRowKeys.length === 0"
+            @click="handleBatchDelete"
+          >
             <template #icon>
               <n-icon><trash-outline /></n-icon>
             </template>
@@ -57,11 +61,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, h } from 'vue';
 import { useMessage, useDialog } from 'naive-ui';
-import { AddOutline, TrashOutline, RefreshOutline } from '@vicons/ionicons5';
+import { RefreshOutline, AddOutline, TrashOutline, DownloadOutline } from '@vicons/ionicons5';
 import { BaseTable, BaseSearch, PageContainer } from '@/components';
 import type { TableColumn, SearchField } from '@/types';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 // 状态管理
 const message = useMessage();
@@ -198,7 +203,11 @@ const columns: TableColumn[] = [
         3: { label: '已批改', type: 'success' },
       };
       const status = statusMap[value as keyof typeof statusMap];
-      return <n-tag type={status.type} size="small">{status.label}</n-tag>;
+      return h(
+        'n-tag',
+        { type: status.type as any, size: 'small' },
+        { default: () => status.label }
+      );
     },
   },
   {
@@ -214,49 +223,61 @@ const columns: TableColumn[] = [
     title: '操作',
     width: 200,
     render: (value: any, record: any) => {
-      return (
-        <n-space>
-          <n-button 
-            type="primary" 
-            size="small" 
-            quaternary
-            onClick={() => handleView(record)}
-          >
-            查看
-          </n-button>
-          <n-button 
-            type="info" 
-            size="small" 
-            quaternary
-            onClick={() => handleSubmissions(record)}
-          >
-            提交情况
-          </n-button>
-          <n-popconfirm
-            onPositiveClick={() => handleDelete(record)}
-            positive-text="确定"
-            negative-text="取消"
-          >
-            {{
-              trigger: () => (
-                <n-button type="error" size="small" quaternary>
-                  删除
-                </n-button>
-              ),
-              default: () => '确定要删除该作业吗？',
-            }}
-          </n-popconfirm>
-        </n-space>
+      return h(
+        NSpace,
+        {},
+        {
+          default: () => [
+            h(
+              NButton,
+              {
+                type: 'primary',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleView(record),
+              },
+              { default: () => '查看' }
+            ),
+            h(
+              NButton,
+              {
+                type: 'info',
+                size: 'small',
+                quaternary: true,
+                onClick: () => handleSubmissions(record),
+              },
+              { default: () => '提交情况' }
+            ),
+            h(
+              NPopconfirm,
+              {
+                onPositiveClick: () => handleDelete(record),
+                positiveText: '确定',
+                negativeText: '取消',
+              },
+              {
+                trigger: () =>
+                  h(
+                    NButton,
+                    {
+                      type: 'error',
+                      size: 'small',
+                      quaternary: true,
+                    },
+                    { default: () => '删除' }
+                  ),
+                default: () => '确定要删除该作业吗？',
+              }
+            ),
+          ],
+        }
       );
     },
   },
 ];
 
 // 面包屑
-const breadcrumbs = computed(() => [
-  { label: '首页', path: '/' },
-  { label: '作业管理' },
-]);
+const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '作业管理' }]);
 
 const pagination = computed(() => ({
   current: 1,
@@ -273,7 +294,7 @@ const handleSearch = async () => {
     // 模拟搜索逻辑
     await new Promise(resolve => setTimeout(resolve, 500));
     message.success('搜索完成');
-  } catch (error) {
+  } catch {
     message.error('搜索失败');
   } finally {
     loading.value = false;
