@@ -20,6 +20,32 @@ export class AttendanceController extends BaseController {
    * POST /api/attendance/tasks
    * @param ctx Koa上下文
    */
+  /**
+   * @swagger
+   * /api/attendance/tasks:
+   *   post:
+   *     summary: 创建考勤任务
+   *     description: 为班级创建考勤任务，需指定时间范围与任务类型。
+   *     tags: [Attendance]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/AttendanceTask'
+   *     responses:
+   *       201:
+   *         description: 创建成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/ApiResponse'
+   *                 - type: object
+   *                   properties:
+   *                     data: { $ref: '#/components/schemas/AttendanceTaskEntity' }
+   *       400: { description: 参数错误 }
+   */
   async createAttendanceTask(ctx: AppContext): Promise<void> {
     try {
       const taskData: CreateAttendanceTaskInput = ctx.request.body as CreateAttendanceTaskInput;
@@ -41,6 +67,31 @@ export class AttendanceController extends BaseController {
    * 学生打卡
    * POST /api/attendance/checkin
    * @param ctx Koa上下文
+   */
+  /**
+   * @swagger
+   * /api/attendance/checkin:
+   *   post:
+   *     summary: 学生打卡
+   *     description: 使用 JWT 获取当前用户，向目标任务打卡。
+   *     tags: [Attendance]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: ['taskId']
+   *             properties:
+   *               taskId: { type: integer, minimum: 1 }
+   *               status: { type: string }
+   *               remark: { type: string }
+   *     responses:
+   *       200: { description: 打卡成功 }
+   *       401: { description: 未登录 }
+   *       400: { description: 参数错误 }
    */
   async checkIn(ctx: AppContext): Promise<void> {
     try {
@@ -75,6 +126,36 @@ export class AttendanceController extends BaseController {
    * GET /api/attendance/tasks/class/:classId?page=1&size=10
    * @param ctx Koa上下文
    */
+  /**
+   * @swagger
+   * /api/attendance/tasks/class/{classId}:
+   *   get:
+   *     summary: 获取班级的考勤任务（分页）
+   *     description: 按班级 ID 查询任务列表；分页参数范围：page≥1，size∈[1,100]。
+   *     tags: [Attendance]
+   *     parameters:
+   *       - in: path
+   *         name: classId
+   *         required: true
+   *         schema: { type: integer, minimum: 1 }
+   *       - in: query
+   *         name: page
+   *         schema: { type: integer, minimum: 1 }
+   *       - in: query
+   *         name: size
+   *         schema: { type: integer, minimum: 1, maximum: 100 }
+   *     responses:
+   *       200:
+   *         description: 成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/ApiResponse'
+   *                 - type: object
+   *                   properties:
+   *                     data: { $ref: '#/components/schemas/PaginatedAttendanceTaskList' }
+   */
   async getClassAttendanceTasks(ctx: AppContext): Promise<void> {
     try {
       const classId = parseInt(ctx.params.classId);
@@ -98,6 +179,36 @@ export class AttendanceController extends BaseController {
    * GET /api/attendance/tasks/:taskId/records?page=1&size=10
    * @param ctx Koa上下文
    */
+  /**
+   * @swagger
+   * /api/attendance/tasks/{taskId}/records:
+   *   get:
+   *     summary: 获取考勤任务的打卡记录（分页）
+   *     description: 按任务 ID 查询打卡记录；分页参数范围：page≥1，size∈[1,100]。
+   *     tags: [Attendance]
+   *     parameters:
+   *       - in: path
+   *         name: taskId
+   *         required: true
+   *         schema: { type: integer, minimum: 1 }
+   *       - in: query
+   *         name: page
+   *         schema: { type: integer, minimum: 1 }
+   *       - in: query
+   *         name: size
+   *         schema: { type: integer, minimum: 1, maximum: 100 }
+   *     responses:
+   *       200:
+   *         description: 成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/ApiResponse'
+   *                 - type: object
+   *                   properties:
+   *                     data: { $ref: '#/components/schemas/PaginatedAttendanceRecordList' }
+   */
   async getAttendanceRecords(ctx: AppContext): Promise<void> {
     try {
       const taskId = parseInt(ctx.params.taskId);
@@ -120,6 +231,25 @@ export class AttendanceController extends BaseController {
    * 获取学生的考勤统计
    * GET /api/attendance/stats/student/:userId?classId=1
    * @param ctx Koa上下文
+   */
+  /**
+   * @swagger
+   * /api/attendance/stats/student/{userId}:
+   *   get:
+   *     summary: 获取学生的考勤统计
+   *     description: 支持可选班级筛选，返回聚合统计信息。
+   *     tags: [Attendance]
+   *     parameters:
+   *       - in: path
+   *         name: userId
+   *         required: true
+   *         schema: { type: integer, minimum: 1 }
+   *       - in: query
+   *         name: classId
+   *         schema: { type: integer, minimum: 1 }
+   *     responses:
+   *       200: { description: 成功 }
+   *       400: { description: 参数错误 }
    */
   async getStudentAttendanceStats(ctx: AppContext): Promise<void> {
     try {
@@ -147,6 +277,22 @@ export class AttendanceController extends BaseController {
    * GET /api/attendance/stats/class/:classId
    * @param ctx Koa上下文
    */
+  /**
+   * @swagger
+   * /api/attendance/stats/class/{classId}:
+   *   get:
+   *     summary: 获取班级的考勤统计
+   *     description: 返回班级在特定时间段内的考勤聚合（视实现而定）。
+   *     tags: [Attendance]
+   *     parameters:
+   *       - in: path
+   *         name: classId
+   *         required: true
+   *         schema: { type: integer, minimum: 1 }
+   *     responses:
+   *       200: { description: 成功 }
+   *       400: { description: 参数错误 }
+   */
   async getClassAttendanceStats(ctx: AppContext): Promise<void> {
     try {
       const classId = parseInt(ctx.params.classId);
@@ -166,6 +312,31 @@ export class AttendanceController extends BaseController {
    * 更新考勤记录
    * PUT /api/attendance/records/:recordId
    * @param ctx Koa上下文
+   */
+  /**
+   * @swagger
+   * /api/attendance/records/{recordId}:
+   *   put:
+   *     summary: 更新考勤记录
+   *     description: 至少提供 status 或 remark 其中一项进行更新。
+   *     tags: [Attendance]
+   *     parameters:
+   *       - in: path
+   *         name: recordId
+   *         required: true
+   *         schema: { type: integer, minimum: 1 }
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               status: { type: string }
+   *               remark: { type: string }
+   *     responses:
+   *       200: { description: 更新成功 }
+   *       400: { description: 参数错误 }
    */
   async updateAttendanceRecord(ctx: AppContext): Promise<void> {
     try {
@@ -200,6 +371,20 @@ export class AttendanceController extends BaseController {
    * 获取当前活跃的考勤任务
    * GET /api/attendance/tasks/active?classId=1
    * @param ctx Koa上下文
+   */
+  /**
+   * @swagger
+   * /api/attendance/tasks/active:
+   *   get:
+   *     summary: 获取当前活跃的考勤任务
+   *     description: 可选按班级过滤，返回当前时间窗口内处于激活状态的任务。
+   *     tags: [Attendance]
+   *     parameters:
+   *       - in: query
+   *         name: classId
+   *         schema: { type: integer, minimum: 1 }
+   *     responses:
+   *       200: { description: 成功 }
    */
   async getActiveAttendanceTasks(ctx: AppContext): Promise<void> {
     try {

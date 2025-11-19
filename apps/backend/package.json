@@ -14,14 +14,17 @@
     "@koa/router": "^14.0.0",
     "@types/bcrypt": "^6.0.0",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/swagger-jsdoc": "^6.0.4",
     "bcrypt": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
     "koa": "^2.15.0",
     "koa-bodyparser": "^4.4.1",
+    "koa2-swagger-ui": "^5.7.0",
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
     "redis": "^4.6.10",
     "sequelize": "^6.35.0",
+    "swagger-jsdoc": "^6.2.8",
     "winston": "^3.11.0"
   },
   "devDependencies": {

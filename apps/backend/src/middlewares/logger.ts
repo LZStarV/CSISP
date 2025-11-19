@@ -46,7 +46,9 @@ export const logger = (options: LoggerMiddlewareOptions = {}): Middleware => {
     const headers = sanitizeData(ctx.headers, sensitiveFields);
     requestLog.headers = headers;
 
-    process.stdout.write(`request_start:${JSON.stringify(requestLog)}\n`);
+    process.stdout.write(
+      `[Request Start] ${method} ${url} - ${JSON.stringify(requestLog, null, 2)}\n`
+    );
 
     try {
       await next();

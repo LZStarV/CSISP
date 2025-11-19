@@ -10,6 +10,8 @@
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import Router from '@koa/router';
+import swaggerJsdoc from 'swagger-jsdoc';
+import { koaSwagger } from 'koa2-swagger-ui';
 
 // 导入自定义中间件
 import { errorHandler, logger, rateLimit, defaultCors } from './src/middlewares';
@@ -92,6 +94,370 @@ function setupRoutes(controllers: RouterConfig) {
       },
     };
   });
+
+  // Swagger/OpenAPI 配置
+  const swaggerDefinition = {
+    openapi: '3.0.0',
+    info: {
+      title: 'CSISP Backend API',
+      version: '1.0.0',
+      description: '计算机学院综合服务平台后端接口文档',
+    },
+    servers: [{ url: `http://localhost:${PORT}`, description: 'Local Dev' }],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+      schemas: {
+        ApiResponse: {
+          type: 'object',
+          properties: {
+            code: { type: 'integer' },
+            message: { type: 'string' },
+            data: {},
+          },
+        },
+        ErrorResponse: {
+          type: 'object',
+          properties: {
+            code: { type: 'integer' },
+            message: { type: 'string' },
+            errors: { type: 'object', additionalProperties: { type: 'string' } },
+          },
+        },
+        Pagination: {
+          type: 'object',
+          properties: {
+            page: { type: 'integer', minimum: 1 },
+            size: { type: 'integer', minimum: 1, maximum: 100 },
+            total: { type: 'integer', minimum: 0 },
+            totalPages: { type: 'integer', minimum: 0 },
+          },
+        },
+        Status: {
+          type: 'integer',
+          enum: [0, 1],
+          description: '0=Inactive,1=Active',
+        },
+        User: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            username: { type: 'string' },
+            realName: { type: 'string' },
+            studentId: { type: 'string' },
+            enrollmentYear: { type: 'integer' },
+            major: { type: 'string' },
+            status: { $ref: '#/components/schemas/Status' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        Role: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            name: { type: 'string' },
+            code: { type: 'string' },
+            description: { type: 'string' },
+          },
+        },
+        Course: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            courseName: { type: 'string' },
+            courseCode: { type: 'string' },
+            semester: { type: 'integer' },
+            academicYear: { type: 'integer' },
+            availableMajors: { type: 'array', items: { type: 'string' } },
+            status: { $ref: '#/components/schemas/Status' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        Class: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            className: { type: 'string' },
+            courseId: { type: 'integer' },
+            teacherId: { type: 'integer' },
+            semester: { type: 'integer' },
+            academicYear: { type: 'integer' },
+            maxStudents: { type: 'integer' },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        SubCourse: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            courseId: { type: 'integer' },
+            subCourseCode: { type: 'string' },
+            teacherId: { type: 'integer' },
+            academicYear: { type: 'integer' },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        TimeSlot: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            subCourseId: { type: 'integer' },
+            weekday: { type: 'integer', minimum: 1, maximum: 7 },
+            startTime: { type: 'string' },
+            endTime: { type: 'string' },
+            location: { type: 'string' },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        AttendanceTaskEntity: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            classId: { type: 'integer' },
+            taskName: { type: 'string' },
+            taskType: { type: 'string' },
+            startTime: { type: 'string', format: 'date-time' },
+            endTime: { type: 'string', format: 'date-time' },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        AttendanceRecord: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            attendanceTaskId: { type: 'integer' },
+            userId: { type: 'integer' },
+            status: { type: 'string' },
+            remark: { type: 'string' },
+            createdAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        Homework: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            classId: { type: 'integer' },
+            title: { type: 'string' },
+            content: { type: 'string' },
+            deadline: { type: 'string', format: 'date-time' },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        HomeworkSubmission: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            homeworkId: { type: 'integer' },
+            userId: { type: 'integer' },
+            content: { type: 'string' },
+            fileUrl: { type: 'string' },
+            score: { type: 'integer' },
+            feedback: { type: 'string' },
+            status: { $ref: '#/components/schemas/Status' },
+            createdAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        HomeworkFile: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            submissionId: { type: 'integer' },
+            fileName: { type: 'string' },
+            filePath: { type: 'string' },
+            fileSize: { type: 'integer' },
+            fileType: { type: 'string' },
+            uploadTime: { type: 'string', format: 'date-time' },
+          },
+        },
+        PaginatedUserList: {
+          type: 'object',
+          properties: {
+            data: { type: 'array', items: { $ref: '#/components/schemas/User' } },
+            total: { type: 'integer' },
+            page: { type: 'integer' },
+            size: { type: 'integer' },
+            totalPages: { type: 'integer' },
+          },
+        },
+        PaginatedCourseList: {
+          type: 'object',
+          properties: {
+            data: { type: 'array', items: { $ref: '#/components/schemas/Course' } },
+            total: { type: 'integer' },
+            page: { type: 'integer' },
+            size: { type: 'integer' },
+            totalPages: { type: 'integer' },
+          },
+        },
+        PaginatedAttendanceTaskList: {
+          type: 'object',
+          properties: {
+            data: { type: 'array', items: { $ref: '#/components/schemas/AttendanceTaskEntity' } },
+            total: { type: 'integer' },
+            page: { type: 'integer' },
+            size: { type: 'integer' },
+            totalPages: { type: 'integer' },
+          },
+        },
+        PaginatedAttendanceRecordList: {
+          type: 'object',
+          properties: {
+            data: { type: 'array', items: { $ref: '#/components/schemas/AttendanceRecord' } },
+            total: { type: 'integer' },
+            page: { type: 'integer' },
+            size: { type: 'integer' },
+            totalPages: { type: 'integer' },
+          },
+        },
+        PaginatedHomeworkSubmissionList: {
+          type: 'object',
+          properties: {
+            data: { type: 'array', items: { $ref: '#/components/schemas/HomeworkSubmission' } },
+            total: { type: 'integer' },
+            page: { type: 'integer' },
+            size: { type: 'integer' },
+            totalPages: { type: 'integer' },
+          },
+        },
+        CreateUserInput: {
+          type: 'object',
+          required: ['username', 'password', 'realName', 'studentId', 'enrollmentYear', 'major'],
+          properties: {
+            username: { type: 'string', minLength: 3 },
+            password: { type: 'string', minLength: 8 },
+            realName: { type: 'string' },
+            studentId: { type: 'string', minLength: 11, maxLength: 11 },
+            enrollmentYear: { type: 'integer', minimum: 2000, maximum: 3000 },
+            major: { type: 'string' },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        LoginParams: {
+          type: 'object',
+          required: ['username', 'password'],
+          properties: {
+            username: { type: 'string' },
+            password: { type: 'string' },
+          },
+        },
+        CreateCourseInput: {
+          type: 'object',
+          required: ['courseName', 'courseCode', 'semester', 'academicYear', 'availableMajors'],
+          properties: {
+            courseName: { type: 'string' },
+            courseCode: { type: 'string' },
+            semester: { type: 'integer', minimum: 1, maximum: 8 },
+            academicYear: { type: 'integer' },
+            availableMajors: { type: 'array', items: { type: 'string' } },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        CreateClassInput: {
+          type: 'object',
+          required: [
+            'className',
+            'courseId',
+            'teacherId',
+            'semester',
+            'academicYear',
+            'maxStudents',
+          ],
+          properties: {
+            className: { type: 'string' },
+            courseId: { type: 'integer', minimum: 1 },
+            teacherId: { type: 'integer', minimum: 1 },
+            semester: { type: 'integer', minimum: 1, maximum: 8 },
+            academicYear: { type: 'integer' },
+            maxStudents: { type: 'integer', minimum: 1 },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        CreateTimeSlotInput: {
+          type: 'object',
+          required: ['subCourseId', 'weekday', 'startTime', 'endTime', 'location'],
+          properties: {
+            subCourseId: { type: 'integer', minimum: 1 },
+            weekday: { type: 'integer', minimum: 1, maximum: 7 },
+            startTime: { type: 'string' },
+            endTime: { type: 'string' },
+            location: { type: 'string' },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        CreateSubCourseInput: {
+          type: 'object',
+          required: ['courseId', 'subCourseCode', 'teacherId', 'academicYear'],
+          properties: {
+            courseId: { type: 'integer', minimum: 1 },
+            subCourseCode: { type: 'string' },
+            teacherId: { type: 'integer', minimum: 1 },
+            academicYear: { type: 'integer' },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        AttendanceTask: {
+          type: 'object',
+          properties: {
+            classId: { type: 'integer', minimum: 1 },
+            taskName: { type: 'string' },
+            taskType: { type: 'string' },
+            startTime: { type: 'string', format: 'date-time' },
+            endTime: { type: 'string', format: 'date-time' },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        CreateHomeworkInput: {
+          type: 'object',
+          required: ['classId', 'title', 'content', 'deadline'],
+          properties: {
+            classId: { type: 'integer', minimum: 1 },
+            title: { type: 'string' },
+            content: { type: 'string' },
+            deadline: { type: 'string', format: 'date-time' },
+            status: { $ref: '#/components/schemas/Status' },
+          },
+        },
+        CreateHomeworkSubmissionInput: {
+          type: 'object',
+          required: ['homeworkId', 'userId'],
+          properties: {
+            homeworkId: { type: 'integer', minimum: 1 },
+            userId: { type: 'integer', minimum: 1 },
+            content: { type: 'string' },
+          },
+        },
+      },
+    },
+  } as const;
+
+  const swaggerOptions = {
+    definition: swaggerDefinition,
+    apis: ['./src/controllers/*.ts', './src/routes/*.ts', './app.ts'],
+  } as any;
+  const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+  // 提供 swagger.json
+  router.get('/swagger.json', (ctx: any) => {
+    ctx.set('Content-Type', 'application/json');
+    ctx.body = swaggerSpec;
+  });
+
+  // 提供 Swagger UI
+  app.use(
+    koaSwagger({
+      routePrefix: '/docs',
+      swaggerOptions: {
+        url: '/swagger.json',
+      },
+    })
+  );
 
   // 应用路由
   app.use(router.routes());

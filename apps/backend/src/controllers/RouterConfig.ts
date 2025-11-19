@@ -228,6 +228,15 @@ export class RouterConfig {
    * 注册健康检查路由
    */
   private registerHealthRoutes(): void {
+    /**
+     * @swagger
+     * /api/health:
+     *   get:
+     *     summary: 健康检查
+     *     tags: [System]
+     *     responses:
+     *       200: { description: 服务健康状态 }
+     */
     this.router.get('/health', (ctx: any) => {
       ctx.body = {
         code: 200,

@@ -26,6 +26,32 @@ export class CourseController extends BaseController {
    * POST /api/courses
    * @param ctx Koa上下文
    */
+  /**
+   * @swagger
+   * /api/courses:
+   *   post:
+   *     summary: 创建课程
+   *     description: 创建课程并配置学期、学年与可选专业列表；课程代码在同一学年同一学期应唯一。
+   *     tags: [Courses]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/CreateCourseInput'
+   *     responses:
+   *       201:
+   *         description: 创建成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/ApiResponse'
+   *                 - type: object
+   *                   properties:
+   *                     data: { $ref: '#/components/schemas/Course' }
+   *       400: { description: 参数错误 }
+   */
   async createCourse(ctx: AppContext): Promise<void> {
     try {
       const courseData: CreateCourseInput = ctx.request.body as CreateCourseInput;
@@ -53,6 +79,32 @@ export class CourseController extends BaseController {
    * 为课程分配教师
    * POST /api/courses/:id/teachers
    * @param ctx Koa上下文
+   */
+  /**
+   * @swagger
+   * /api/courses/{id}/teachers:
+   *   post:
+   *     summary: 为课程分配教师
+   *     description: 支持一次分配 1-10 位教师，若重复将覆盖原有关系。
+   *     tags: [Courses]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: integer, minimum: 1 }
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               teacherIds:
+   *                 type: array
+   *                 items: { type: integer }
+   *     responses:
+   *       200: { description: 分配成功 }
+   *       400: { description: 参数错误 }
    */
   async assignTeachers(ctx: AppContext): Promise<void> {
     try {
@@ -91,6 +143,32 @@ export class CourseController extends BaseController {
    * POST /api/courses/classes
    * @param ctx Koa上下文
    */
+  /**
+   * @swagger
+   * /api/courses/classes:
+   *   post:
+   *     summary: 创建班级
+   *     description: 创建课程班级，需指定课程、教师、学期、学年与人数上限。
+   *     tags: [Courses]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/CreateClassInput'
+   *     responses:
+   *       201:
+   *         description: 创建成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/ApiResponse'
+   *                 - type: object
+   *                   properties:
+   *                     data: { $ref: '#/components/schemas/Class' }
+   *       400: { description: 参数错误 }
+   */
   async createClass(ctx: AppContext): Promise<void> {
     try {
       const classData: CreateClassInput = ctx.request.body as CreateClassInput;
@@ -120,6 +198,23 @@ export class CourseController extends BaseController {
    * POST /api/courses/time-slots
    * @param ctx Koa上下文
    */
+  /**
+   * @swagger
+   * /api/courses/time-slots:
+   *   post:
+   *     summary: 创建时间段
+   *     description: 为子课程创建具体的上课时间与地点。
+   *     tags: [Courses]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/CreateTimeSlotInput'
+   *     responses:
+   *       201: { description: 创建成功 }
+   *       400: { description: 参数错误 }
+   */
   async createTimeSlot(ctx: AppContext): Promise<void> {
     try {
       const timeSlotData: CreateTimeSlotInput = ctx.request.body as CreateTimeSlotInput;
@@ -142,6 +237,23 @@ export class CourseController extends BaseController {
    * POST /api/courses/sub-courses
    * @param ctx Koa上下文
    */
+  /**
+   * @swagger
+   * /api/courses/sub-courses:
+   *   post:
+   *     summary: 创建子课程
+   *     description: 子课程代表具体的教学实施单元，与课程形成一对多关系。
+   *     tags: [Courses]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/CreateSubCourseInput'
+   *     responses:
+   *       201: { description: 创建成功 }
+   *       400: { description: 参数错误 }
+   */
   async createSubCourse(ctx: AppContext): Promise<void> {
     try {
       const subCourseData: CreateSubCourseInput = ctx.request.body as CreateSubCourseInput;
@@ -163,6 +275,38 @@ export class CourseController extends BaseController {
    * 获取课程列表（支持专业筛选）
    * GET /api/courses?major=计算机科学&semester=1&page=1&size=10
    * @param ctx Koa上下文
+   */
+  /**
+   * @swagger
+   * /api/courses:
+   *   get:
+   *     summary: 获取课程列表（分页）
+   *     description: 可按专业与学期筛选；分页参数范围：page≥1，size∈[1,100]。
+   *     tags: [Courses]
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema: { type: integer, minimum: 1 }
+   *       - in: query
+   *         name: size
+   *         schema: { type: integer, minimum: 1, maximum: 100 }
+   *       - in: query
+   *         name: major
+   *         schema: { type: string }
+   *       - in: query
+   *         name: semester
+   *         schema: { type: integer, minimum: 1, maximum: 8 }
+   *     responses:
+   *       200:
+   *         description: 成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/ApiResponse'
+   *                 - type: object
+   *                   properties:
+   *                     data: { $ref: '#/components/schemas/PaginatedCourseList' }
    */
   async getCourses(ctx: AppContext): Promise<void> {
     try {
@@ -187,6 +331,32 @@ export class CourseController extends BaseController {
    * 获取课程详细信息
    * GET /api/courses/:id
    * @param ctx Koa上下文
+   */
+  /**
+   * @swagger
+   * /api/courses/{id}:
+   *   get:
+   *     summary: 获取课程详细信息
+   *     description: 返回课程基本信息与关联详情（视实现而定）。
+   *     tags: [Courses]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: integer, minimum: 1 }
+   *     responses:
+   *       200:
+   *         description: 成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               allOf:
+   *                 - $ref: '#/components/schemas/ApiResponse'
+   *                 - type: object
+   *                   properties:
+   *                     data: { $ref: '#/components/schemas/Course' }
+   *       400: { description: 参数错误 }
+   *       404: { description: 未找到 }
    */
   async getCourseDetail(ctx: AppContext): Promise<void> {
     try {
@@ -276,6 +446,26 @@ export class CourseController extends BaseController {
    * GET /api/courses/semester/:year/:semester
    * @param ctx Koa上下文
    */
+  /**
+   * @swagger
+   * /api/courses/semester/{year}/{semester}:
+   *   get:
+   *     summary: 获取指定学期的课程
+   *     description: 学期范围 1-8；year 为学年；用于按时间维度查询课程。
+   *     tags: [Courses]
+   *     parameters:
+   *       - in: path
+   *         name: year
+   *         required: true
+   *         schema: { type: integer }
+   *       - in: path
+   *         name: semester
+   *         required: true
+   *         schema: { type: integer, minimum: 1, maximum: 8 }
+   *     responses:
+   *       200: { description: 成功 }
+   *       400: { description: 参数错误 }
+   */
   async getCoursesBySemester(ctx: AppContext): Promise<void> {
     try {
       const academicYear = parseInt(ctx.params.year);
@@ -303,6 +493,28 @@ export class CourseController extends BaseController {
    * GET /api/courses/teacher/:teacherId?page=1&size=10
    * @param ctx Koa上下文
    */
+  /**
+   * @swagger
+   * /api/courses/teacher/{teacherId}:
+   *   get:
+   *     summary: 获取教师授课列表（分页）
+   *     description: 按教师ID查询授课课程，支持分页。
+   *     tags: [Courses]
+   *     parameters:
+   *       - in: path
+   *         name: teacherId
+   *         required: true
+   *         schema: { type: integer, minimum: 1 }
+   *       - in: query
+   *         name: page
+   *         schema: { type: integer, minimum: 1 }
+   *       - in: query
+   *         name: size
+   *         schema: { type: integer, minimum: 1, maximum: 100 }
+   *     responses:
+   *       200: { description: 成功 }
+   *       400: { description: 参数错误 }
+   */
   async getTeacherCourses(ctx: AppContext): Promise<void> {
     try {
       const teacherId = parseInt(ctx.params.teacherId);
@@ -325,6 +537,30 @@ export class CourseController extends BaseController {
    * 更新课程状态
    * PUT /api/courses/:id/status
    * @param ctx Koa上下文
+   */
+  /**
+   * @swagger
+   * /api/courses/{id}/status:
+   *   put:
+   *     summary: 更新课程状态
+   *     description: 课程状态枚举：0 禁用，1 启用。
+   *     tags: [Courses]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: integer, minimum: 1 }
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               status: { $ref: '#/components/schemas/Status' }
+   *     responses:
+   *       200: { description: 更新成功 }
+   *       400: { description: 参数错误 }
    */
   async updateCourseStatus(ctx: AppContext): Promise<void> {
     try {
