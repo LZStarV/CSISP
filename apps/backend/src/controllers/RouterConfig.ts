@@ -4,10 +4,12 @@
  */
 import Router from '@koa/router';
 import { testConnection } from '../database';
+import { jwtAuth, requireAdmin } from '../middlewares/auth';
 import { UserController } from './UserController';
 import { CourseController } from './CourseController';
 import { AttendanceController } from './AttendanceController';
 import { HomeworkController } from './HomeworkController';
+import { DashboardController } from './DashboardController';
 
 /**
  * 路由配置类
@@ -19,18 +21,21 @@ export class RouterConfig {
   private courseController: CourseController;
   private attendanceController: AttendanceController;
   private homeworkController: HomeworkController;
+  private dashboardController: DashboardController;
 
   constructor(
     userController: UserController,
     courseController: CourseController,
     attendanceController: AttendanceController,
-    homeworkController: HomeworkController
+    homeworkController: HomeworkController,
+    dashboardController: DashboardController
   ) {
     this.router = new Router({ prefix: '/api' });
     this.userController = userController;
     this.courseController = courseController;
     this.attendanceController = attendanceController;
     this.homeworkController = homeworkController;
+    this.dashboardController = dashboardController;
 
     this.registerRoutes();
   }
@@ -51,6 +56,9 @@ export class RouterConfig {
     // 作业相关路由
     this.registerHomeworkRoutes();
 
+    // 仪表盘相关路由
+    this.registerDashboardRoutes();
+
     // 健康检查路由
     this.registerHealthRoutes();
   }
@@ -62,26 +70,63 @@ export class RouterConfig {
     // 用户认证
     this.router.post('/users/register', this.userController.register.bind(this.userController));
     this.router.post('/users/login', this.userController.login.bind(this.userController));
-    this.router.get('/users/me', this.userController.getCurrentUser.bind(this.userController));
+    this.router.get(
+      '/users/me',
+      jwtAuth(),
+      this.userController.getCurrentUser.bind(this.userController)
+    );
 
     // 用户管理
-    this.router.get('/users', this.userController.getUsers.bind(this.userController));
-    this.router.get('/users/:id', this.userController.getUserById.bind(this.userController));
+    this.router.get(
+      '/users',
+      jwtAuth(),
+      requireAdmin,
+      this.userController.getUsers.bind(this.userController)
+    );
+    this.router.get(
+      '/users/:id',
+      jwtAuth(),
+      this.userController.getUserById.bind(this.userController)
+    );
     this.router.get(
       '/users/student/:studentId',
+      jwtAuth(),
       this.userController.getUserByStudentId.bind(this.userController)
     );
-    this.router.put('/users/:id', this.userController.updateUser.bind(this.userController));
+    this.router.put(
+      '/users/:id',
+      jwtAuth(),
+      this.userController.updateUser.bind(this.userController)
+    );
 
     // 批量操作
-    this.router.post('/users/bulk', this.userController.bulkCreateUsers.bind(this.userController));
+    this.router.post(
+      '/users/bulk',
+      jwtAuth(),
+      requireAdmin,
+      this.userController.bulkCreateUsers.bind(this.userController)
+    );
 
     // 角色管理
-    this.router.post('/users/:id/roles', this.userController.assignRoles.bind(this.userController));
-    this.router.get('/users/:id/roles', this.userController.getUserRoles.bind(this.userController));
+    this.router.post(
+      '/users/:id/roles',
+      jwtAuth(),
+      requireAdmin,
+      this.userController.assignRoles.bind(this.userController)
+    );
+    this.router.get(
+      '/users/:id/roles',
+      jwtAuth(),
+      this.userController.getUserRoles.bind(this.userController)
+    );
 
     // 统计信息
-    this.router.get('/users/stats', this.userController.getUserStats.bind(this.userController));
+    this.router.get(
+      '/users/stats',
+      jwtAuth(),
+      requireAdmin,
+      this.userController.getUserStats.bind(this.userController)
+    );
   }
 
   /**
@@ -226,6 +271,28 @@ export class RouterConfig {
   }
 
   /**
+   * 注册仪表盘相关路由
+   */
+  private registerDashboardRoutes(): void {
+    this.router.get(
+      '/dashboard/stats',
+      this.dashboardController.getStats.bind(this.dashboardController)
+    );
+    this.router.get(
+      '/dashboard/user-growth',
+      this.dashboardController.getUserGrowth.bind(this.dashboardController)
+    );
+    this.router.get(
+      '/dashboard/course-distribution',
+      this.dashboardController.getCourseDistribution.bind(this.dashboardController)
+    );
+    this.router.get(
+      '/dashboard/recent-activities',
+      this.dashboardController.getRecentActivities.bind(this.dashboardController)
+    );
+  }
+
+  /**
    * 注册健康检查路由
    */
   private registerHealthRoutes(): void {
@@ -358,6 +425,12 @@ export class RouterConfig {
 
       // 健康检查
       { method: 'GET', path: '/api/health', description: '健康检查' },
+
+      // 仪表盘
+      { method: 'GET', path: '/api/dashboard/stats', description: '仪表盘统计' },
+      { method: 'GET', path: '/api/dashboard/user-growth', description: '用户增长' },
+      { method: 'GET', path: '/api/dashboard/course-distribution', description: '课程分布' },
+      { method: 'GET', path: '/api/dashboard/recent-activities', description: '最近活动' },
     ];
   }
 }

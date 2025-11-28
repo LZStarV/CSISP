@@ -36,41 +36,51 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
  * 配置全局中间件
  */
 function setupGlobalMiddleware() {
+  const ensure = (mw: any, name: string) => {
+    if (typeof mw !== 'function') {
+      throw new TypeError(`${name} is not a Koa middleware function`);
+    }
+    app.use(mw);
+  };
   // 错误处理中间件（必须第一个）
-  app.use(
+  ensure(
     errorHandler({
       showDetailsInDev: NODE_ENV === 'development',
       logErrors: true,
-    })
+    }),
+    'errorHandler'
   );
 
   // CORS中间件
-  app.use(defaultCors);
+  ensure(defaultCors, 'defaultCors');
 
   // 日志中间件
-  app.use(
+  ensure(
     logger({
       logBody: NODE_ENV === 'development',
       excludePaths: ['/health', '/favicon.ico'],
-    })
+    }),
+    'logger'
   );
 
   // 速率限制中间件
-  app.use(
+  ensure(
     rateLimit({
       windowMs: 15 * 60 * 1000, // 15分钟
       max: 1000, // 每个IP最多1000次请求
       excludePaths: ['/health'],
-    })
+    }),
+    'rateLimit'
   );
 
   // 请求体解析中间件
-  app.use(
+  ensure(
     bodyParser({
       enableTypes: ['json', 'form'],
       jsonLimit: '10mb',
       formLimit: '10mb',
-    })
+    }),
+    'bodyParser'
   );
 }
 
@@ -510,13 +520,18 @@ async function startServer() {
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
     // 未捕获异常处理
-    process.on('uncaughtException', () => {
-      process.stderr.write('uncaught_exception\n');
+    process.on('uncaughtException', (err: any) => {
+      const name = err?.name ?? 'UnknownError';
+      const message = err?.message ?? 'No message';
+      const stack = err?.stack ?? '';
+      process.stderr.write(`uncaught_exception:${name}:${message}\n`);
+      if (stack) process.stderr.write(`${stack}\n`);
       gracefulShutdown('uncaughtException');
     });
 
-    process.on('unhandledRejection', () => {
-      process.stderr.write('unhandled_rejection\n');
+    process.on('unhandledRejection', (reason: any) => {
+      const msg = typeof reason === 'string' ? reason : (reason?.message ?? 'No message');
+      process.stderr.write(`unhandled_rejection:${msg}\n`);
       gracefulShutdown('unhandledRejection');
     });
   } catch (error: any) {

@@ -8,3 +8,4 @@ export { UserService } from './UserService';
 export { CourseService } from './CourseService';
 export { AttendanceService } from './AttendanceService';
 export { HomeworkService } from './HomeworkService';
+export { DashboardService } from './DashboardService';

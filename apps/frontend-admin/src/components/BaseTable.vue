@@ -17,7 +17,7 @@
       :columns="tableColumns"
       :data="data"
       :loading="loading"
-      :row-key="rowKey as any"
+      :row-key="resolvedRowKey as any"
       :pagination="paginationConfig"
       :scroll-x="scrollX"
       :scroll-y="scrollY"
@@ -152,15 +152,32 @@ const paginationConfig = computed(() => {
     };
   }
 
+  const onUpdatePage =
+    typeof props.pagination.onChange === 'function'
+      ? (page: number) => props.pagination.onChange!(page)
+      : undefined;
+
+  const onUpdatePageSize =
+    typeof (props.pagination as any).onUpdatePageSize === 'function'
+      ? (size: number) => (props.pagination as any).onUpdatePageSize!(size)
+      : undefined;
+
   return {
     page: props.pagination.current,
     pageSize: props.pagination.pageSize,
-    pageCount: Math.ceil(props.pagination.total / props.pagination.pageSize),
+    itemCount: props.pagination.total,
     pageSizes: props.pagination.pageSizeOptions || [10, 20, 50, 100],
     showSizePicker: props.pagination.showSizeChanger !== false,
     showQuickJumper: props.pagination.showQuickJumper !== false,
-    onChange: props.pagination.onChange,
+    onUpdatePage,
+    onUpdatePageSize,
   };
+});
+
+const resolvedRowKey = computed<(row: T) => string | number>(() => {
+  if (typeof props.rowKey === 'function') return props.rowKey as (row: T) => string | number;
+  const key = props.rowKey as string;
+  return (row: T) => row[key as keyof T] as unknown as string | number;
 });
 
 // 处理选择变化

@@ -6,6 +6,7 @@ import { UserService } from './UserService';
 import { CourseService } from './CourseService';
 import { AttendanceService } from './AttendanceService';
 import { HomeworkService } from './HomeworkService';
+import { DashboardService } from './DashboardService';
 
 export class ServiceFactory {
   private static instance: ServiceFactory;
@@ -138,6 +139,7 @@ export class ServiceFactory {
       courseService: this.getCourseService(),
       attendanceService: this.getAttendanceService(),
       homeworkService: this.getHomeworkService(),
+      dashboardService: this.getDashboardService(),
     };
   }
 
@@ -161,5 +163,22 @@ export class ServiceFactory {
   reset(): void {
     this.clearServices();
     this.clearModels();
+  }
+
+  /** 获取仪表盘服务 */
+  getDashboardService(): DashboardService {
+    if (!this.services.has('dashboardService')) {
+      const dashboardService = new DashboardService({
+        User: this.getModel('User'),
+        Course: this.getModel('Course'),
+        Class: this.getModel('Class'),
+        AttendanceRecord: this.getModel('AttendanceRecord'),
+        Homework: this.getModel('Homework'),
+        HomeworkSubmission: this.getModel('HomeworkSubmission'),
+        Notification: this.getModel('Notification'),
+      });
+      this.services.set('dashboardService', dashboardService);
+    }
+    return this.services.get('dashboardService');
   }
 }

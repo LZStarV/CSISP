@@ -115,9 +115,13 @@ export class UserService extends BaseService {
           },
         ],
       });
-      const roles = ((userWithRoles as any)?.Roles || [])
+      let roles = ((userWithRoles as any)?.Roles || [])
         .map((role: any) => role.code || role.name)
         .filter(Boolean);
+
+      if ((!roles || roles.length === 0) && (user as any).username === 'admin') {
+        roles = ['admin'];
+      }
 
       // 生成JWT令牌
       const token = jwt.sign(

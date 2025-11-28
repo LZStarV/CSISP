@@ -34,19 +34,20 @@ export const useUserStore = defineStore('user', () => {
     try {
       const response = await authApi.getUserInfo();
       const user = response.data?.user;
-      state.value.currentUser = user || null;
+      state.value.currentUser = user ? mapUser(user as any) : null;
 
       // 获取用户角色
       if (user?.id) {
-        const rolesResponse = await userApi.getUserPermissions(user.id);
-        state.value.roles = response.data?.roles || [];
+        const rolesResponse = await userApi.getUserRoles(user.id);
+        state.value.roles = rolesResponse.data || [];
       } else {
         state.value.roles = [];
       }
 
       // 获取用户权限
       if (user?.id) {
-        await getUserPermissions(user.id);
+        // 后端暂未提供权限接口，置空
+        state.value.permissions = [];
       }
 
       return response;
@@ -76,7 +77,8 @@ export const useUserStore = defineStore('user', () => {
     state.value.loading = true;
     try {
       const response = await userApi.getUsers(params);
-      state.value.users = response.data?.data || [];
+      const list = response.data?.data || [];
+      state.value.users = Array.isArray(list) ? list.map(mapUser) : [];
       return response.data;
     } catch (error) {
       throw error;
@@ -91,7 +93,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       const response = await userApi.createUser(userData);
       if (response.data) {
-        state.value.users.unshift(response.data);
+        state.value.users.unshift(mapUser(response.data as any));
       }
       return response.data;
     } catch (error) {
@@ -108,7 +110,8 @@ export const useUserStore = defineStore('user', () => {
       const response = await userApi.updateUser(id, userData);
       const index = state.value.users.findIndex(u => u.id === id);
       if (index !== -1 && response.data) {
-        state.value.users[index] = { ...state.value.users[index], ...response.data };
+        const mapped = mapUser({ ...state.value.users[index], ...response.data } as any);
+        state.value.users[index] = mapped;
       }
       return response.data;
     } catch (error) {
@@ -151,9 +154,9 @@ export const useUserStore = defineStore('user', () => {
   // 获取用户权限
   const getUserPermissions = async (userId: number) => {
     try {
-      const response = await userApi.getUserPermissions(userId);
-      state.value.permissions = response.data || [];
-      return response.data;
+      // 后端暂未提供权限接口
+      state.value.permissions = [];
+      return [];
     } catch (error) {
       console.error('Get user permissions error', error);
       state.value.permissions = [];
@@ -206,4 +209,16 @@ export const useUserStore = defineStore('user', () => {
     getRoles,
     getPermissions,
   };
+});
+const mapUser = (raw: any): User => ({
+  id: raw.id,
+  username: raw.username,
+  password: raw.password,
+  studentId: raw.student_id ?? raw.studentId,
+  enrollmentYear: raw.enrollment_year ?? raw.enrollmentYear,
+  major: raw.major,
+  realName: raw.real_name ?? raw.realName,
+  status: raw.status,
+  createdAt: raw.created_at ?? raw.createdAt,
+  updatedAt: raw.updated_at ?? raw.updatedAt,
 });

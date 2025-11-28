@@ -143,7 +143,7 @@ const dialog = useDialog();
 const message = useMessage();
 
 // 状态
-const collapsed = computed(() => appStore.collapsed);
+const collapsed = computed(() => appStore.state.collapsed);
 const theme = computed(() => appStore.theme);
 const currentUser = computed(() => userStore.state.currentUser);
 const isFullscreen = ref(false);
@@ -392,8 +392,14 @@ const handleLogout = () => {
 
 // 生命周期
 onMounted(() => {
-  // 获取用户信息
-  userStore.getCurrentUser();
+  const token = localStorage.getItem('token');
+  if (token) {
+    userStore.getCurrentUser().catch(() => {
+      // 获取失败时不跳转，留在当前页以便用户重试
+    });
+  } else {
+    router.push('/login');
+  }
 });
 </script>
 

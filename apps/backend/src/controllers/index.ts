@@ -8,3 +8,4 @@ export { UserController } from './UserController';
 export { CourseController } from './CourseController';
 export { AttendanceController } from './AttendanceController';
 export { HomeworkController } from './HomeworkController';
+export { DashboardController } from './DashboardController';
