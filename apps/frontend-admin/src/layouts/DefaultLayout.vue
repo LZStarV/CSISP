@@ -393,7 +393,7 @@ const handleLogout = () => {
 // 生命周期
 onMounted(() => {
   // 获取用户信息
-  userStore.getUserInfo();
+  userStore.getCurrentUser();
 });
 </script>
 

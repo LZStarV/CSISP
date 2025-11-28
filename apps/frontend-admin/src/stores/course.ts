@@ -19,7 +19,7 @@ export const useCourseStore = defineStore('course', () => {
       const response = await courseApi.getCourses(params);
       state.value.courses = response.data?.data || [];
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -34,7 +34,7 @@ export const useCourseStore = defineStore('course', () => {
         state.value.courses.unshift(response.data);
       }
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -50,7 +50,7 @@ export const useCourseStore = defineStore('course', () => {
         state.value.courses[index] = { ...state.value.courses[index], ...response.data };
       }
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -65,7 +65,7 @@ export const useCourseStore = defineStore('course', () => {
       if (index !== -1) {
         state.value.courses.splice(index, 1);
       }
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -79,7 +79,7 @@ export const useCourseStore = defineStore('course', () => {
       const response = await courseApi.getClasses(params);
       state.value.classes = response.data?.data || [];
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -94,7 +94,7 @@ export const useCourseStore = defineStore('course', () => {
         state.value.classes.unshift(response.data);
       }
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -110,7 +110,7 @@ export const useCourseStore = defineStore('course', () => {
         state.value.classes[index] = { ...state.value.classes[index], ...response.data };
       }
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -125,7 +125,7 @@ export const useCourseStore = defineStore('course', () => {
       if (index !== -1) {
         state.value.classes.splice(index, 1);
       }
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -139,7 +139,7 @@ export const useCourseStore = defineStore('course', () => {
       const response = await courseApi.getTeachers(params);
       state.value.teachers = response.data?.data || [];
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -154,7 +154,7 @@ export const useCourseStore = defineStore('course', () => {
         state.value.teachers.unshift(response.data);
       }
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -170,7 +170,7 @@ export const useCourseStore = defineStore('course', () => {
         state.value.teachers[index] = { ...state.value.teachers[index], ...response.data };
       }
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -185,21 +185,21 @@ export const useCourseStore = defineStore('course', () => {
       if (index !== -1) {
         state.value.teachers.splice(index, 1);
       }
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
     }
   };
 
-  // 时间安排管理
+  // 时间段管理
   const getTimeSlots = async (params?: any) => {
     state.value.loading = true;
     try {
       const response = await courseApi.getTimeSlots(params);
       state.value.timeSlots = response.data?.data || [];
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -214,7 +214,7 @@ export const useCourseStore = defineStore('course', () => {
         state.value.timeSlots.unshift(response.data);
       }
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -230,7 +230,7 @@ export const useCourseStore = defineStore('course', () => {
         state.value.timeSlots[index] = { ...state.value.timeSlots[index], ...response.data };
       }
       return response.data;
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -245,7 +245,7 @@ export const useCourseStore = defineStore('course', () => {
       if (index !== -1) {
         state.value.timeSlots.splice(index, 1);
       }
-    } catch {
+    } catch (error) {
       throw error;
     } finally {
       state.value.loading = false;
@@ -253,22 +253,23 @@ export const useCourseStore = defineStore('course', () => {
   };
 
   return {
-    // State
     state,
-
-    // Actions
+    // 课程管理
     getCourses,
     createCourse,
     updateCourse,
     deleteCourse,
+    // 班级管理
     getClasses,
     createClass,
     updateClass,
     deleteClass,
+    // 教师管理
     getTeachers,
     createTeacher,
     updateTeacher,
     deleteTeacher,
+    // 时间段管理
     getTimeSlots,
     createTimeSlot,
     updateTimeSlot,

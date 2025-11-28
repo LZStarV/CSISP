@@ -84,8 +84,7 @@ export type UserRoleCreationAttributes = Optional<
  * 用户角色关联模型接口
  */
 export interface UserRoleModel
-  extends Model<UserRoleAttributes, UserRoleCreationAttributes>,
-    UserRoleAttributes {
+  extends Model<UserRoleAttributes, UserRoleCreationAttributes>, UserRoleAttributes {
   getUser: () => Promise<UserModel>;
   getRole: () => Promise<RoleModel>;
 }
@@ -114,8 +113,7 @@ export type CourseCreationAttributes = Optional<CourseAttributes, 'id' | 'create
  * 课程模型接口
  */
 export interface CourseModel
-  extends Model<CourseAttributes, CourseCreationAttributes>,
-    CourseAttributes {
+  extends Model<CourseAttributes, CourseCreationAttributes>, CourseAttributes {
   getTeachers: () => Promise<TeacherModel[]>;
   getTimeSlots: () => Promise<TimeSlotModel[]>;
   getClasses: () => Promise<ClassModel[]>;
@@ -147,8 +145,7 @@ export type TeacherCreationAttributes = Optional<
  * 教师模型接口
  */
 export interface TeacherModel
-  extends Model<TeacherAttributes, TeacherCreationAttributes>,
-    TeacherAttributes {
+  extends Model<TeacherAttributes, TeacherCreationAttributes>, TeacherAttributes {
   getCourses: () => Promise<CourseModel[]>;
 }
 
@@ -178,8 +175,7 @@ export type TimeSlotCreationAttributes = Optional<
  * 时间槽模型接口
  */
 export interface TimeSlotModel
-  extends Model<TimeSlotAttributes, TimeSlotCreationAttributes>,
-    TimeSlotAttributes {}
+  extends Model<TimeSlotAttributes, TimeSlotCreationAttributes>, TimeSlotAttributes {}
 
 /**
  * 班级模型属性
@@ -202,8 +198,7 @@ export type ClassCreationAttributes = Optional<ClassAttributes, 'id' | 'createdA
  * 班级模型接口
  */
 export interface ClassModel
-  extends Model<ClassAttributes, ClassCreationAttributes>,
-    ClassAttributes {
+  extends Model<ClassAttributes, ClassCreationAttributes>, ClassAttributes {
   getCourse: () => Promise<CourseModel>;
   getStudents: () => Promise<UserModel[]>;
 }
@@ -235,7 +230,8 @@ export type AttendanceTaskCreationAttributes = Optional<
  * 考勤任务模型接口
  */
 export interface AttendanceTaskModel
-  extends Model<AttendanceTaskAttributes, AttendanceTaskCreationAttributes>,
+  extends
+    Model<AttendanceTaskAttributes, AttendanceTaskCreationAttributes>,
     AttendanceTaskAttributes {
   getClass: () => Promise<ClassModel>; // 添加获取班级的方法
 }
@@ -265,7 +261,8 @@ export type AttendanceRecordCreationAttributes = Optional<
  * 考勤记录模型接口
  */
 export interface AttendanceRecordModel
-  extends Model<AttendanceRecordAttributes, AttendanceRecordCreationAttributes>,
+  extends
+    Model<AttendanceRecordAttributes, AttendanceRecordCreationAttributes>,
     AttendanceRecordAttributes {
   getAttendanceTask: () => Promise<AttendanceTaskModel>; // 修改方法名
   getUser: () => Promise<UserModel>; // 修改方法名
@@ -297,8 +294,7 @@ export type HomeworkCreationAttributes = Optional<
  * 作业模型接口
  */
 export interface HomeworkModel
-  extends Model<HomeworkAttributes, HomeworkCreationAttributes>,
-    HomeworkAttributes {
+  extends Model<HomeworkAttributes, HomeworkCreationAttributes>, HomeworkAttributes {
   getClass: () => Promise<ClassModel>; // 添加获取班级的方法
   getSubmissions: () => Promise<HomeworkSubmissionModel[]>;
 }
@@ -329,7 +325,8 @@ export type HomeworkSubmissionCreationAttributes = Optional<
  * 作业提交模型接口
  */
 export interface HomeworkSubmissionModel
-  extends Model<HomeworkSubmissionAttributes, HomeworkSubmissionCreationAttributes>,
+  extends
+    Model<HomeworkSubmissionAttributes, HomeworkSubmissionCreationAttributes>,
     HomeworkSubmissionAttributes {
   getUser: () => Promise<UserModel>; // 修改方法名
   getHomework: () => Promise<HomeworkModel>;
@@ -362,8 +359,7 @@ export type NotificationCreationAttributes = Optional<
  * 通知模型接口
  */
 export interface NotificationModel
-  extends Model<NotificationAttributes, NotificationCreationAttributes>,
-    NotificationAttributes {
+  extends Model<NotificationAttributes, NotificationCreationAttributes>, NotificationAttributes {
   getSender: () => Promise<UserModel>;
   getTargetUser: () => Promise<UserModel>; // 添加获取目标用户的方法
 }
@@ -392,8 +388,7 @@ export type PermissionCreationAttributes = Optional<
  * 权限模型接口
  */
 export interface PermissionModel
-  extends Model<PermissionAttributes, PermissionCreationAttributes>,
-    PermissionAttributes {
+  extends Model<PermissionAttributes, PermissionCreationAttributes>, PermissionAttributes {
   getRoles: () => Promise<RoleModel[]>;
 }
 
@@ -414,6 +409,9 @@ export interface Models {
   Homework: ModelStatic<HomeworkModel>;
   HomeworkSubmission: ModelStatic<HomeworkSubmissionModel>;
   Notification: ModelStatic<NotificationModel>;
+  CourseTeacher: ModelStatic<CourseTeacherModel>;
+  SubCourse: ModelStatic<SubCourseModel>;
+  HomeworkFile: ModelStatic<HomeworkFileModel>;
 }
 
 /**
@@ -426,3 +424,62 @@ export interface DatabaseInstance {
   close: () => Promise<void>;
   sync: (options?: { force?: boolean }) => Promise<void>;
 }
+
+// 课程教师关联模型
+export interface CourseTeacherAttributes {
+  courseId: number;
+  teacherId: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export type CourseTeacherCreationAttributes = Optional<
+  CourseTeacherAttributes,
+  'createdAt' | 'updatedAt'
+>;
+
+export interface CourseTeacherModel
+  extends
+    Model<CourseTeacherAttributes, CourseTeacherCreationAttributes>,
+    CourseTeacherAttributes {}
+
+// 子课程模型
+export interface SubCourseAttributes {
+  id: number;
+  courseId: number;
+  subCourseCode: string;
+  teacherId: number;
+  academicYear: number;
+  status: Status;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type SubCourseCreationAttributes = Optional<
+  SubCourseAttributes,
+  'id' | 'createdAt' | 'updatedAt'
+>;
+
+export interface SubCourseModel
+  extends Model<SubCourseAttributes, SubCourseCreationAttributes>, SubCourseAttributes {}
+
+// 作业文件模型
+export interface HomeworkFileAttributes {
+  id: number;
+  submissionId: number;
+  fileName: string;
+  filePath: string;
+  fileSize?: number;
+  fileType?: string;
+  uploadTime?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type HomeworkFileCreationAttributes = Optional<
+  HomeworkFileAttributes,
+  'id' | 'uploadTime' | 'createdAt' | 'updatedAt'
+>;
+
+export interface HomeworkFileModel
+  extends Model<HomeworkFileAttributes, HomeworkFileCreationAttributes>, HomeworkFileAttributes {}

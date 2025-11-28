@@ -142,13 +142,6 @@ pnpm dev:client        # 仅启动客户端前端
 
 ## 开发指南
 
-### 代码规范
-
-- Vue3组件名称使用大驼峰命名法(如：CourseList.vue, AttendanceRecord.vue)
-- 为所有Express端点实现RESTful API设计模式
-- 编写全面的TypeScript接口和类型定义
-- 添加清晰的注释，解释业务逻辑和复杂算法
-
 ### 文档说明
 
 详细的项目文档位于 `docs/src/` 目录下，包括：
@@ -158,6 +151,116 @@ pnpm dev:client        # 仅启动客户端前端
 - **技术架构设计文档**: 技术选型和实现细节
 - **数据库设计文档**: 数据库模型和关系说明
 - **前后端开发文档**: 针对开发人员的具体实现指南
+
+## 项目工作流
+
+### 请求处理总览
+
+平台采用前后端分离架构，所有业务请求遵循统一的处理链路：
+
+```mermaid
+flowchart LR
+  Client[前端应用（Vue3 + Axios）]
+  Nginx[Nginx（可选：反向代理/静态资源）]
+  Koa[后端 Koa 中间件栈<br/>error / cors / logger / rateLimit / bodyParser / auth]
+  Router[RouterConfig 路由]
+  Ctrl[Controller 参数校验 / DTO 转换]
+  Svc[Service 业务逻辑]
+  Cache[Redis 缓存命中?]
+  ORM[Sequelize Model]
+  PG[(PostgreSQL)]
+
+  Client --> Nginx
+  Nginx --> Koa
+  Koa --> Router
+  Router --> Ctrl
+  Ctrl --> Svc
+  Svc --> Cache
+  Cache -- 命中 --> Svc
+  Svc --> ORM
+  ORM --> PG
+  PG --> ORM
+  ORM --> Svc
+  Svc --> Ctrl
+  Ctrl --> Koa
+  Koa --> Client
+```
+
+关键特性：
+
+- 认证与授权：使用 `JWT + Passport` 在 `auth` 中间件中校验，`ctx.state.user` 持有身份信息和角色
+- 缓存策略：热点数据优先读写 `Redis`，未命中再回源数据库并回填缓存
+- 类型与映射：前端 `camelCase` DTO 在服务层映射为数据库字段的 `snake_case`
+- 错误与日志：统一错误处理中间件与结构化日志，保证可观测性
+
+### 中间件链路与权限校验
+
+后端中间件注册顺序：`error → cors → logger → rateLimit → bodyParser → auth → router`。
+
+```mermaid
+flowchart TD
+  A[请求到达] --> B{是否为排除路径}
+  B -- 是 --> G[跳过认证]
+  B -- 否 --> C{Authorization: Bearer token?}
+  C -- 否 --> H[401 未授权]
+  C -- 是 --> D[验证JWT]
+  D -- 失败 --> H
+  D -- 成功 --> E[加载用户与角色]
+  E --> F{满足角色/权限约束?}
+  F -- 否 --> I[403 权限不足]
+  F -- 是 --> J[next → 进入路由]
+```
+
+### 前端交互与拦截器
+
+- 请求拦截：在发送前自动附加 `Authorization: Bearer <token>`
+- 响应拦截：统一处理 `401/403/404/500`，错误消息提示与登录态恢复
+- 模块划分：后台管理与前台应用复用统一 API 服务层与类型包
+
+### 组件交互序列示例
+
+以“学生打卡”为例展示端到端交互：
+
+```mermaid
+sequenceDiagram
+  participant U as 用户(学生)
+  participant FE as 前端(Axios)
+  participant Auth as Koa(auth)
+  participant API as Router/Controller
+  participant S as Service
+  participant R as Redis
+  participant DB as PostgreSQL
+
+  U->>FE: 点击打卡提交
+  FE->>Auth: POST /api/attendance/checkin (Bearer token)
+  Auth-->>FE: 校验通过
+  FE->>API: 进入路由/控制器
+  API->>S: 参数校验后调用服务
+  S->>R: 读取任务窗口/规则(缓存)
+  R-->>S: 命中/未命中
+  alt 未命中
+    S->>DB: 查询任务与时间窗
+    DB-->>S: 返回数据
+    S->>R: 回填缓存
+  end
+  S->>DB: 写入打卡记录
+  DB-->>S: 成功
+  S-->>API: 业务响应
+  API-->>FE: 200 JSON
+```
+
+### 数据传输路径与规范
+
+- 传输协议：`HTTP/HTTPS`，统一前缀 `'/api'`
+- 身份凭证：`Authorization: Bearer <JWT>`，令牌有效期默认 1 小时
+- 请求数据：前端 `DTO` 使用 `camelCase`；服务层统一映射到模型 `snake_case`
+- 响应格式：`{ code, message, data, timestamp }`，分页含 `pagination{ page,pageSize,total,totalPages }`
+- 缓存键设计：`user:${id}`、`course:${id}`、`attendance:${courseId}:${date}:stats` 等
+
+### 错误处理与日志链路
+
+- 错误分类：验证错误(400)、未授权(401)、权限不足(403)、未找到(404)、冲突(409)、服务器错误(500)
+- 日志结构：请求开始/结束/错误标签，敏感字段自动脱敏；慢接口与查询单独记录
 
 ## 贡献指南
 

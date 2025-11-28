@@ -3,7 +3,7 @@ import { Model, DataTypes, Sequelize } from 'sequelize';
 export default (sequelize: Sequelize, DataTypes: any) => {
   class AttendanceTask extends Model {
     static associate(models) {
-      AttendanceTask.belongsTo(models.Class, { foreignKey: 'class_id' });
+      AttendanceTask.belongsTo(models.Course, { foreignKey: 'course_id' });
       AttendanceTask.hasMany(models.AttendanceRecord, { foreignKey: 'attendance_task_id' });
     }
   }
@@ -15,10 +15,10 @@ export default (sequelize: Sequelize, DataTypes: any) => {
         primaryKey: true,
         autoIncrement: true,
       },
-      class_id: {
+      course_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'class_id',
+        field: 'course_id',
       },
       task_name: {
         type: DataTypes.STRING(255),

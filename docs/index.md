@@ -11,6 +11,15 @@ hero:
     - theme: alt
       text: 查看架构设计
       link: /src/architecture/总体架构设计文档
+    - theme: alt
+      text: 后端开发
+      link: /src/backend/后端设计文档
+    - theme: alt
+      text: 数据设计
+      link: /src/database/数据库设计文档
+    - theme: alt
+      text: 前端开发
+      link: /src/frontend/前端中台设计文档
 
 features:
   - title: 业务文档
@@ -34,6 +43,18 @@ features:
   - title: 后端项目初始化指南
     details: 详细讲解后端项目初始化脚本的运作机制和使用方法
     link: /src/backend/后端项目初始化指南
+  - title: 中间件设计
+    details: Koa 中间件体系与配置（错误处理、鉴权、限流、上传等）
+    link: /src/backend/中间件设计文档
+  - title: 数据库目录创建方案
+    details: 统一数据库目录结构与维护策略
+    link: /src/database/数据库目录创建方案
+  - title: 类型兼容性验证报告
+    details: 关键模型类型与后端字段的对齐验证情况
+    link: /src/database/类型兼容性验证报告
+  - title: 前端中台设计
+    details: 前端中台架构与模块设计、路由与状态管理规范
+    link: /src/frontend/前端中台设计文档
 ---
 
 ## 项目简介

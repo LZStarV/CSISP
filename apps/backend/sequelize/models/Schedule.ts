@@ -25,13 +25,11 @@ class Schedule extends Model<ScheduleAttributes> implements ScheduleAttributes {
   public static associate(models: Record<string, any>) {
     // 多对一关系：Schedule - Class
     Schedule.belongsTo(models.Class, {
-      as: 'class',
       foreignKey: 'class_id',
     });
 
     // 多对一关系：Schedule - TimeSlot
     Schedule.belongsTo(models.TimeSlot, {
-      as: 'timeSlot',
       foreignKey: 'time_slot_id',
     });
   }
