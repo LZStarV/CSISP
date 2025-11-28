@@ -12,17 +12,18 @@ import type {
 export const authApi = {
   // 用户登录
   login: (params: LoginParams): Promise<ApiResponse<LoginResponse>> => {
-    return request.post('/auth/login', params);
+    return request.post('/users/login', params);
   },
 
   // 用户登出
   logout: (): Promise<ApiResponse<void>> => {
-    return request.post('/auth/logout');
+    // 后端暂无登出接口，这里直接返回成功
+    return Promise.resolve({ code: 200, message: 'OK' } as any);
   },
 
   // 获取用户信息
-  getUserInfo: (): Promise<ApiResponse<{ user: User; roles: Role[] }>> => {
-    return request.get('/auth/user-info');
+  getUserInfo: (): Promise<ApiResponse<{ user: User; roles?: Role[] }>> => {
+    return request.get('/users/me');
   },
 
   // 刷新token
@@ -59,12 +60,19 @@ export const userApi = {
 
   // 获取用户权限
   getUserPermissions: (userId: number): Promise<ApiResponse<Permission[]>> => {
-    return request.get(`/users/${userId}/permissions`);
+    // 后端暂未提供权限接口，返回空数组
+    return Promise.resolve({ code: 200, message: 'OK', data: [] } as any);
+  },
+
+  // 获取用户角色
+  getUserRoles: (userId: number): Promise<ApiResponse<Role[]>> => {
+    return request.get(`/users/${userId}/roles`);
   },
 
   // 角色管理
   getRoles: (): Promise<ApiResponse<Role[]>> => {
-    return request.get('/roles');
+    // 后端暂无角色列表路由，返回空列表
+    return Promise.resolve({ code: 200, message: 'OK', data: [] } as any);
   },
 
   getRole: (id: number): Promise<ApiResponse<Role>> => {

@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch, markRaw } from 'vue';
 import { useMessage } from 'naive-ui';
 import { PageContainer } from '@/components';
 import { dashboardApi } from '@/api';
@@ -124,28 +124,28 @@ const statsCards = ref([
     key: 'users',
     label: '用户总数',
     value: 0,
-    icon: PeopleOutline,
+    icon: markRaw(PeopleOutline),
     suffix: '',
   },
   {
     key: 'courses',
     label: '课程总数',
     value: 0,
-    icon: BookOutline,
+    icon: markRaw(BookOutline),
     suffix: '',
   },
   {
     key: 'classes',
     label: '班级总数',
     value: 0,
-    icon: SchoolOutline,
+    icon: markRaw(SchoolOutline),
     suffix: '',
   },
   {
     key: 'attendance',
     label: '平均出勤率',
     value: 0,
-    icon: CheckmarkCircleOutline,
+    icon: markRaw(CheckmarkCircleOutline),
     suffix: '%',
   },
 ]);

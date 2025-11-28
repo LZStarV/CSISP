@@ -30,25 +30,17 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
     const { data } = response;
 
-    // 统一处理响应
-    if (data.code !== 200) {
+    // 接受所有 2xx 业务码
+    if (typeof data?.code === 'number' && (data.code < 200 || data.code >= 300)) {
       return Promise.reject(new Error(data.message || '请求失败'));
     }
 
     return response;
   },
   error => {
-    // 统一错误处理
-    if (error.response?.status === 401) {
-      // 未授权，跳转到登录页
+    const status = error.response?.status;
+    if (status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
-    } else if (error.response?.status === 403) {
-      // 无权限
-      console.error('无权限访问');
-    } else if (error.response?.status === 500) {
-      // 服务器错误
-      console.error('服务器错误');
     }
 
     return Promise.reject(error);

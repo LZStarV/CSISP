@@ -17,7 +17,8 @@ export const useCourseStore = defineStore('course', () => {
     state.value.loading = true;
     try {
       const response = await courseApi.getCourses(params);
-      state.value.courses = response.data?.data || [];
+      const list = response.data?.data || [];
+      state.value.courses = Array.isArray(list) ? list.map(mapCourse) : [];
       return response.data;
     } catch (error) {
       throw error;
@@ -31,7 +32,7 @@ export const useCourseStore = defineStore('course', () => {
     try {
       const response = await courseApi.createCourse(courseData);
       if (response.data) {
-        state.value.courses.unshift(response.data);
+        state.value.courses.unshift(mapCourse(response.data as any));
       }
       return response.data;
     } catch (error) {
@@ -47,7 +48,8 @@ export const useCourseStore = defineStore('course', () => {
       const response = await courseApi.updateCourse(id, courseData);
       const index = state.value.courses.findIndex(c => c.id === id);
       if (index !== -1 && response.data) {
-        state.value.courses[index] = { ...state.value.courses[index], ...response.data };
+        const mapped = mapCourse({ ...state.value.courses[index], ...response.data } as any);
+        state.value.courses[index] = mapped;
       }
       return response.data;
     } catch (error) {
@@ -275,4 +277,19 @@ export const useCourseStore = defineStore('course', () => {
     updateTimeSlot,
     deleteTimeSlot,
   };
+});
+const mapCourse = (raw: any): Course => ({
+  id: raw.id,
+  courseName: raw.course_name ?? raw.courseName,
+  courseCode: raw.course_code ?? raw.courseCode,
+  semester: raw.semester,
+  academicYear: raw.academic_year ?? raw.academicYear,
+  availableMajors: Array.isArray(raw.available_majors)
+    ? raw.available_majors
+    : Array.isArray(raw.availableMajors)
+      ? raw.availableMajors
+      : [],
+  status: raw.status,
+  createdAt: raw.created_at ?? raw.createdAt,
+  updatedAt: raw.updated_at ?? raw.updatedAt,
 });

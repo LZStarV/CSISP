@@ -133,7 +133,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, h } from 'vue';
+import { ref, reactive, onMounted, h, markRaw } from 'vue';
 import { useMessage } from 'naive-ui';
 import {
   PeopleOutline,
@@ -169,7 +169,7 @@ const overviewCards = ref([
     label: '用户总数',
     value: 0,
     trend: 0,
-    icon: PeopleOutline,
+    icon: markRaw(PeopleOutline),
     class: 'users-card',
   },
   {
@@ -177,7 +177,7 @@ const overviewCards = ref([
     label: '课程总数',
     value: 0,
     trend: 0,
-    icon: BookOutline,
+    icon: markRaw(BookOutline),
     class: 'courses-card',
   },
   {
@@ -185,7 +185,7 @@ const overviewCards = ref([
     label: '班级总数',
     value: 0,
     trend: 0,
-    icon: SchoolOutline,
+    icon: markRaw(SchoolOutline),
     class: 'classes-card',
   },
   {
@@ -193,7 +193,7 @@ const overviewCards = ref([
     label: '平均出勤率',
     value: 0,
     trend: 0,
-    icon: CheckmarkCircleOutline,
+    icon: markRaw(CheckmarkCircleOutline),
     class: 'attendance-card',
   },
 ]);

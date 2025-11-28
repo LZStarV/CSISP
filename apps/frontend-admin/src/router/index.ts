@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import type { RouteRecordRaw } from 'vue-router';
+import type { RouteRecordRaw, RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
+import { useUserStore } from '@/stores';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -86,29 +87,49 @@ const routes: RouteRecordRaw[] = [
           icon: 'settings',
           permission: 'system:read',
         },
+        component: () => import('@/pages/System/index.vue'),
         children: [
-          // 临时注释掉系统管理子页面
-          // {
-          //   path: '/system/roles',
-          //   name: 'RoleManagement',
-          //   component: () => import('@/pages/course/RoleManagement/index.vue'),
-          //   meta: {
-          //     title: '角色管理',
-          //     icon: 'key',
-          //     permission: 'role:read',
-          //   },
-          // },
-          // {
-          //   path: '/system/permissions',
-          //   name: 'PermissionManagement',
-          //   component: () => import('@/pages/course/PermissionManagement/index.vue'),
-          //   meta: {
-          //     title: '权限管理',
-          //     icon: 'lock-closed',
-          //     permission: 'permission:read',
-          //   },
-          // },
+          {
+            path: 'roles',
+            name: 'RoleManagement',
+            component: () => import('@/pages/course/RoleManagement/index.vue'),
+            meta: {
+              title: '角色管理',
+              icon: 'key',
+              permission: 'role:read',
+            },
+          },
+          {
+            path: 'permissions',
+            name: 'PermissionManagement',
+            component: () => import('@/pages/course/PermissionManagement/index.vue'),
+            meta: {
+              title: '权限管理',
+              icon: 'lock-closed',
+              permission: 'permission:read',
+            },
+          },
         ],
+      },
+      {
+        path: '/profile',
+        name: 'Profile',
+        component: () => import('@/pages/Profile/index.vue'),
+        meta: {
+          title: '个人中心',
+          icon: 'person',
+          hideInMenu: true,
+        },
+      },
+      {
+        path: '/password',
+        name: 'Password',
+        component: () => import('@/pages/Password/index.vue'),
+        meta: {
+          title: '修改密码',
+          icon: 'lock-closed',
+          hideInMenu: true,
+        },
       },
     ],
   },
@@ -133,28 +154,58 @@ const routes: RouteRecordRaw[] = [
 ];
 
 const router = createRouter({
-  history: createWebHistory((import.meta as any).env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
 
-// 路由守卫
-// router.beforeEach((to, from, next) => {
-//   // 检查是否需要登录
-//   if (to.name !== 'Login') {
-//     const token = localStorage.getItem('token');
-//     if (!token) {
-//       next({ name: 'Login' });
-//       return;
-//     }
-//   }
+router.beforeEach(
+  async (
+    to: RouteLocationNormalized,
+    _from: RouteLocationNormalized,
+    next: NavigationGuardNext
+  ) => {
+    const userStore = useUserStore();
 
-//   // 检查权限
-//   if (to.meta.permission) {
-//     // 这里可以添加权限检查逻辑
-//     // 例如：检查用户是否有相应的权限
-//   }
+    if (to.name !== 'Login') {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        next({ name: 'Login', query: { redirect: to.fullPath } });
+        return;
+      }
+      if (!userStore.state.currentUser && !userStore.state.loading) {
+        try {
+          await userStore.getCurrentUser();
+        } catch {}
+      }
+    }
 
-//   next();
-// });
+    const requiredPermission = to.meta?.permission as string | undefined;
+    const enforcePermissions =
+      Array.isArray(userStore.state.permissions) && userStore.state.permissions.length > 0;
+    if (requiredPermission && enforcePermissions) {
+      const roles = userStore.state.roles || [];
+      const permissions = userStore.state.permissions || [];
+      const roleNames = Array.isArray(roles)
+        ? (roles as any[])
+            .map(r => (typeof r === 'string' ? r : (r?.name ?? r?.code ?? '')))
+            .filter(Boolean)
+        : [];
+      const permissionCodes = Array.isArray(permissions)
+        ? (permissions as any[])
+            .map(p => (typeof p === 'string' ? p : (p?.code ?? p?.name ?? '')))
+            .filter(Boolean)
+        : [];
+      const isAdmin =
+        roleNames.includes('admin') || userStore.state.currentUser?.username === 'admin';
+      const hasPermission = permissionCodes.includes(requiredPermission);
+      if (!isAdmin && !hasPermission) {
+        next({ path: '/dashboard' });
+        return;
+      }
+    }
+
+    next();
+  }
+);
 
 export default router;

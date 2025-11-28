@@ -11,6 +11,7 @@ import {
   CourseController,
   AttendanceController,
   HomeworkController,
+  DashboardController,
 } from './controllers';
 
 /**
@@ -34,13 +35,15 @@ export async function initializeControllers(): Promise<RouterConfig> {
   const courseController = new CourseController(services.courseService);
   const attendanceController = new AttendanceController(services.attendanceService);
   const homeworkController = new HomeworkController(services.homeworkService);
+  const dashboardController = new DashboardController(services.dashboardService);
 
   // 创建路由配置
   const routerConfig = new RouterConfig(
     userController,
     courseController,
     attendanceController,
-    homeworkController
+    homeworkController,
+    dashboardController
   );
 
   return routerConfig;

@@ -18,6 +18,7 @@
       :fields="searchFields"
       :model="searchModel"
       :loading="loading"
+      @update:model="onUpdateSearchModel"
       @search="handleSearch"
       @reset="handleReset"
     />
@@ -354,24 +355,53 @@ const modalTitle = computed(() => {
 
 const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '用户管理' }]);
 
+// 分页状态（根据后端返回控制）
+const currentPage = ref(1);
+const pageSize = ref(10);
+const totalItems = ref(0);
+
 const pagination = computed(() => ({
-  current: 1,
-  pageSize: 10,
-  total: users.value.length,
+  current: currentPage.value,
+  pageSize: pageSize.value,
+  total: totalItems.value,
   showSizeChanger: true,
   showQuickJumper: true,
+  pageSizeOptions: [10, 20, 50, 100],
   onChange: (page: number) => {
-    console.log('Page changed:', page);
+    currentPage.value = page;
+    handleSearch();
+  },
+  onUpdatePageSize: (size: number) => {
+    pageSize.value = size;
+    currentPage.value = 1;
+    handleSearch();
   },
 }));
 
 // 方法
 const handleSearch = async () => {
   try {
-    await userStore.getUsers(searchModel);
-  } catch (error) {
-    console.error('Search failed:', error);
+    const resp = await userStore.getUsers({
+      page: currentPage.value,
+      size: pageSize.value,
+      keyword: searchModel.keyword,
+      status: searchModel.status,
+      role: searchModel.role,
+      // 可根据需要映射专业与年份
+      // major: searchModel.major,
+      // enrollmentYear: searchModel.enrollmentYear,
+    });
+    const meta = resp as any;
+    totalItems.value = Number(meta?.total ?? 0);
+    currentPage.value = Number(meta?.page ?? currentPage.value);
+    pageSize.value = Number(meta?.size ?? pageSize.value);
+  } catch (error: any) {
+    message.error(error?.message || '查询失败或无权限');
   }
+};
+
+const onUpdateSearchModel = (m: Record<string, any>) => {
+  Object.assign(searchModel, m);
 };
 
 const handleReset = () => {
