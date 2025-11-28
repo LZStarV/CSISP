@@ -4,7 +4,16 @@ import { resolve } from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue({
+      template: {
+        transformAssetUrls: {
+          base: null,
+          includeAbsolute: false,
+        },
+      },
+    }),
+  ],
   server: {
     port: 5173,
     host: true,
@@ -16,5 +25,8 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
+  },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
   },
 });

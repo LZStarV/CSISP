@@ -3,7 +3,7 @@
  * 负责初始化所有服务、控制器和路由配置
  */
 
-import models, { modelsReady } from '../sequelize/models';
+import models, { modelsReady } from './databases';
 import { ServiceFactory } from './services/ServiceFactory';
 import { RouterConfig } from './controllers/RouterConfig';
 import {

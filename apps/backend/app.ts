@@ -519,8 +519,12 @@ async function startServer() {
       process.stderr.write('unhandled_rejection\n');
       gracefulShutdown('unhandledRejection');
     });
-  } catch {
-    process.stderr.write('failed_start_server\n');
+  } catch (error: any) {
+    const name = error?.name ?? 'UnknownError';
+    const message = error?.message ?? 'No message';
+    const stack = error?.stack ?? '';
+    process.stderr.write(`failed_start_server:${name}:${message}\n`);
+    if (stack) process.stderr.write(`${stack}\n`);
     process.exit(1);
   }
 }

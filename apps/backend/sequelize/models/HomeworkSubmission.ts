@@ -2,8 +2,10 @@ import { Model, DataTypes, Sequelize } from 'sequelize';
 import { HomeworkSubmission as HomeworkSubmissionType } from '@csisp/types';
 
 // 使用标准类型定义
-interface HomeworkSubmissionAttributes
-  extends Omit<HomeworkSubmissionType, 'id' | 'submitTime' | 'updatedAt'> {
+interface HomeworkSubmissionAttributes extends Omit<
+  HomeworkSubmissionType,
+  'id' | 'submitTime' | 'updatedAt'
+> {
   id: number;
   homeworkId: number;
   userId: number;

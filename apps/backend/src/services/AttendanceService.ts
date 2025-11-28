@@ -67,7 +67,7 @@ export class AttendanceService extends BaseService {
 
       // 处理字段映射
       const task = await this.model.create({
-        class_id: taskData.classId, // 字段映射
+        course_id: classInstance.course_id, // 字段映射
         task_name: taskData.taskName, // 字段映射
         task_type: taskData.taskType, // 字段映射
         start_time: taskData.startTime, // 字段映射
@@ -139,8 +139,8 @@ export class AttendanceService extends BaseService {
       // 检查用户是否已打卡
       const existingRecord = await this.attendanceRecordModel.findOne({
         where: {
-          attendanceTaskId: taskId,
-          userId: userId,
+          task_id: taskId,
+          user_id: userId,
         },
       });
 
@@ -172,8 +172,8 @@ export class AttendanceService extends BaseService {
 
       // 创建打卡记录
       const record = await this.attendanceRecordModel.create({
-        attendanceTaskId: taskId,
-        userId: userId,
+        task_id: taskId,
+        user_id: userId,
         status: status,
         remark: remark || '',
       });
@@ -209,7 +209,7 @@ export class AttendanceService extends BaseService {
       }
 
       return await this.findAllWithPagination(params, {
-        class_id: classId, // 注意字段映射
+        course_id: classInstance.course_id, // 注意字段映射
         status: Status.Active,
       });
     } catch (error) {
@@ -241,7 +241,7 @@ export class AttendanceService extends BaseService {
       const offset = (page - 1) * size;
 
       const { count, rows } = await this.attendanceRecordModel.findAndCountAll({
-        where: { attendance_task_id: taskId }, // 注意字段映射
+        where: { task_id: taskId },
         include: [
           {
             model: this.userModel,
@@ -282,9 +282,16 @@ export class AttendanceService extends BaseService {
       const where: WhereOptions = { user_id: userId }; // 注意字段映射
 
       if (classId) {
-        // 获取指定班级的考勤任务
+        const classInstance = await this.classModel.findByPk(classId);
+        if (!classInstance) {
+          return {
+            code: 404,
+            message: '班级不存在',
+          } as ApiResponse<any>;
+        }
+
         const classTasks = await this.model.findAll({
-          where: { class_id: classId }, // 注意字段映射
+          where: { course_id: classInstance.course_id },
           attributes: ['id'],
         });
         const taskIds = classTasks.map((task: any) => task.id);
@@ -306,7 +313,7 @@ export class AttendanceService extends BaseService {
           };
         }
 
-        where.attendance_task_id = { [Op.in]: taskIds }; // 注意字段映射
+        (where as any).task_id = { [Op.in]: taskIds };
       }
 
       const records = await this.attendanceRecordModel.findAll({
@@ -363,7 +370,7 @@ export class AttendanceService extends BaseService {
 
       // 获取班级的所有考勤任务
       const tasks = await this.model.findAll({
-        where: { class_id: classId }, // 注意字段映射
+        where: { course_id: classInstance.course_id },
       });
 
       const taskIds = tasks.map((task: any) => task.id);
@@ -384,7 +391,7 @@ export class AttendanceService extends BaseService {
       }
 
       const records = await this.attendanceRecordModel.findAll({
-        where: { attendance_task_id: { [Op.in]: taskIds } }, // 注意字段映射
+        where: { task_id: { [Op.in]: taskIds } },
       });
 
       const totalCount = records.length;
@@ -456,15 +463,22 @@ export class AttendanceService extends BaseService {
       };
 
       if (classId) {
-        where.class_id = classId; // 注意字段映射
+        const classInstance = await this.classModel.findByPk(classId);
+        if (!classInstance) {
+          return {
+            code: 404,
+            message: '班级不存在',
+          } as ApiResponse<any[]>;
+        }
+        (where as any).course_id = classInstance.course_id;
       }
 
       const tasks = await this.model.findAll({
         where,
         include: [
           {
-            model: this.classModel,
-            attributes: ['id', 'class_name'], // 注意字段映射
+            model: this.courseModel,
+            attributes: ['id', 'course_name'],
           },
         ],
         order: [['start_time', 'ASC']], // 注意字段映射

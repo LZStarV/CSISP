@@ -3,7 +3,7 @@ import { Model, DataTypes, Sequelize } from 'sequelize';
 export default (sequelize: Sequelize, DataTypes: any) => {
   class AttendanceRecord extends Model {
     static associate(models) {
-      AttendanceRecord.belongsTo(models.AttendanceTask, { foreignKey: 'attendance_task_id' });
+      AttendanceRecord.belongsTo(models.AttendanceTask, { foreignKey: 'task_id' });
       AttendanceRecord.belongsTo(models.User, { foreignKey: 'user_id' });
     }
   }
@@ -18,7 +18,7 @@ export default (sequelize: Sequelize, DataTypes: any) => {
       attendance_task_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'attendance_task_id',
+        field: 'task_id',
       },
       user_id: {
         type: DataTypes.INTEGER,

@@ -94,7 +94,7 @@
         <component
           :is="field.render"
           :model-value="model[field.key]"
-          @update:model-value="value => handleFieldChange(field.key, value)"
+          @update:model-value="(value: any) => handleFieldChange(field.key, value)"
           :field="field"
           :model="model"
         />

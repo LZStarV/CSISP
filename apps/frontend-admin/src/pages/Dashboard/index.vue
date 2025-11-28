@@ -1,203 +1,245 @@
 <template>
-  <PageContainer title="仪表盘" description="系统概览和数据统计" :breadcrumbs="breadcrumbs">
-    <div class="dashboard">
+  <PageContainer title="仪表盘" description="系统概览与数据统计" :breadcrumbs="breadcrumbs">
+    <template #actions>
+      <n-space>
+        <n-button @click="fetchDashboardData">
+          <template #icon>
+            <n-icon><refresh-outline /></n-icon>
+          </template>
+          刷新数据
+        </n-button>
+      </n-space>
+    </template>
+
+    <!-- 加载状态 -->
+    <n-spin :show="loading">
+      <!-- 错误提示 -->
+      <n-alert
+        v-if="error"
+        type="error"
+        :title="error"
+        class="mb-4"
+        closable
+        @close="error = null"
+      />
+
       <!-- 统计卡片 -->
-      <n-grid :cols="4" :x-gap="16" :y-gap="16">
-        <n-grid-item>
-          <n-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon user">
-                <n-icon size="40">
-                  <people-outline />
-                </n-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-number">{{ stats.userCount }}</div>
-                <div class="stat-label">总用户数</div>
-              </div>
-            </div>
-          </n-card>
-        </n-grid-item>
-
-        <n-grid-item>
-          <n-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon course">
-                <n-icon size="40">
-                  <book-outline />
-                </n-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-number">{{ stats.courseCount }}</div>
-                <div class="stat-label">课程总数</div>
-              </div>
-            </div>
-          </n-card>
-        </n-grid-item>
-
-        <n-grid-item>
-          <n-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon class">
-                <n-icon size="40">
-                  <school-outline />
-                </n-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-number">{{ stats.classCount }}</div>
-                <div class="stat-label">班级总数</div>
-              </div>
-            </div>
-          </n-card>
-        </n-grid-item>
-
-        <n-grid-item>
-          <n-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon attendance">
-                <n-icon size="40">
-                  <checkmark-circle-outline />
-                </n-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-number">{{ stats.attendanceRate }}%</div>
-                <div class="stat-label">今日出勤率</div>
-              </div>
-            </div>
+      <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-4">
+        <n-grid-item v-for="card in statsCards" :key="card.key">
+          <n-card>
+            <n-statistic :label="card.label" :value="card.value">
+              <template #prefix>
+                <n-icon :component="card.icon" />
+              </template>
+              <template #suffix v-if="card.suffix">
+                {{ card.suffix }}
+              </template>
+            </n-statistic>
           </n-card>
         </n-grid-item>
       </n-grid>
 
       <!-- 图表区域 -->
-      <n-grid :cols="2" :x-gap="16" :y-gap="16" style="margin-top: 16px">
+      <n-grid :cols="2" :x-gap="16" :y-gap="16" class="mb-4">
         <n-grid-item>
-          <n-card title="用户增长趋势" class="chart-card">
-            <div ref="userChartRef" class="chart-container"></div>
+          <n-card title="用户增长趋势">
+            <div ref="userGrowthChart" style="height: 300px"></div>
           </n-card>
         </n-grid-item>
-
         <n-grid-item>
-          <n-card title="课程分布" class="chart-card">
-            <div ref="courseChartRef" class="chart-container"></div>
+          <n-card title="课程分布">
+            <div ref="courseDistributionChart" style="height: 300px"></div>
           </n-card>
         </n-grid-item>
       </n-grid>
 
       <!-- 最近活动 -->
-      <n-card title="最近活动" style="margin-top: 16px">
-        <n-list>
-          <n-list-item v-for="activity in recentActivities" :key="activity.id">
-            <n-thing>
-              <template #avatar>
-                <n-avatar :style="{ backgroundColor: activity.color }">
-                  <n-icon>
-                    <component :is="activity.icon" />
-                  </n-icon>
-                </n-avatar>
-              </template>
-              <template #header>
-                {{ activity.title }}
-              </template>
-              <template #description>
-                {{ activity.time }}
-              </template>
-              {{ activity.content }}
-            </n-thing>
-          </n-list-item>
-        </n-list>
+      <n-card title="最近活动">
+        <n-timeline>
+          <n-timeline-item
+            v-for="activity in recentActivities"
+            :key="activity.id"
+            :type="getActivityType(activity.type)"
+            :title="activity.title"
+            :content="activity.description"
+            :time="formatActivityTime(activity.timestamp)"
+          />
+        </n-timeline>
       </n-card>
-    </div>
+    </n-spin>
   </PageContainer>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
+import { useMessage } from 'naive-ui';
+import { PageContainer } from '@/components';
+import { dashboardApi } from '@/api';
+import type {
+  DashboardStats,
+  UserGrowthData,
+  CourseDistributionData,
+  RecentActivity,
+} from '@/api/dashboard';
 import * as echarts from 'echarts';
-import { NGrid, NGridItem, NCard, NIcon, NList, NListItem, NThing, NAvatar } from 'naive-ui';
 import {
   PeopleOutline,
   BookOutline,
   SchoolOutline,
   CheckmarkCircleOutline,
-  PersonAddOutline,
-  CreateOutline,
-  NotificationsOutline,
+  DocumentTextOutline,
+  RefreshOutline,
 } from '@vicons/ionicons5';
-import { PageContainer } from '@/components';
+
+// 状态管理
+const message = useMessage();
+const loading = ref(false);
+const error = ref<string | null>(null);
+
+// 面包屑导航
+const breadcrumbs = [{ label: '首页', path: '/' }, { label: '仪表盘' }];
 
 // 统计数据
-const stats = reactive({
-  userCount: 1234,
-  courseCount: 56,
-  classCount: 128,
-  attendanceRate: 92,
+const statsData = reactive<DashboardStats>({
+  userCount: 0,
+  courseCount: 0,
+  classCount: 0,
+  attendanceRate: 0,
+  homeworkSubmissionRate: 0,
+  notificationCount: 0,
 });
 
-// 图表引用
-const userChartRef = ref<HTMLElement>();
-const courseChartRef = ref<HTMLElement>();
+// 用户增长数据
+const userGrowthData = ref<UserGrowthData[]>([]);
 
-// 最近活动
-const recentActivities = ref([
+// 课程分布数据
+const courseDistributionData = ref<CourseDistributionData[]>([]);
+
+// 最近活动数据
+const recentActivities = ref<RecentActivity[]>([]);
+
+// 统计卡片配置
+const statsCards = ref([
   {
-    id: 1,
-    title: '新用户注册',
-    content: '张三同学完成了注册流程',
-    time: '2分钟前',
-    icon: PersonAddOutline,
-    color: '#52c41a',
+    key: 'users',
+    label: '用户总数',
+    value: 0,
+    icon: PeopleOutline,
+    suffix: '',
   },
   {
-    id: 2,
-    title: '课程创建',
-    content: '李教授创建了《数据结构》课程',
-    time: '10分钟前',
-    icon: CreateOutline,
-    color: '#1890ff',
+    key: 'courses',
+    label: '课程总数',
+    value: 0,
+    icon: BookOutline,
+    suffix: '',
   },
   {
-    id: 3,
-    title: '系统通知',
-    content: '系统将于今晚进行维护升级',
-    time: '1小时前',
-    icon: NotificationsOutline,
-    color: '#faad14',
+    key: 'classes',
+    label: '班级总数',
+    value: 0,
+    icon: SchoolOutline,
+    suffix: '',
+  },
+  {
+    key: 'attendance',
+    label: '平均出勤率',
+    value: 0,
+    icon: CheckmarkCircleOutline,
+    suffix: '%',
   },
 ]);
 
-// 面包屑
-const breadcrumbs = ref([{ label: '首页', path: '/' }, { label: '仪表盘' }]);
+// 图表实例
+let userGrowthChartInstance: echarts.ECharts | null = null;
+let courseDistributionChartInstance: echarts.ECharts | null = null;
 
-// 初始化用户增长趋势图表
-const initUserChart = () => {
-  if (!userChartRef.value) return;
+const userGrowthChart = ref<HTMLElement>();
+const courseDistributionChart = ref<HTMLElement>();
 
-  const chart = echarts.init(userChartRef.value);
-  const option: echarts.EChartsOption = {
+// 获取仪表盘数据
+const fetchDashboardData = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    const [statsResponse, userGrowthResponse, courseDistributionResponse, activitiesResponse] =
+      await Promise.allSettled([
+        dashboardApi.getDashboardStats(),
+        dashboardApi.getUserGrowth(),
+        dashboardApi.getCourseDistribution(),
+        dashboardApi.getRecentActivities(),
+      ]);
+
+    // 处理统计数据
+    if (statsResponse.status === 'fulfilled' && statsResponse.value.data) {
+      const stats = statsResponse.value.data;
+      Object.assign(statsData, stats);
+
+      // 更新统计卡片
+      if (statsCards.value[0]) statsCards.value[0].value = stats.userCount;
+      if (statsCards.value[1]) statsCards.value[1].value = stats.courseCount;
+      if (statsCards.value[2]) statsCards.value[2].value = stats.classCount;
+      if (statsCards.value[3]) statsCards.value[3].value = stats.attendanceRate;
+    }
+
+    // 处理用户增长数据
+    if (userGrowthResponse.status === 'fulfilled' && userGrowthResponse.value.data) {
+      userGrowthData.value = userGrowthResponse.value.data;
+      updateUserGrowthChart();
+    }
+
+    // 处理课程分布数据
+    if (
+      courseDistributionResponse.status === 'fulfilled' &&
+      courseDistributionResponse.value.data
+    ) {
+      courseDistributionData.value = courseDistributionResponse.value.data;
+      updateCourseDistributionChart();
+    }
+
+    // 处理最近活动数据
+    if (activitiesResponse.status === 'fulfilled' && activitiesResponse.value.data) {
+      recentActivities.value = activitiesResponse.value.data;
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '获取数据失败';
+    console.error('Failed to fetch dashboard data:', err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 更新用户增长图表
+const updateUserGrowthChart = () => {
+  if (!userGrowthChartInstance || !userGrowthData.value.length) return;
+
+  const xAxisData = userGrowthData.value.map(item => item.date);
+  const seriesData = userGrowthData.value.map(item => item.count);
+
+  const option = {
     tooltip: {
       trigger: 'axis',
+      axisPointer: {
+        type: 'cross',
+      },
     },
     xAxis: {
       type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月'],
+      data: xAxisData,
     },
     yAxis: {
       type: 'value',
+      name: '用户数',
     },
     series: [
       {
-        name: '用户数',
+        name: '用户增长',
         type: 'line',
-        data: [820, 932, 901, 934, 1290, 1330],
+        data: seriesData,
         smooth: true,
-        itemStyle: {
-          color: '#1890ff',
-        },
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
-            { offset: 1, color: 'rgba(24, 144, 255, 0.1)' },
-          ]),
+          opacity: 0.3,
         },
       },
     ],
@@ -209,20 +251,14 @@ const initUserChart = () => {
     },
   };
 
-  chart.setOption(option);
-
-  // 响应式
-  window.addEventListener('resize', () => {
-    chart.resize();
-  });
+  userGrowthChartInstance.setOption(option);
 };
 
-// 初始化课程分布图表
-const initCourseChart = () => {
-  if (!courseChartRef.value) return;
+// 更新课程分布图表
+const updateCourseDistributionChart = () => {
+  if (!courseDistributionChartInstance || !courseDistributionData.value.length) return;
 
-  const chart = echarts.init(courseChartRef.value);
-  const option: echarts.EChartsOption = {
+  const option = {
     tooltip: {
       trigger: 'item',
     },
@@ -235,13 +271,7 @@ const initCourseChart = () => {
         name: '课程分布',
         type: 'pie',
         radius: '50%',
-        data: [
-          { value: 1048, name: '计算机科学' },
-          { value: 735, name: '软件工程' },
-          { value: 580, name: '信息安全' },
-          { value: 484, name: '人工智能' },
-          { value: 300, name: '数据科学' },
-        ],
+        data: courseDistributionData.value,
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
@@ -251,81 +281,71 @@ const initCourseChart = () => {
         },
       },
     ],
-    color: ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1'],
   };
 
-  chart.setOption(option);
-
-  // 响应式
-  window.addEventListener('resize', () => {
-    chart.resize();
-  });
+  courseDistributionChartInstance.setOption(option);
 };
 
-// 生命周期
-onMounted(async () => {
-  await nextTick();
-  initUserChart();
-  initCourseChart();
+// 获取活动类型
+const getActivityType = (type: string) => {
+  const typeMap: Record<string, any> = {
+    attendance: 'info',
+    homework: 'success',
+    notification: 'warning',
+    course: 'error',
+  };
+  return typeMap[type] || 'default';
+};
+
+// 格式化活动时间
+const formatActivityTime = (timestamp: string) => {
+  const date = new Date(timestamp);
+  return date.toLocaleString('zh-CN');
+};
+
+// 初始化图表
+onMounted(() => {
+  if (userGrowthChart.value) {
+    userGrowthChartInstance = echarts.init(userGrowthChart.value);
+  }
+  if (courseDistributionChart.value) {
+    courseDistributionChartInstance = echarts.init(courseDistributionChart.value);
+  }
+
+  fetchDashboardData();
+});
+
+// 清理图表实例
+onUnmounted(() => {
+  if (userGrowthChartInstance) {
+    userGrowthChartInstance.dispose();
+  }
+  if (courseDistributionChartInstance) {
+    courseDistributionChartInstance.dispose();
+  }
+});
+
+// 监听数据变化更新图表
+watch([userGrowthData, courseDistributionData], () => {
+  updateUserGrowthChart();
+  updateCourseDistributionChart();
 });
 </script>
 
 <style scoped lang="scss">
-.dashboard {
-  .stat-card {
-    .stat-content {
-      display: flex;
-      align-items: center;
-      gap: 16px;
+.dashboard-container {
+  padding: 24px;
+}
 
-      .stat-icon {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
+.stats-card {
+  text-align: center;
 
-        &.user {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        &.course {
-          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        &.class {
-          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        &.attendance {
-          background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-      }
-
-      .stat-info {
-        flex: 1;
-
-        .stat-number {
-          font-size: 32px;
-          font-weight: 600;
-          color: #262626;
-          margin-bottom: 4px;
-        }
-
-        .stat-label {
-          font-size: 14px;
-          color: #8c8c8c;
-        }
-      }
-    }
+  .n-statistic {
+    margin: 0;
   }
+}
 
-  .chart-card {
-    .chart-container {
-      height: 300px;
-    }
-  }
+.chart-container {
+  height: 300px;
 }
 </style>

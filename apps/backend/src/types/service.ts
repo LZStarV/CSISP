@@ -175,8 +175,11 @@ export interface CourseService extends BaseService<Course, Partial<Course>, Part
 /**
  * 考勤服务接口
  */
-export interface AttendanceService
-  extends BaseService<AttendanceTask, Partial<AttendanceTask>, Partial<AttendanceTask>> {
+export interface AttendanceService extends BaseService<
+  AttendanceTask,
+  Partial<AttendanceTask>,
+  Partial<AttendanceTask>
+> {
   /**
    * 创建考勤任务
    */
@@ -219,8 +222,11 @@ export interface AttendanceService
 /**
  * 作业服务接口
  */
-export interface HomeworkService
-  extends BaseService<Homework, Partial<Homework>, Partial<Homework>> {
+export interface HomeworkService extends BaseService<
+  Homework,
+  Partial<Homework>,
+  Partial<Homework>
+> {
   /**
    * 发布作业
    */
@@ -268,8 +274,11 @@ export interface HomeworkService
 /**
  * 通知服务接口
  */
-export interface NotificationService
-  extends BaseService<Notification, Partial<Notification>, Partial<Notification>> {
+export interface NotificationService extends BaseService<
+  Notification,
+  Partial<Notification>,
+  Partial<Notification>
+> {
   /**
    * 发布通知
    */

@@ -18,6 +18,16 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: '/data-overview',
+        name: 'DataOverview',
+        component: () => import('@/pages/DataOverview/index.vue'),
+        meta: {
+          title: '数据总览',
+          icon: 'analytics',
+          permission: 'dashboard:read',
+        },
+      },
+      {
         path: '/users',
         name: 'UserManagement',
         component: () => import('@/pages/UserManagement/index.vue'),

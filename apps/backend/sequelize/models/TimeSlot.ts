@@ -1,11 +1,10 @@
 import { Model, DataTypes, Sequelize } from 'sequelize';
 import { Status, TimeSlot as TimeSlotType } from '@csisp/types';
 
-// 使用标准类型定义
-interface TimeSlotAttributes extends Omit<TimeSlotType, 'id' | 'createdAt' | 'updatedAt'> {
+interface TimeSlotAttributes {
   id: number;
-  sub_course_id: number;
-  weekday: number;
+  course_id: number;
+  week_day: number;
   start_time: string;
   end_time: string;
   location: string;
@@ -16,8 +15,8 @@ interface TimeSlotAttributes extends Omit<TimeSlotType, 'id' | 'createdAt' | 'up
 
 class TimeSlot extends Model<TimeSlotAttributes> implements TimeSlotAttributes {
   public id!: number;
-  public sub_course_id!: number;
-  public weekday!: number;
+  public course_id!: number;
+  public week_day!: number;
   public start_time!: string;
   public end_time!: string;
   public location!: string;
@@ -28,6 +27,8 @@ class TimeSlot extends Model<TimeSlotAttributes> implements TimeSlotAttributes {
   // 关联方法
   public static associate(models: Record<string, any>) {
     TimeSlot.hasMany(models.Schedule, { foreignKey: 'time_slot_id' });
+    TimeSlot.belongsTo(models.Course, { foreignKey: 'course_id' });
+    models.Course.hasMany(TimeSlot, { foreignKey: 'course_id' });
   }
 }
 
@@ -39,18 +40,19 @@ export default (sequelize: Sequelize, DataTypes: any) => {
         primaryKey: true,
         autoIncrement: true,
       },
-      sub_course_id: {
+      course_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'sub_course_id',
+        field: 'course_id',
       },
-      weekday: {
+      week_day: {
         type: DataTypes.INTEGER,
         allowNull: false,
         validate: {
           min: 1,
           max: 7,
         },
+        field: 'week_day',
       },
       start_time: {
         type: DataTypes.STRING(10),

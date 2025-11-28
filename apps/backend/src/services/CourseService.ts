@@ -308,12 +308,7 @@ export class CourseService extends BaseService {
             required: false,
           },
           {
-            model: this.subCourseModel,
-            include: [
-              {
-                model: this.timeSlotModel,
-              },
-            ],
+            model: this.timeSlotModel,
           },
         ],
       });

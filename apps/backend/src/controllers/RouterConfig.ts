@@ -3,6 +3,7 @@
  * 统一管理所有控制器路由，提供自动化的路由注册功能
  */
 import Router from '@koa/router';
+import { testConnection } from '../database';
 import { UserController } from './UserController';
 import { CourseController } from './CourseController';
 import { AttendanceController } from './AttendanceController';
@@ -249,6 +250,14 @@ export class RouterConfig {
           version: process.version,
         },
       };
+    });
+
+    this.router.get('/db/health', async (ctx: any) => {
+      const ok = await testConnection();
+      ctx.body = ok
+        ? { code: 200, message: '数据库连接正常' }
+        : { code: 503, message: '数据库连接失败' };
+      ctx.status = ok ? 200 : 503;
     });
   }
 
