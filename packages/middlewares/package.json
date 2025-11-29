@@ -1,0 +1,16 @@
+{
+  "name": "@csisp/middlewares",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "peerDependencies": {
+    "koa": "^2.15.0"
+  },
+  "devDependencies": {
+    "@types/koa": "^3.0.1"
+  }
+}

@@ -11,10 +11,12 @@
     "format": "eslint . --fix && pnpm prettier --write . && stylelint '**/*.{css,scss,vue}' --fix",
     "lint:staged": "lint-staged",
     "dev:admin": "pnpm --filter frontend-admin dev",
-    "dev:client": "pnpm --filter frontend-client dev",
+    "dev:bff": "pnpm --filter @csisp/bff dev",
+    "dev:portal": "pnpm --filter frontend-portal dev",
     "dev:backend": "pnpm --filter backend dev",
     "build:admin": "pnpm --filter frontend-admin build",
-    "build:client": "pnpm --filter frontend-client build",
+    "build:bff": "pnpm --filter @csisp/bff build",
+    "build:portal": "pnpm --filter frontend-portal build",
     "build:backend": "pnpm --filter backend build",
     "docs:dev": "pnpm -C docs dev",
     "docs:build": "pnpm -C docs build",
@@ -62,5 +64,12 @@
     "stylelint-config-standard-scss": "^16.0.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "koa": "^2.15.0",
+      "@koa/router": "^14.0.0",
+      "koa-bodyparser": "^4.4.1"
+    }
   }
 }

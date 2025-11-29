@@ -50,6 +50,16 @@
 - **日志**：Winston
 - **异常处理**：Koa-Error-Handler
 
+### BFF 技术栈
+
+- **框架**：Koa.js 2.x（ESM）
+- **语言**：TypeScript
+- **路由与分区**：统一前缀 `/api/bff/*`，按 Admin/Portal 分区
+- **通用能力**：`@csisp/middlewares`（error/cors/logger/rateLimit/jwtAuth）
+- **运行时校验**：`@csisp/validation`（Zod 适配器写入 `ctx.state`）
+- **上游客户端**：`@csisp/upstream`（HTTP 客户端封装，统一错误与 `.json()`）
+- **类型契约**：`@csisp/types`（对齐后端领域类型，BFF 聚合类型扩展）
+
 ### 前端技术栈
 
 - **框架**：Vue 3 + Composition API
@@ -75,14 +85,19 @@ CSISP采用Monorepo架构，使用pnpm工作区管理多个项目：
 CSISP/
 ├── 📁 apps/                          # 应用层 - 可独立部署的应用
 │   ├── 📁 backend/                   # 后端API服务
+│   ├── 📁 bff/                        # BFF 聚合层（Koa 2 + TS + ESM）
 │   ├── 📁 frontend-admin/            # 后台管理系统前端
-│   └── 📁 frontend-client/           # 前台用户系统前端
+│   └── 📁 frontend-portal/           # 门户前端（原 frontend-client）
 ├── 📁 packages/                      # 共享包层 - 可复用的代码模块
 │   ├── 📁 types/                     # 共享类型定义
+│   ├── 📁 middlewares/               # 通用中间件集合（error/cors/logger/rateLimit/jwtAuth）
+│   ├── 📁 validation/                # 运行时校验适配器（Zod）
+│   ├── 📁 upstream/                  # 上游服务客户端封装（HTTP / 预留 WS）
 │   └── 📁 utils/                     # 共享工具函数
 ├── 📁 docs/                          # 文档层 - 项目文档和指南
 │   └── 📁 src/                       # 文档源代码
 │       ├── 📁 architecture/          # 架构设计文档
+│       ├── 📁 bff/                   # BFF 架构详细设计文档
 │       ├── 📁 backend/               # 后端开发文档
 │       ├── 📁 business/              # 业务需求文档
 │       ├── 📁 database/              # 数据库设计文档
@@ -114,7 +129,8 @@ pnpm dev
 # 启动特定应用的开发服务器
 pnpm dev:backend       # 仅启动后端
 pnpm dev:admin         # 仅启动管理员前端
-pnpm dev:client        # 仅启动客户端前端
+pnpm dev:portal        # 仅启动门户前端
+pnpm dev:bff           # 仅启动 BFF 聚合层
 ```
 
 ### 数据库初始化
@@ -149,6 +165,7 @@ pnpm dev:client        # 仅启动客户端前端
 - **业务文档**: 详细的业务需求和功能描述
 - **总体架构设计文档**: 系统架构和组件交互说明
 - **技术架构设计文档**: 技术选型和实现细节
+- **BFF 架构详细设计文档**: BFF 层路由分区、聚合编排、鉴权与限流方案（`/src/bff/BFF架构详细设计文档`）
 - **数据库设计文档**: 数据库模型和关系说明
 - **前后端开发文档**: 针对开发人员的具体实现指南
 

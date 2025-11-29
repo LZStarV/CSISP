@@ -12,6 +12,7 @@ export default defineConfig({
     nav: [
       { text: '首页', link: '/' },
       { text: '架构设计', link: '/src/architecture/总体架构设计文档' },
+      { text: 'BFF 架构', link: '/src/bff/BFF架构详细设计文档' },
       { text: '后端开发', link: '/src/backend/后端设计文档' },
       { text: '数据设计', link: '/src/database/数据库设计文档' },
       { text: '前端开发', link: '/src/frontend/前端中台设计文档' },
@@ -59,6 +60,12 @@ export default defineConfig({
         {
           text: '前端开发',
           items: [{ text: '前端中台设计', link: '/src/frontend/前端中台设计文档' }],
+        },
+      ],
+      '/src/bff/': [
+        {
+          text: 'BFF 架构',
+          items: [{ text: 'BFF 架构详细设计文档', link: '/src/bff/BFF架构详细设计文档' }],
         },
       ],
     },

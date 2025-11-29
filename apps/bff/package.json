@@ -1,0 +1,27 @@
+{
+  "name": "@csisp/bff",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "tsx app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js"
+  },
+  "dependencies": {
+    "@csisp/middlewares": "workspace:*",
+    "@csisp/validation": "workspace:*",
+    "@csisp/upstream": "workspace:*",
+    "@csisp/types": "workspace:^1.0.0",
+    "koa": "^2.15.0",
+    "@koa/router": "^14.0.0",
+    "koa-bodyparser": "^4.4.1",
+    "undici": "^6.19.8",
+    "zod": "^3.23.8",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/koa": "^3.0.1",
+    "@types/koa-bodyparser": "^4.3.13"
+  }
+}

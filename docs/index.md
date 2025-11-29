@@ -12,6 +12,9 @@ hero:
       text: 查看架构设计
       link: /src/architecture/总体架构设计文档
     - theme: alt
+      text: BFF 架构
+      link: /src/bff/BFF架构详细设计文档
+    - theme: alt
       text: 后端开发
       link: /src/backend/后端设计文档
     - theme: alt
@@ -40,6 +43,9 @@ features:
   - title: 技术架构
     details: 项目使用的技术栈和架构模式说明
     link: /src/architecture/技术架构设计文档
+  - title: BFF 架构详细设计
+    details: BFF 层的路由分区、聚合编排、鉴权与限流方案
+    link: /src/bff/BFF架构详细设计文档
   - title: 后端项目初始化指南
     details: 详细讲解后端项目初始化脚本的运作机制和使用方法
     link: /src/backend/后端项目初始化指南
