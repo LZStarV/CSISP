@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "tsx app.ts",
-    "build": "tsc",
+    "dev": "nodemon --exec tsx app.ts",
+    "build": "esbuild app.ts --bundle --platform=node --outfile=dist/app.js",
     "start": "node dist/app.js"
   },
   "dependencies": {
@@ -21,6 +21,8 @@
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
+    "nodemon": "^3.0.0",
+    "tsx": "^4.0.0",
     "@types/koa": "^3.0.1",
     "@types/koa-bodyparser": "^4.3.13"
   }

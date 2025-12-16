@@ -84,18 +84,15 @@ export const defaultCors: Middleware = cors({
   origin: (ctx: AppContext): string => {
     const origin = ctx.get('Origin');
     const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:5173',
-      'http://localhost:5174',
+      'http://localhost:4000', // BFF 本地默认端口
     ];
 
-    // 如果是开发环境，允许所有源
+    // 开发环境：允许 BFF 与本地无 Origin 的服务间调用
     if (process.env.NODE_ENV === 'development') {
-      return origin || '*';
+      return origin && allowedOrigins.includes(origin) ? origin : 'http://localhost:4000';
     }
 
-    // 生产环境只允许白名单中的源
+    // 生产环境：仅允许 BFF 域名（通过环境变量或配置）
     return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
   },
   credentials: true,
@@ -108,6 +105,7 @@ export const defaultCors: Middleware = cors({
     'Accept',
     'Accept-Language',
     'Content-Language',
+    'X-Trace-Id',
   ],
   exposeHeaders: ['X-Total-Count', 'X-Page', 'X-Page-Size'],
   maxAge: 86400,

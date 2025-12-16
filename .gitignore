@@ -116,6 +116,7 @@ docs/.vitepress/cache
 # IDE
 .vscode/
 .idea/
+.trae/
 *.swp
 *.swo
 *~

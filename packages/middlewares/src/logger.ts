@@ -7,7 +7,8 @@ export default function logger(options: LoggerOptions = {}) {
     const s = Date.now();
     await next();
     const ms = Date.now() - s;
-    const base = `${ctx.method} ${ctx.path} ${ctx.status} ${ms}ms`;
+    const traceId = (ctx.state as any)?.traceId;
+    const base = `${ctx.method} ${ctx.path} ${ctx.status} ${ms}ms${traceId ? ` traceId=${traceId}` : ''}`;
     if (logResponse && ctx.body) {
       process.stdout.write(`${base} body=${JSON.stringify(ctx.body).slice(0, 500)}\n`);
     } else {

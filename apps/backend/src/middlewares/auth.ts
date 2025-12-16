@@ -1,126 +1,34 @@
 /**
  * 认证中间件
- * 处理用户身份验证和权限校验
  */
-
 import { Middleware, AuthMiddlewareOptions, Next } from '../types/middleware';
 import { AppContext } from '../types/context';
-import jwt from 'jsonwebtoken';
+import {
+  jwtAuth as sharedJwtAuth,
+  requireAdmin as sharedRequireAdmin,
+  requireRole as sharedRequireRole,
+} from '@csisp/middlewares';
 
 /**
- * JWT认证中间件
- * 验证JWT令牌并提取用户信息
+ * JWT 认证（默认 required=true），映射到通用中间件
  */
 export const jwtAuth = (options: AuthMiddlewareOptions = {}): Middleware => {
-  const { required = true, roles = [], permissions = [], excludePaths = [] } = options;
-
-  return async (ctx: AppContext, next: Next) => {
-    try {
-      // 检查是否在排除路径中
-      if (excludePaths.includes(ctx.path)) {
-        return await next();
-      }
-
-      // 获取Authorization头
-      const authHeader = ctx.headers.authorization;
-      if (!authHeader) {
-        if (required) {
-          ctx.status = 401;
-          ctx.body = { code: 401, message: '未提供认证令牌' };
-          return;
-        }
-        return await next();
-      }
-
-      // 验证Bearer令牌格式
-      const parts = authHeader.split(' ');
-      if (parts.length !== 2 || parts[0] !== 'Bearer') {
-        ctx.status = 401;
-        ctx.body = { code: 401, message: '认证令牌格式错误' };
-        return;
-      }
-
-      const token = parts[1];
-
-      // 验证JWT令牌
-      let decoded: any;
-      try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret');
-      } catch {
-        ctx.status = 401;
-        ctx.body = { code: 401, message: '认证令牌无效或已过期' };
-        return;
-      }
-
-      // 从令牌中提取角色（登录时已写入）
-      const userRoleCodes: string[] = Array.isArray(decoded.roles) ? decoded.roles : [];
-
-      // 检查角色权限
-      if (roles.length > 0) {
-        const hasRequiredRole = roles.some(role => userRoleCodes.includes(role as any));
-        if (!hasRequiredRole) {
-          ctx.status = 403;
-          ctx.body = { code: 403, message: '权限不足' };
-          return;
-        }
-      }
-
-      // 业务权限检查依赖外部权限系统，当前根据令牌角色跳过细粒度校验
-
-      // 将用户信息添加到上下文
-      ctx.userId = decoded.userId;
-      ctx.state.userId = decoded.userId;
-      ctx.user = { id: decoded.userId, username: decoded.username } as any;
-      ctx.roles = userRoleCodes;
-
-      await next();
-    } catch {
-      ctx.status = 500;
-      ctx.body = { code: 500, message: '认证处理失败' };
-    }
-  };
+  const { required = true, roles = [], excludePaths = [] } = options;
+  // permissions 参数由后端自用，当前忽略以保持与通用中间件一致
+  return sharedJwtAuth({ required, roles, excludePaths }) as unknown as Middleware;
 };
 
 /**
- * 角色权限中间件
- * 检查用户是否具有指定角色
+ * 角色权限
  */
 export const requireRole = (roles: string | string[]): Middleware => {
-  const roleArray = Array.isArray(roles) ? roles : [roles];
-
-  return async (ctx: AppContext, next: Next) => {
-    if (!ctx.roles || ctx.roles.length === 0) {
-      ctx.status = 403;
-      ctx.body = { code: 403, message: '权限不足' };
-      return;
-    }
-
-    const hasRole = roleArray.some(role => ctx.roles!.includes(role as any));
-    if (!hasRole) {
-      ctx.status = 403;
-      ctx.body = { code: 403, message: '需要角色: ' + roleArray.join(', ') };
-      return;
-    }
-
-    await next();
-  };
+  return sharedRequireRole(roles) as unknown as Middleware;
 };
 
 /**
- * 管理员权限中间件
- * 检查用户是否为管理员
+ * 管理员权限
  */
-export const requireAdmin: Middleware = async (ctx: AppContext, next: Next) => {
-  const isAdminRole = Array.isArray(ctx.roles) && ctx.roles.includes('admin');
-  const isAdminUser = ctx.user && (ctx.user as any).username === 'admin';
-  if (!isAdminRole && !isAdminUser) {
-    ctx.status = 403;
-    ctx.body = { code: 403, message: '需要管理员权限' };
-    return;
-  }
-
-  await next();
-};
+export const requireAdmin: Middleware = sharedRequireAdmin as unknown as Middleware;
 
 /**
  * 教师权限中间件

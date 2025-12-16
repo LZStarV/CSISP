@@ -13,16 +13,6 @@
 
     <!-- 加载状态 -->
     <n-spin :show="loading">
-      <!-- 错误提示 -->
-      <n-alert
-        v-if="error"
-        type="error"
-        :title="error"
-        class="mb-4"
-        closable
-        @close="error = null"
-      />
-
       <!-- 统计卡片 -->
       <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-4">
         <n-grid-item v-for="card in statsCards" :key="card.key">
@@ -53,6 +43,11 @@
         </n-grid-item>
       </n-grid>
 
+      <!-- 班级汇总（空板块占位） -->
+      <n-card title="班级汇总" class="mb-4">
+        <div class="empty-panel">暂无数据</div>
+      </n-card>
+
       <!-- 最近活动 -->
       <n-card title="最近活动">
         <n-timeline>
@@ -82,19 +77,11 @@ import type {
   RecentActivity,
 } from '@/api/dashboard';
 import * as echarts from 'echarts';
-import {
-  PeopleOutline,
-  BookOutline,
-  SchoolOutline,
-  CheckmarkCircleOutline,
-  DocumentTextOutline,
-  RefreshOutline,
-} from '@vicons/ionicons5';
+import { PeopleOutline, BookOutline, CheckmarkCircleOutline, RefreshOutline } from '@vicons/ionicons5';
 
 // 状态管理
 const message = useMessage();
 const loading = ref(false);
-const error = ref<string | null>(null);
 
 // 面包屑导航
 const breadcrumbs = [{ label: '首页', path: '/' }, { label: '仪表盘' }];
@@ -103,7 +90,6 @@ const breadcrumbs = [{ label: '首页', path: '/' }, { label: '仪表盘' }];
 const statsData = reactive<DashboardStats>({
   userCount: 0,
   courseCount: 0,
-  classCount: 0,
   attendanceRate: 0,
   homeworkSubmissionRate: 0,
   notificationCount: 0,
@@ -135,13 +121,6 @@ const statsCards = ref([
     suffix: '',
   },
   {
-    key: 'classes',
-    label: '班级总数',
-    value: 0,
-    icon: markRaw(SchoolOutline),
-    suffix: '',
-  },
-  {
     key: 'attendance',
     label: '平均出勤率',
     value: 0,
@@ -161,50 +140,31 @@ const courseDistributionChart = ref<HTMLElement>();
 const fetchDashboardData = async () => {
   try {
     loading.value = true;
-    error.value = null;
 
-    const [statsResponse, userGrowthResponse, courseDistributionResponse, activitiesResponse] =
-      await Promise.allSettled([
-        dashboardApi.getDashboardStats(),
-        dashboardApi.getUserGrowth(),
-        dashboardApi.getCourseDistribution(),
-        dashboardApi.getRecentActivities(),
-      ]);
+    const res = await dashboardApi.getAdminOverview(30, 10);
+    const data = res.data;
 
-    // 处理统计数据
-    if (statsResponse.status === 'fulfilled' && statsResponse.value.data) {
-      const stats = statsResponse.value.data;
-      Object.assign(statsData, stats);
+    if (data) {
+      // 统计数据
+      Object.assign(statsData, data.stats);
+      if (statsCards.value[0]) statsCards.value[0].value = data.stats.userCount;
+      if (statsCards.value[1]) statsCards.value[1].value = data.stats.courseCount;
+      if (statsCards.value[2]) statsCards.value[2].value = data.stats.attendanceRate;
 
-      // 更新统计卡片
-      if (statsCards.value[0]) statsCards.value[0].value = stats.userCount;
-      if (statsCards.value[1]) statsCards.value[1].value = stats.courseCount;
-      if (statsCards.value[2]) statsCards.value[2].value = stats.classCount;
-      if (statsCards.value[3]) statsCards.value[3].value = stats.attendanceRate;
-    }
-
-    // 处理用户增长数据
-    if (userGrowthResponse.status === 'fulfilled' && userGrowthResponse.value.data) {
-      userGrowthData.value = userGrowthResponse.value.data;
+      // 用户增长
+      userGrowthData.value = data.userGrowth || [];
       updateUserGrowthChart();
-    }
 
-    // 处理课程分布数据
-    if (
-      courseDistributionResponse.status === 'fulfilled' &&
-      courseDistributionResponse.value.data
-    ) {
-      courseDistributionData.value = courseDistributionResponse.value.data;
+      // 课程分布
+      courseDistributionData.value = data.courseDistribution || [];
       updateCourseDistributionChart();
-    }
 
-    // 处理最近活动数据
-    if (activitiesResponse.status === 'fulfilled' && activitiesResponse.value.data) {
-      recentActivities.value = activitiesResponse.value.data;
+      // 最近活动
+      recentActivities.value = data.recentActivities || [];
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '获取数据失败';
-    console.error('Failed to fetch dashboard data:', err);
+    const msg = err instanceof Error ? err.message : '获取数据失败';
+    message.error(msg);
   } finally {
     loading.value = false;
   }

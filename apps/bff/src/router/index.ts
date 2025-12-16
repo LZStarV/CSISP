@@ -2,7 +2,7 @@ import Router from '@koa/router';
 import admin from './admin';
 import portal from './portal';
 
-const router = new Router({ prefix: '/api/bff' });
+const router = new Router({ prefix: '/api' });
 router.get('/health', ctx => {
   ctx.body = { code: 0, message: 'OK' };
 });

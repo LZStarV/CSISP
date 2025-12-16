@@ -30,9 +30,13 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
     const { data } = response;
 
-    // 接受所有 2xx 业务码
-    if (typeof data?.code === 'number' && (data.code < 200 || data.code >= 300)) {
-      return Promise.reject(new Error(data.message || '请求失败'));
+    // 业务码规范：接受 code === 0 或 2xx 视为成功
+    if (typeof data?.code === 'number') {
+      const code = data.code as number;
+      const ok = code === 0 || (code >= 200 && code < 300);
+      if (!ok) {
+        return Promise.reject(new Error(data.message || '请求失败'));
+      }
     }
 
     return response;
