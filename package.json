@@ -5,22 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
     "format": "eslint . --fix && pnpm prettier --write . && stylelint '**/*.{css,scss,vue}' --fix",
-    "lint:staged": "lint-staged",
-    "dev:admin": "pnpm --filter frontend-admin dev",
-    "dev:bff": "pnpm --filter @csisp/bff dev",
-    "dev:portal": "pnpm --filter frontend-portal dev",
-    "dev:backend": "pnpm --filter @csisp/backend dev",
-    "build:admin": "pnpm --filter frontend-admin build",
-    "build:bff": "pnpm --filter @csisp/bff build",
-    "build:portal": "pnpm --filter frontend-portal build",
-    "build:backend": "pnpm --filter backend build",
-    "docs:dev": "pnpm -C docs dev",
-    "docs:build": "pnpm -C docs build",
-    "docs:preview": "pnpm -C docs preview"
+    "lint:staged": "lint-staged"
   },
   "packageManager": "pnpm@10.22.0",
   "workspaces": [
