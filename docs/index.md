@@ -55,6 +55,9 @@ features:
   - title: 数据库目录创建方案
     details: 统一数据库目录结构与维护策略
     link: /src/database/数据库目录创建方案
+  - title: 数据库基础设施与迁移使用指南
+    details: 使用 infra/database 与 db-schema 的统一启动、迁移与种子流程
+    link: /src/database/数据库基础设施与迁移使用指南
   - title: 类型兼容性验证报告
     details: 关键模型类型与后端字段的对齐验证情况
     link: /src/database/类型兼容性验证报告
