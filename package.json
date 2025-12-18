@@ -13,7 +13,7 @@
     "dev:admin": "pnpm --filter frontend-admin dev",
     "dev:bff": "pnpm --filter @csisp/bff dev",
     "dev:portal": "pnpm --filter frontend-portal dev",
-    "dev:backend": "pnpm --filter backend dev",
+    "dev:backend": "pnpm --filter @csisp/backend dev",
     "build:admin": "pnpm --filter frontend-admin build",
     "build:bff": "pnpm --filter @csisp/bff build",
     "build:portal": "pnpm --filter frontend-portal build",

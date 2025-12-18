@@ -36,7 +36,6 @@
     "@types/node": "^20.19.25",
     "esbuild": "^0.19.0",
     "nodemon": "^3.0.0",
-    "sequelize-cli": "^6.6.3",
     "ts-node": "^10.9.2",
     "tsx": "^4.0.0"
   }

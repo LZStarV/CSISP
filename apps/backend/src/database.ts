@@ -8,9 +8,7 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// 获取当前环境配置
 const env = process.env.NODE_ENV || 'development';
-// 动态导入配置文件以避免TypeScript编译错误
 let dbConfig: any;
 try {
   const configPath = path.resolve(__dirname, '../config/config.json');
@@ -21,6 +19,20 @@ try {
   process.stderr.write('Failed to load database config\n');
   process.exit(1);
 }
+
+const envHost = process.env.DB_HOST;
+const envPort = process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined;
+const envUser = process.env.DB_USER;
+const envPass = process.env.DB_PASSWORD;
+const envName = process.env.DB_NAME;
+dbConfig = {
+  ...dbConfig,
+  host: envHost ?? dbConfig.host,
+  port: envPort ?? dbConfig.port,
+  username: envUser ?? dbConfig.username,
+  password: envPass ?? dbConfig.password,
+  database: envName ?? dbConfig.database,
+};
 
 // 创建 Sequelize 实例
 const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, {

@@ -1,9 +1,0 @@
-// 确保 Sequelize CLI 在 ES 模块项目中正常工作
-const path = require('path');
-
-module.exports = {
-  config: path.resolve('config', 'config.json'),
-  'models-path': path.resolve('sequelize', 'models'),
-  'seeders-path': path.resolve('sequelize', 'seeders'),
-  'migrations-path': path.resolve('sequelize', 'migrations'),
-};

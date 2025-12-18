@@ -27,7 +27,6 @@ module.exports = {
     );
 
     for (const cls of classes) {
-      // 随机分配 10~30 名学生到每个班级
       const selectedStudents = getRandomSubarray(users, getRandomInt(10, 30));
       for (const stu of selectedStudents) {
         const exists = await queryInterface.sequelize.query(

@@ -242,100 +242,8 @@ else
     log_success "环境变量文件已存在 (apps/backend/.env)"
 fi
 
-# 检查是否需要创建 docker-compose.yml
-if [ ! -f "docker-compose.yml" ]; then
-    log_warning "未找到 docker-compose.yml 文件，正在创建..."
-
-    cat > docker-compose.yml << 'EOF'
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: csisp
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-  redis_data:
-EOF
-
-    log_success "docker-compose.yml 已创建"
-else
-    log_success "docker-compose.yml 已存在"
-fi
-
-# 启动数据库服务
-log_info "启动 PostgreSQL 数据库..."
-# 确保清除旧的容器和数据卷以保证全新启动
-docker-compose down -v postgres 2>/dev/null || true
-docker-compose up -d postgres
-
-if [ $? -ne 0 ]; then
-    log_error "PostgreSQL 启动失败"
-    log_warning "请检查 Docker 是否正常运行，以及端口 5432 是否被占用"
-    exit 1
-fi
-
-# 等待数据库服务器启动
-log_info "等待数据库服务器启动..."
-for i in {1..30}; do
-    if docker-compose exec -T postgres pg_isready &> /dev/null; then
-        log_success "数据库服务器已启动"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        log_error "数据库服务器启动超时"
-        log_warning "请检查 Docker 容器日志以获取更多信息"
-        exit 1
-    fi
-    sleep 2
-done
-
-# 等待 postgres 用户创建完成
-log_info "等待 postgres 用户创建完成..."
-for i in {1..30}; do
-    if docker-compose exec -T postgres psql -U postgres -tAc "SELECT 1 FROM pg_user WHERE usename='postgres'" 2>/dev/null | grep -q "1"; then
-        log_success "postgres 用户已创建"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        log_error "postgres 用户创建超时"
-        log_info "调试信息：尝试手动连接测试..."
-        docker-compose exec -T postgres psql -U postgres -c "SELECT 1 FROM pg_user WHERE usename='postgres';" || true
-        exit 1
-    fi
-    sleep 2
-done
-
-# 启动 Redis 服务
-log_info "启动 Redis 缓存服务..."
-docker-compose up -d redis
+log_info "使用 infra/database 管理数据库"
+bash infra/database/scripts/init_mac.sh
 
 if [ $? -ne 0 ]; then
     log_error "Redis 启动失败"
@@ -358,21 +266,14 @@ for i in {1..15}; do
     sleep 2
 done
 
-# 创建数据库用户和数据库
-log_info "创建数据库用户..."
-docker-compose exec -T postgres psql -U postgres -c "CREATE USER admin WITH PASSWORD 'password' CREATEDB;" 2>/dev/null || log_info "admin用户已存在或创建失败"
-log_info "授予admin用户权限..."
-docker-compose exec -T postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE csisp TO admin;" 2>/dev/null || log_info "权限已授予或授予失败"
-docker-compose exec -T postgres psql -U postgres -d csisp -c "GRANT ALL ON SCHEMA public TO admin;" 2>/dev/null || log_info "Schema权限已授予或授予失败"
-log_info "创建数据库..."
-docker-compose exec -T postgres psql -U postgres -c "CREATE DATABASE csisp OWNER admin;" 2>/dev/null || log_info "数据库已存在或创建失败（可能已存在）"
+export $(grep -v '^#' infra/database/.env.db | xargs)
 
 # 注意：在monorepo项目中，sequelize-cli应由根目录统一管理
 # 本脚本不再执行sequelize-cli的全局安装
 
 # 运行数据库迁移
 log_info "运行数据库迁移..."
-(cd apps/backend && pnpm exec sequelize-cli db:migrate)
+(cd packages/db-schema && DB_HOST=${DB_HOST:-localhost} DB_PORT=${DB_PORT_HOST:-5433} DB_USER=${DB_USER:-admin} DB_PASSWORD=${DB_PASSWORD:-password} DB_NAME=${DB_NAME:-csisp} pnpm run migrate)
 
 if [ $? -ne 0 ]; then
     log_error "数据库迁移失败"
@@ -391,9 +292,8 @@ chmod 755 apps/backend/uploads apps/backend/uploads/temp apps/backend/uploads/ho
 
 log_success "目录结构创建完成"
 
-# 使用 Sequelize CLI 执行所有种子
-log_info "执行 CLI 种子数据..."
-(cd apps/backend && pnpm exec sequelize-cli db:seed:all)
+log_info "执行种子数据..."
+(cd packages/db-schema && DB_HOST=${DB_HOST:-localhost} DB_PORT=${DB_PORT_HOST:-5433} DB_USER=${DB_USER:-admin} DB_PASSWORD=${DB_PASSWORD:-password} DB_NAME=${DB_NAME:-csisp} pnpm run seed)
 
 if [ $? -ne 0 ]; then
     log_error "CLI 种子数据执行失败"
@@ -409,8 +309,8 @@ log_info "统计数据规模..."
 
 # 显示服务状态
 log_info "\n📊 服务状态检查:"
-POSTGRES_STATUS=$(docker-compose ps postgres | grep -o 'Up' || echo 'Down')
-REDIS_STATUS=$(docker-compose ps redis | grep -o 'Up' || echo 'Down')
+POSTGRES_STATUS=$(docker compose -f infra/database/docker-compose.db.yml ps postgres | grep -o 'Up' || echo 'Down')
+REDIS_STATUS=$(docker compose -f infra/database/docker-compose.db.yml ps redis | grep -o 'Up' || echo 'Down')
 
 if [ "$POSTGRES_STATUS" = "Up" ]; then
     echo -e "   PostgreSQL: ${GREEN}Up${NC}"
@@ -440,17 +340,16 @@ echo "   • 目录结构创建"
 echo -e "\n${BLUE}📚 文档位置:${NC}"
 echo "   • 后端设计文档: docs/project/后端设计文档.md"
 echo "   • 数据库设计文档: docs/project/数据库设计文档.md"
-echo "   • 种子数据脚本: apps/backend/sequelize/seeders/*.cjs"
+echo "   • 种子数据脚本: packages/db-schema/seeders/*.cjs"
 
 echo -e "\n${BLUE}🔧 常用命令:${NC}"
 echo "   • 启动开发服务器: pnpm dev"
 echo "   • 构建项目: pnpm build"
-echo "   • 停止服务: docker-compose down"
+echo "   • 停止服务: docker compose -f infra/database/docker-compose.db.yml down"
 
 echo -e "\n${YELLOW}💡 如果需要重新生成数据:${NC}"
-echo "   pnpm exec sequelize-cli db:migrate:undo:all"
-echo "   pnpm exec sequelize-cli db:migrate"
-echo "   pnpm exec sequelize-cli db:seed:all"
+echo "   (cd packages/db-schema && pnpm run migrate)"
+echo "   (cd packages/db-schema && pnpm run seed)"
 
 # 显示额外的提示信息
 echo -e "\n${YELLOW}ℹ️  注意事项:${NC}"

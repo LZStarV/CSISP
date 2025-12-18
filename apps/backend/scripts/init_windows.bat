@@ -275,150 +275,26 @@ if not exist "apps\backend\.env" (
     call :log_success "环境变量文件已存在 (apps\backend\.env)"
 )
 
-:: 检查是否需要创建 docker-compose.yml
-if not exist "docker-compose.yml" (
-    call :log_warning "未找到 docker-compose.yml 文件，正在创建..."
-    (
-        echo version: '3.8'
-        echo.
-        echo services:
-        echo   postgres:
-        echo     image: postgres:15
-        echo     environment:
-        echo       POSTGRES_DB: csisp
-        echo       POSTGRES_USER: postgres
-        echo       POSTGRES_PASSWORD: password
-        echo     ports:
-        echo       - "5433:5432"
-        echo     volumes:
-        echo       - postgres_data:/var/lib/postgresql/data
-        echo     healthcheck:
-        echo       test: ["CMD-SHELL", "pg_isready -U postgres"]
-        echo       interval: 30s
-        echo       timeout: 10s
-        echo       retries: 3
-        echo     restart: unless-stopped
-        echo.
-        echo   redis:
-        echo     image: redis:7-alpine
-        echo     ports:
-        echo       - "6379:6379"
-        echo     volumes:
-        echo       - redis_data:/data
-        echo     healthcheck:
-        echo       test: ["CMD", "redis-cli", "ping"]
-        echo       interval: 30s
-        echo       timeout: 10s
-        echo       retries: 3
-        echo     restart: unless-stopped
-        echo.
-        echo volumes:
-        echo   postgres_data:
-        echo   redis_data:
-    ) > docker-compose.yml
-    call :log_success "docker-compose.yml 已创建"
-) else (
-    call :log_success "docker-compose.yml 已存在"
+call :log_info "使用 infra/database 管理数据库"
+call "%PROJECT_ROOT%\infra\database\scripts\init_windows.bat"
+
+for /f "usebackq tokens=*" %%a in (`type "%PROJECT_ROOT%\infra\database\.env.db"`) do (
+  for /f "tokens=1,2 delims==" %%i in ("%%a") do (
+    if not "%%i"=="" set %%i=%%j
+  )
 )
-
-:: 启动数据库服务
-call :log_info "启动 PostgreSQL 数据库..."
-:: 确保清除旧的容器和数据卷以保证全新启动
-docker-compose down -v postgres 2>nul || (call :log_info "清理旧的 postgres 服务")
-docker-compose up -d postgres
-
-if errorlevel 1 (
-    call :log_error "PostgreSQL 启动失败"
-    call :log_warning "请检查 Docker 是否正常运行，以及端口 5433 是否被占用"
-    pause
-    exit /b 1
-)
-
-:: 等待数据库服务器启动
-call :log_info "等待数据库服务器启动..."
-set /a counter=0
-:wait_db
-set /a counter+=1
-if %counter% gtr 30 (
-    call :log_error "数据库服务器启动超时"
-    call :log_warning "请检查 Docker 容器日志以获取更多信息"
-    pause
-    exit /b 1
-)
-docker-compose exec -T postgres pg_isready >nul 2>&1
-if errorlevel 1 (
-    timeout /t 2 /nobreak >nul
-    goto wait_db
-)
-
-call :log_success "数据库服务器已启动"
-
-:: 等待 postgres 用户创建完成
-call :log_info "等待 postgres 用户创建完成..."
-set /a counter=0
-:wait_user
-set /a counter+=1
-if %counter% gtr 30 (
-    call :log_error "postgres 用户创建超时"
-    call :log_info "调试信息：尝试手动连接测试..."
-    docker-compose exec -T postgres psql -U postgres -c "SELECT 1 FROM pg_user WHERE usename='postgres';" || (call :log_info "无法连接到数据库")
-    pause
-    exit /b 1
-)
-docker-compose exec -T postgres psql -U postgres -tAc "SELECT 1 FROM pg_user WHERE usename='postgres'" 2>nul | findstr "1" >nul
-if errorlevel 1 (
-    timeout /t 2 /nobreak >nul
-    goto wait_user
-)
-
-call :log_success "postgres 用户已创建"
-
-:: 启动 Redis 服务
-call :log_info "启动 Redis 缓存服务..."
-docker-compose up -d redis
-
-if errorlevel 1 (
-    call :log_error "Redis 启动失败"
-    call :log_warning "请检查端口 6379 是否被占用"
-    pause
-    exit /b 1
-)
-
-:: 等待 Redis 启动
-call :log_info "等待 Redis 启动..."
-set /a counter=0
-:wait_redis
-set /a counter+=1
-if %counter% gtr 15 (
-    call :log_error "Redis 启动超时"
-    call :log_warning "请检查 Docker 容器日志以获取更多信息"
-    pause
-    exit /b 1
-)
-docker-compose exec -T redis redis-cli ping >nul 2>&1
-if errorlevel 1 (
-    timeout /t 2 /nobreak >nul
-    goto wait_redis
-)
-
-call :log_success "Redis 缓存服务已启动"
-
-:: 创建数据库用户和数据库
-call :log_info "创建数据库用户..."
-docker-compose exec -T postgres psql -U postgres -c "CREATE USER admin WITH PASSWORD 'password' CREATEDB;" 2>nul || (call :log_info "admin用户已存在或创建失败")
-call :log_info "授予admin用户权限..."
-docker-compose exec -T postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE csisp TO admin;" 2>nul || (call :log_info "权限已授予或授予失败")
-docker-compose exec -T postgres psql -U postgres -d csisp -c "GRANT ALL ON SCHEMA public TO admin;" 2>nul || (call :log_info "Schema权限已授予或授予失败")
-call :log_info "创建数据库..."
-docker-compose exec -T postgres psql -U postgres -c "CREATE DATABASE csisp OWNER admin;" 2>nul || (call :log_info "数据库已存在或创建失败")
 
 :: 注意：在monorepo项目中，sequelize-cli应由根目录统一管理
 :: 本脚本不再执行sequelize-cli的全局安装
 
-:: 运行数据库迁移
 call :log_info "运行数据库迁移..."
-cd /d "apps\backend"
-pnpm exec sequelize-cli db:migrate
+cd /d "packages\db-schema"
+set DB_HOST=%DB_HOST%
+set DB_PORT=%DB_PORT_HOST%
+set DB_USER=%DB_USER%
+set DB_PASSWORD=%DB_PASSWORD%
+set DB_NAME=%DB_NAME%
+pnpm run migrate
 cd /d "%PROJECT_ROOT%"
 
 if errorlevel 1 (
@@ -439,10 +315,9 @@ mkdir apps\backend\uploads\homework 2>nul
 
 call :log_success "目录结构创建完成"
 
-:: 执行 Sequelize CLI 种子
-call :log_info "执行 CLI 种子数据..."
-cd /d "apps\backend"
-pnpm exec sequelize-cli db:seed:all
+call :log_info "执行种子数据..."
+cd /d "packages\db-schema"
+pnpm run seed
 cd /d "%PROJECT_ROOT%"
 
 if errorlevel 1 (
@@ -462,12 +337,12 @@ call :log_info "
 set "POSTGRES_STATUS=Down"
 set "REDIS_STATUS=Down"
 
-docker-compose ps postgres | findstr "Up" >nul
+docker compose -f infra\database\docker-compose.db.yml ps postgres | findstr "Up" >nul
 if %errorlevel% equ 0 (
     set "POSTGRES_STATUS=Up"
 )
 
-docker-compose ps redis | findstr "Up" >nul
+docker compose -f infra\database\docker-compose.db.yml ps redis | findstr "Up" >nul
 if %errorlevel% equ 0 (
     set "REDIS_STATUS=Up"
 )
@@ -503,19 +378,18 @@ echo.
 echo %BLUE%📚 文档位置:%NC%
 echo    • 后端设计文档: docs\project\后端设计文档.md
 echo    • 数据库设计文档: docs\project\数据库设计文档.md
-echo    • 种子数据脚本: apps\backend\sequelize\seeders\*.cjs
+echo    • 种子数据脚本: packages\db-schema\seeders\*.cjs
 
 echo.
 echo %BLUE%🔧 常用命令:%NC%
 echo    • 启动开发服务器: pnpm dev
 echo    • 构建项目: pnpm build
-echo    • 停止服务: docker-compose down
+echo    • 停止服务: docker compose -f infra\database\docker-compose.db.yml down
 
 echo.
 echo %YELLOW%💡 如果需要重新生成数据:%NC%
-echo    pnpm sequelize-cli db:migrate:undo:all
-echo    pnpm sequelize-cli db:migrate
-echo    pnpm exec sequelize-cli db:seed:all
+echo    (cd packages\db-schema && pnpm run migrate)
+echo    (cd packages\db-schema && pnpm run seed)
 
 :: 显示额外的提示信息
 echo.

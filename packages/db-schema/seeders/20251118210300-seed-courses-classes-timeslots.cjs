@@ -16,11 +16,10 @@ module.exports = {
   async up(queryInterface) {
     const now = new Date();
 
-    // 选取至少 100 门课程（如果数据源更多则全部插入）
     const coursesData = COURSE_DATA.slice(0, Math.max(100, COURSE_DATA.length));
 
     for (const courseData of coursesData) {
-      const semesterStr = courseData.semester; // 形如 '2025-1'
+      const semesterStr = courseData.semester;
       const sem = Number(String(semesterStr).split('-')[1] || courseData.semester);
       const currentYear = new Date().getFullYear();
       let academicYear = currentYear;

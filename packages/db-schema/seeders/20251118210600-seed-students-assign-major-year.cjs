@@ -39,14 +39,10 @@ module.exports = {
         if (!majors || majors.length === 0) return true;
         const majorOk = majors.includes(student.major);
         const yearOk =
-          (student.enrollment_year === currentYear &&
-            (course.semester === 1 || course.semester === 2)) ||
-          (student.enrollment_year === currentYear - 1 &&
-            (course.semester === 3 || course.semester === 4)) ||
-          (student.enrollment_year === currentYear - 2 &&
-            (course.semester === 5 || course.semester === 6)) ||
-          (student.enrollment_year === currentYear - 3 &&
-            (course.semester === 7 || course.semester === 8));
+          (student.enrollment_year === currentYear && (course.semester === 1 || course.semester === 2)) ||
+          (student.enrollment_year === currentYear - 1 && (course.semester === 3 || course.semester === 4)) ||
+          (student.enrollment_year === currentYear - 2 && (course.semester === 5 || course.semester === 6)) ||
+          (student.enrollment_year === currentYear - 3 && (course.semester === 7 || course.semester === 8));
         return majorOk && yearOk;
       });
 
