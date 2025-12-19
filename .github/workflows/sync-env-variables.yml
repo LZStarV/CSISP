@@ -84,19 +84,22 @@ jobs:
       - name: Sync variables to environment (env-specific overrides global)
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.ENV_ADMIN_TOKEN }} # PAT with repo env variables write permission
-          environment: ${{ steps.resolve_env.outputs.env_name }}
-          json_global: ${{ steps.parse_global.outputs.json }}
-          json_env: ${{ steps.parse_env.outputs.json }}
+          github-token: ${{ secrets.ENV_ADMIN_TOKEN }}
           script: |
-            const envName = core.getInput('environment', { required: true })
-            const globalVars = JSON.parse(core.getInput('json_global') || '{}')
-            const envVars = JSON.parse(core.getInput('json_env') || '{}')
+            const envName = process.env.ENV_NAME
+            const globalVars = JSON.parse(process.env.JSON_GLOBAL || '{}')
+            const envVars = JSON.parse(process.env.JSON_ENV || '{}')
             const payload = { ...globalVars, ...envVars }
             const owner = context.repo.owner
             const repo = context.repo.repo
+            core.info(`Target environment: ${envName}`)
             for (const [name, value] of Object.entries(payload)) {
               await github.request('PUT /repos/{owner}/{repo}/environments/{environment_name}/variables/{name}', {
                 owner, repo, environment_name: envName, name, value
               })
+              core.info(`Set variable ${name}`)
             }
+        env:
+          ENV_NAME: ${{ steps.resolve_env.outputs.env_name }}
+          JSON_GLOBAL: ${{ steps.parse_global.outputs.json }}
+          JSON_ENV: ${{ steps.parse_env.outputs.json }}
