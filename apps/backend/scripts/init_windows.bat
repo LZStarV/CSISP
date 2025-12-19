@@ -152,8 +152,8 @@ if "!NODE_VERSION:~0,4!"=="v22." (
     )
 )
 
-:: 检查并安装 pnpm (版本 8.15.0)
-set "PNPM_REQUIRED_VERSION=8.15.0"
+:: 检查并安装 pnpm (版本 10.22.0)
+set "PNPM_REQUIRED_VERSION=10.22.0"
 call :log_info "检查 pnpm 安装状态..."
 
 pnpm --version >nul 2>&1

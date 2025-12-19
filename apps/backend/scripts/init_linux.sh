@@ -135,8 +135,8 @@ else
     exit 1
 fi
 
-# 检查并安装 pnpm (版本 8.15.0)
-PNPM_REQUIRED_VERSION="8.15.0"
+# 检查并安装 pnpm (版本 10.22.0)
+PNPM_REQUIRED_VERSION="10.22.0"
 log_info "检查 pnpm 安装状态..."
 
 if command -v pnpm &> /dev/null; then

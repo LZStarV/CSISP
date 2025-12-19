@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon --exec tsx app.ts",
     "build": "esbuild app.ts --bundle --platform=node --outfile=dist/app.js",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
     "@csisp/middlewares": "workspace:*",

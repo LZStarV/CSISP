@@ -1,6 +1,37 @@
-# 计算机学院综合服务平台(CSISP)
+# SCNU 计算机学院综合服务平台(CSISP)
+
+> 本项目目前由 LZStarV 个人施工，并非真正已上线的官方平台代码仓库。
+
+## 环境要求
+
+- **Git**：用于克隆仓库并管理代码版本。
+- **Node.js**：遵循仓库根目录 `.nvmrc`，推荐使用 **22.x** 版本。
+  - 推荐通过 `nvm` 管理 Node.js 版本，保持与项目脚本一致。
+- **pnpm**：作为 monorepo 的包管理器，推荐版本 **10.22.0**（与根 `package.json` 保持一致）。
+- **Docker Desktop**：用于运行 PostgreSQL 15 与 Redis 7 等基础设施服务，无需在宿主机单独安装数据库。
 
 ## 快速开始
+
+### 环境初始化脚本
+
+在首次克隆仓库后，建议根据当前操作系统执行对应的环境检查与配置脚本：
+
+```bash
+bash init_env_[os].[ext]
+```
+
+### 克隆仓库前的推荐 Git 配置（尤其是 Windows）
+
+- 仓库统一使用 **LF (\n)** 作为换行符，由 EditorConfig、Prettier 和 ESLint 共同约束。
+- Windows 环境下，建议在 **当前仓库根目录** 先执行（只影响本仓库）：
+
+```bash
+git config core.autocrlf input
+git config core.eol lf
+```
+
+- 建议使用支持 EditorConfig 的编辑器，并确保保存时使用 LF：
+  - VS Code：保持 EditorConfig 扩展启用，右下角换行符显示为 `LF`。
 
 ### 初始化环境变量（首次克隆项目）
 
@@ -47,6 +78,34 @@ pnpm -F @csisp/db-schema run seed
 pnpm -F @csisp/backend dev
 ```
 
+如果数据库初始化脚本执行失败，可以在项目根目录按以下步骤手动完成数据库启动与初始化：
+
+1. 启动 PostgreSQL 与 Redis 容器
+2. 检查 PostgreSQL 是否就绪
+3. 在容器内创建应用用户、数据库并授予权限
+
+```bash
+# 1. 启动 PostgreSQL 与 Redis 容器（使用 .env 中的环境变量）
+docker compose -f infra/database/docker-compose.db.yml --env-file .env up -d postgres redis
+
+# 2. 检查 PostgreSQL 是否就绪（可多次执行，直到状态为 accepting connections）
+docker compose -f infra/database/docker-compose.db.yml exec -T postgres pg_isready
+
+# 3. 在容器中创建应用数据库用户（若已存在会提示错误，可忽略）
+docker compose -f infra/database/docker-compose.db.yml exec -T postgres \
+  psql -U "$POSTGRES_USER" -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD' CREATEDB;"
+
+# 4. 创建应用数据库并指定所有者为应用用户（若已存在会提示错误，可忽略）
+docker compose -f infra/database/docker-compose.db.yml exec -T postgres \
+  psql -U "$POSTGRES_USER" -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
+
+# 5. 为应用用户授予 public schema 上的全部权限
+docker compose -f infra/database/docker-compose.db.yml exec -T postgres \
+  psql -U "$POSTGRES_USER" -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;"
+```
+
+### 开发依赖后端的 BFF 子项目
+
 ### 开发前端项目
 
 项目中前端项目依赖于 BFF 项目，因此在开发前端项目时，需要先启动 BFF 项目。
@@ -61,6 +120,22 @@ pnpm -F @csisp/bff dev
 pnpm -F @csisp/frontend-admin dev
 pnpm -F @csisp/frontend-portal dev
 ```
+
+### 代码格式化
+
+- 仓库根目录提供全局格式化命令，仅在需要统一全仓库风格时使用：
+
+```bash
+pnpm format
+```
+
+- 日常开发推荐只对当前子项目执行格式化：
+
+```bash
+pnpm -F [sub-application-name] format
+```
+
+- 这些命令会在对应子项目目录内执行 ESLint + Prettier（前端项目会额外执行 Stylelint），避免对整个仓库产生大范围的无关格式化改动。
 
 ### 构建子项目
 
@@ -77,9 +152,33 @@ pnpm -F @csisp/docs dev
 pnpm -F @csisp/docs build
 ```
 
-## 贡献
+## FAQ
 
-- 提交规范：使用 Conventional Commits，功能开发在 feature 分支完成后通过 PR 合入，并尽量关联 Issue。
-- 质量要求：在提交前本地通过类型检查、lint 与基础测试，避免引入 TypeScript 编译错误或破坏现有脚本。
-- 文档与数据库：涉及接口、数据库或部署流程的改动需同步更新 `docs/` 与 `packages/db-schema` 迁移脚本，禁止直接修改生产数据库结构。
-- 安全：不要提交任何密钥、账号口令或访问令牌，统一使用 CI/CD 平台的 Secrets/Environment Variables 管理敏感配置。
+### 1. Windows 下拉取仓库后，ESLint 提示换行符错误 / `pnpm format` 出现大量只改换行的 diff 怎么办？
+
+- GitHub 仓库中的文件统一为 **LF 换行**。在 Windows 上如果开启了自动换行转换（如 `core.autocrlf=true`），本地工作区可能被透明地转换为 **CRLF**，但不会立刻在 `git status` 中显示差异。
+- 之后运行 `pnpm format` 时，Prettier 会根据项目配置把文件改回 **LF**，这会让当前工作区相对于 Git 记录的“预期工作区内容”出现大量只改换行的 diff。
+
+避免噪声提交的推荐处理方式：
+
+1. **修正当前仓库的 Git 配置（只对本仓库生效）**：
+
+   ```bash
+   git config core.autocrlf input
+   git config core.eol lf
+   ```
+
+2. **确保编辑器使用 LF 保存文件**：
+   - VS Code：右下角将换行符切换为 `LF`，并保持 EditorConfig 配置生效。
+
+3. **如果已经产生了大量“只改换行”的改动且尚未提交**：
+   - 确认没有重要未保存的业务代码后，可以使用：
+
+   ```bash
+   git reset --hard HEAD
+   ```
+
+   - 然后在新的配置下重新运行必要的格式化命令（如仅对当前修改的文件执行，或依靠 `lint-staged`）。
+
+4. **关于提交影响**：
+   - 在这种场景下即使将这些 diff 提交到远端，GitHub 上文件的换行格式仍会保持为 LF，但会新增一次包含大量只改换行变更的提交，增加历史噪声，故不推荐在业务提交中混入这类全局换行修正。

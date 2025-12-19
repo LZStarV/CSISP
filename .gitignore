@@ -114,9 +114,12 @@ docs/.vitepress/cache
 .pnp.*
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .idea/
-.trae/
+.trae/*
+!.trae/rules/
+!.trae/rules/*
 *.swp
 *.swo
 *~

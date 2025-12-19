@@ -135,20 +135,31 @@ else
     exit 1
 fi
 
-# 检查并安装 pnpm (版本 8.15.0)
-PNPM_REQUIRED_VERSION="8.15.0"
+# 检查并安装 pnpm (版本 10.22.0)
+PNPM_REQUIRED_VERSION="10.22.0"
 log_info "检查 pnpm 安装状态..."
 
 if command -v pnpm &> /dev/null; then
     PNPM_VERSION=$(pnpm -v)
     log_success "pnpm 已安装: $PNPM_VERSION"
     if [[ "$PNPM_VERSION" != "$PNPM_REQUIRED_VERSION"* ]]; then
-        log_warning "提示: pnpm 版本建议升级到 $PNPM_REQUIRED_VERSION 以获得最佳兼容性"
+        log_warning "pnpm 版本不匹配: 已安装 $PNPM_VERSION，需要 $PNPM_REQUIRED_VERSION"
+        log_info "正在更新 pnpm..."
+        if ! npm install -g pnpm@"$PNPM_REQUIRED_VERSION"; then
+            log_error "pnpm 更新失败"
+            log_warning "请手动安装或更新 pnpm: https://pnpm.io/installation"
+            exit 1
+        fi
+        log_success "pnpm 已更新到版本: $(pnpm -v)"
     fi
 else
-    log_error "pnpm 未安装，环境初始化失败"
-    log_warning "请手动安装 pnpm 后重试: https://pnpm.io/installation"
-    exit 1
+    log_info "pnpm 未安装，正在安装..."
+    if ! npm install -g pnpm@"$PNPM_REQUIRED_VERSION"; then
+        log_error "pnpm 安装失败"
+        log_warning "请手动安装 pnpm: https://pnpm.io/installation"
+        exit 1
+    fi
+    log_success "pnpm 已安装: $(pnpm -v)"
 fi
 
 # 注意：在monorepo项目中，依赖管理由根目录统一处理
