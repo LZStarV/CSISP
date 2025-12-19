@@ -66,19 +66,36 @@ jobs:
           fi
 
       # Parse global example first (base layer)
-      - name: Parse global .env.example (non-sensitive)
-        id: parse_global
-        run: |
-          data=$(awk -F= 'BEGIN{print "{"} /^[A-Za-z_][A-Za-z0-9_]*=/{k=$1; $1=""; v=substr($0,2); if (k !~ /(PASSWORD|SECRET|TOKEN|KEY)/) {gsub(/\r/,"",v); gsub(/"/,"\\"",v); printf "\"%s\":\"%s\",", k, v}} END{print "}"}' .env.example | sed 's/,}/}/')
-          echo "json=$data" >> $GITHUB_OUTPUT
-
-      # Parse env-specific example and override global values
-      - name: Parse environment-specific example (non-sensitive)
-        id: parse_env
-        run: |
-          path='${{ steps.resolve.outputs.path }}'
-          data=$(awk -F= 'BEGIN{print "{"} /^[A-Za-z_][A-Za-z0-9_]*=/{k=$1; $1=""; v=substr($0,2); if (k !~ /(PASSWORD|SECRET|TOKEN|KEY)/) {gsub(/\r/,"",v); gsub(/"/,"\\"",v); printf "\"%s\":\"%s\",", k, v}} END{print "}"}' "$path" | sed 's/,}/}/')
-          echo "json=$data" >> $GITHUB_OUTPUT
+      - name: Build non-sensitive payload from examples (Node)
+        id: build_payload
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const path = require('path')
+            const envFile = process.env.ENV_FILE_PATH
+            const parse = (txt) => {
+              const out = {}
+              if (!txt) return out
+              txt.split(/\r?\n/).forEach(line => {
+                const s = line.trim()
+                if (!s || s.startsWith('#')) return
+                const i = s.indexOf('=')
+                if (i < 0) return
+                const key = s.slice(0, i).trim()
+                const val = s.slice(i + 1).trim()
+                if (/(PASSWORD|SECRET|TOKEN|KEY)/.test(key)) return
+                out[key] = val
+              })
+              return out
+            }
+            const base = fs.existsSync('.env.example') ? parse(fs.readFileSync('.env.example', 'utf8')) : {}
+            const extra = (envFile && fs.existsSync(envFile)) ? parse(fs.readFileSync(envFile, 'utf8')) : {}
+            const payload = { ...base, ...extra }
+            core.info(`Payload keys: ${Object.keys(payload).join(', ')}`)
+            core.setOutput('json', JSON.stringify(payload))
+        env:
+          ENV_FILE_PATH: ${{ steps.resolve.outputs.path }}
 
       # Write variables to selected environment (env overrides global)
       - name: Sync variables to environment (env-specific overrides global)
@@ -87,9 +104,7 @@ jobs:
           github-token: ${{ secrets.ENV_ADMIN_TOKEN }}
           script: |
             const envName = process.env.ENV_NAME
-            const globalVars = JSON.parse(process.env.JSON_GLOBAL || '{}')
-            const envVars = JSON.parse(process.env.JSON_ENV || '{}')
-            const payload = { ...globalVars, ...envVars }
+            const payload = JSON.parse(process.env.PAYLOAD_JSON || '{}')
             const owner = context.repo.owner
             const repo = context.repo.repo
             core.info(`Target environment: ${envName}`)
@@ -106,8 +121,7 @@ jobs:
             }
         env:
           ENV_NAME: ${{ steps.resolve_env.outputs.env_name }}
-          JSON_GLOBAL: ${{ steps.parse_global.outputs.json }}
-          JSON_ENV: ${{ steps.parse_env.outputs.json }}
+          PAYLOAD_JSON: ${{ steps.build_payload.outputs.json }}
 
       - name: Verify environment variables
         uses: actions/github-script@v7
