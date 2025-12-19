@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "format": "eslint . --fix && pnpm prettier --write . && stylelint '**/*.{css,scss,vue}' --fix",
-    "lint:staged": "lint-staged"
+    "lint:staged": "lint-staged",
+    "prepare": "husky"
   },
   "packageManager": "pnpm@10.22.0",
   "workspaces": [
