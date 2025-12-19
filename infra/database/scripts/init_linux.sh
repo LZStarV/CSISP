@@ -4,10 +4,11 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "$0")/../../.." && pwd)
 source "$ROOT_DIR/infra/database/scripts/common.sh"
 
-export $(grep -v '^#' "$ROOT_DIR/infra/database/.env.db" | xargs)
+# 加载根环境（应用侧与容器侧统一来源）
+if [ -f "$ROOT_DIR/.env" ]; then export $(grep -v '^#' "$ROOT_DIR/.env" | xargs); fi
 
 log_info "启动数据库服务"
-docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" --env-file "$ROOT_DIR/infra/database/.env.db" up -d postgres redis
+docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" --env-file "$ROOT_DIR/.env" up -d postgres redis
 
 log_info "等待数据库就绪"
 for i in {1..30}; do

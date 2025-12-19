@@ -1,0 +1,75 @@
+# Sync non-sensitive env variables to GitHub Environments
+# - Input selects target environment (development/staging/production)
+# - Prefer environment-specific example (.env.<env>.example); fallback to .env.example
+# - Filters out sensitive keys (PASSWORD/SECRET/TOKEN/KEY) — do not write Secrets here
+name: Sync Env Variables From Example
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment (development|staging|production)
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+permissions:
+  actions: write # allow github-script to call environment variables API
+  contents: read # checkout repository to read example files
+
+jobs:
+  sync-variables:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pick environment-specific example file if present, else fallback
+      - name: Resolve environment-specific example path
+        id: resolve
+        run: |
+          FILE=".env.${{ inputs.environment }}.example"
+          if [ -f "$FILE" ]; then
+            echo "path=$FILE" >> $GITHUB_OUTPUT
+          else
+            echo "path=.env.example" >> $GITHUB_OUTPUT
+          fi
+
+      # Parse global example first (base layer)
+      - name: Parse global .env.example (non-sensitive)
+        id: parse_global
+        run: |
+          data=$(awk -F= 'BEGIN{print "{"} /^[A-Za-z_][A-Za-z0-9_]*=/{k=$1; $1=""; v=substr($0,2); if (k !~ /(PASSWORD|SECRET|TOKEN|KEY)/) {gsub(/\r/,"",v); gsub(/"/,"\\"",v); printf "\"%s\":\"%s\",", k, v}} END{print "}"}' .env.example | sed 's/,}/}/')
+          echo "json=$data" >> $GITHUB_OUTPUT
+
+      # Parse env-specific example and override global values
+      - name: Parse environment-specific example (non-sensitive)
+        id: parse_env
+        run: |
+          path='${{ steps.resolve.outputs.path }}'
+          data=$(awk -F= 'BEGIN{print "{"} /^[A-Za-z_][A-Za-z0-9_]*=/{k=$1; $1=""; v=substr($0,2); if (k !~ /(PASSWORD|SECRET|TOKEN|KEY)/) {gsub(/\r/,"",v); gsub(/"/,"\\"",v); printf "\"%s\":\"%s\",", k, v}} END{print "}"}' "$path" | sed 's/,}/}/')
+          echo "json=$data" >> $GITHUB_OUTPUT
+
+      # Write variables to selected environment (env overrides global)
+      - name: Sync variables to environment (env-specific overrides global)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ENV_ADMIN_TOKEN }} # PAT with repo env variables write permission
+          script: |
+            const envName = core.getInput('environment', { required: true })
+            const globalVars = JSON.parse(core.getInput('json_global') || '{}')
+            const envVars = JSON.parse(core.getInput('json_env') || '{}')
+            const payload = { ...globalVars, ...envVars }
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+            for (const [name, value] of Object.entries(payload)) {
+              await github.request('PUT /repos/{owner}/{repo}/environments/{environment_name}/variables/{name}', {
+                owner, repo, environment_name: envName, name, value
+              })
+            }
+        env:
+          json_global: ${{ steps.parse_global.outputs.json }}
+          json_env: ${{ steps.parse_env.outputs.json }}
+          environment: ${{ inputs.environment }}

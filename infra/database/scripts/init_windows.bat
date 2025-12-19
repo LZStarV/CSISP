@@ -3,14 +3,16 @@ setlocal enabledelayedexpansion
 
 set ROOT_DIR=%~dp0\..\..\..
 
-for /f "usebackq tokens=*" %%a in (`type "%ROOT_DIR%\infra\database\.env.db"`) do (
-  for /f "tokens=1,2 delims==" %%i in ("%%a") do (
-    if not "%%i"=="" set %%i=%%j
+if exist "%ROOT_DIR%\.env" (
+  for /f "usebackq tokens=*" %%a in (`type "%ROOT_DIR%\.env"`) do (
+    for /f "tokens=1,2 delims==" %%i in ("%%a") do (
+      if not "%%i"=="" set %%i=%%j
+    )
   )
 )
 
 echo [INFO] 启动数据库服务
-docker compose -f "%ROOT_DIR%\infra\database\docker-compose.db.yml" --env-file "%ROOT_DIR%\infra\database\.env.db" up -d postgres redis
+docker compose -f "%ROOT_DIR%\infra\database\docker-compose.db.yml" --env-file "%ROOT_DIR%\.env" up -d postgres redis
 
 echo [INFO] 等待数据库就绪
 set /a counter=0

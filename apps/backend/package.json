@@ -26,7 +26,8 @@
     "redis": "^4.6.10",
     "sequelize": "^6.35.0",
     "swagger-jsdoc": "^6.2.8",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@types/koa": "^3.0.1",

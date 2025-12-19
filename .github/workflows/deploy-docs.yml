@@ -1,3 +1,6 @@
+# Deploy CSISP Docs to GitHub Pages
+# - Triggers on changes under docs/ or manual dispatch
+# - Builds VitePress site and publishes to the github-pages environment
 name: Deploy Docs
 
 on:
@@ -28,22 +31,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Setup Node runtime used by docs build
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # Install pnpm (do not run install yet, we will cache first)
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 10.22.0
           run_install: false
 
+      # Resolve pnpm store path for cache key
       - name: Get pnpm store directory
         id: pnpm-cache
         run: |
           echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
 
+      # Cache pnpm store to speed up dependency installation
       - name: Setup pnpm cache
         uses: actions/cache@v4
         with:
@@ -52,20 +59,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
+      # Install only docs workspace dependencies
       - name: Install dependencies
         run: pnpm i --filter @csisp/docs
 
+      # Build VitePress static site
       - name: Build docs
         run: pnpm --filter @csisp/docs build
 
+      # Configure GitHub Pages for deployment
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
+      # Upload built site as artifact
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: './docs/.vitepress/dist'
 
+      # Publish the artifact to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

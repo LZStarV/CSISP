@@ -1,3 +1,11 @@
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: false });
+dotenv.config({ path: path.resolve(__dirname, '.env'), override: false });
+dotenv.config({ path: path.resolve(__dirname, '.env.local'), override: false });
 /**
  * CSISP Backend Application Entry Point
  * 主要功能：
@@ -27,7 +35,7 @@ const app = new (Koa as any)();
 const router = new Router();
 
 // 环境配置
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.BACKEND_PORT ?? 3000);
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // 使用统一控制器与路由配置（ServiceFactory + Sequelize 模型注册）
