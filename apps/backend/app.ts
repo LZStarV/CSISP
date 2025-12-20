@@ -20,6 +20,7 @@ import bodyParser from 'koa-bodyparser';
 import Router from '@koa/router';
 import swaggerJsdoc from 'swagger-jsdoc';
 import { koaSwagger } from 'koa2-swagger-ui';
+import { connect as connectRedis } from '@csisp/redis';
 
 // 导入自定义中间件
 import { errorHandler, logger, rateLimit, defaultCors } from './src/middlewares';
@@ -487,6 +488,9 @@ function setupRoutes(controllers: RouterConfig) {
  */
 async function startServer() {
   try {
+    if (process.env.REDIS_ENABLED === 'true') {
+      await connectRedis({});
+    }
     // 初始化控制器与路由
     const controllers = await initializeControllers();
 

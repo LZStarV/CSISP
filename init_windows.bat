@@ -81,6 +81,9 @@ if %errorlevel% equ 0 (
   ) else (
     set DOCKER_STATUS=检测到 Docker，但服务未就绪，请启动 Docker Desktop 并确保其显示 Running 状态
     echo [WARN] !DOCKER_STATUS!
+    echo [INFO] 如在本机通过 WSL2 或其他 Unix 环境管理数据库，可在项目根目录执行:
+    echo        bash infra/database/scripts/init_mac.sh   ^(macOS 示例^)
+    echo        bash infra/database/scripts/init_linux.sh ^(Linux 示例^)
   )
 ) else (
   set DOCKER_STATUS=未检测到 Docker Desktop
@@ -131,7 +134,7 @@ if "%COMPLETED%"=="%TOTAL%" (
   echo        pnpm -F @csisp/backend dev
   echo   5^)^ 启动前端项目:
   echo        pnpm -F @csisp/frontend-admin dev
-  echo        pnpm -F @csisp-frontend-portal dev
+  echo        pnpm -F @csisp/frontend-portal dev
 ) else (
   echo 未完成的环境组件及建议操作：
   if not "%NODE_OK%"=="1" echo   - Node.js: %NODE_STATUS%

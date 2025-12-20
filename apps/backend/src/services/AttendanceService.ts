@@ -12,6 +12,7 @@ import {
   Status,
 } from '@csisp/types';
 import { BaseService } from './BaseService';
+import { get, set, del } from '@csisp/redis';
 
 export class AttendanceService extends BaseService {
   private attendanceRecordModel: any;
@@ -178,11 +179,19 @@ export class AttendanceService extends BaseService {
         remark: remark || '',
       });
 
-      return {
+      const resp = {
         code: 201,
         message: '打卡成功',
         data: record,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        const task = await this.model.findByPk(taskId);
+        const classId = task?.classId;
+        if (classId) await del(`be:attendance:stats:class:${classId}`);
+        await del(`be:attendance:stats:student:${userId}`);
+        if (classId) await del(`be:attendance:stats:student:${userId}:class:${classId}`);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '打卡失败');
     }
@@ -199,6 +208,11 @@ export class AttendanceService extends BaseService {
     params: PaginationParams
   ): Promise<ApiResponse<PaginationResponse<any>>> {
     try {
+      const cacheKey = `be:attendance:tasks:class:${classId}:page=${params.page}|size=${params.size}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<PaginationResponse<any>>;
+      }
       // 检查班级是否存在
       const classInstance = await this.classModel.findByPk(classId);
       if (!classInstance) {
@@ -208,10 +222,14 @@ export class AttendanceService extends BaseService {
         };
       }
 
-      return await this.findAllWithPagination(params, {
+      const result = await this.findAllWithPagination(params, {
         course_id: classInstance.course_id, // 注意字段映射
         status: Status.Active,
       });
+      if (process.env.REDIS_ENABLED === 'true' && result.code === 200) {
+        await set(cacheKey, JSON.stringify(result), 120);
+      }
+      return result;
     } catch (error) {
       return this.handleError<PaginationResponse<any>>(error, '获取班级考勤任务失败');
     }
@@ -228,6 +246,11 @@ export class AttendanceService extends BaseService {
     params: PaginationParams
   ): Promise<ApiResponse<PaginationResponse<any>>> {
     try {
+      const cacheKey = `be:attendance:records:task:${taskId}:page=${params.page}|size=${params.size}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<PaginationResponse<any>>;
+      }
       // 检查考勤任务是否存在
       const task = await this.model.findByPk(taskId);
       if (!task) {
@@ -255,7 +278,7 @@ export class AttendanceService extends BaseService {
 
       const totalPages = Math.ceil(count / size);
 
-      return {
+      const resp = {
         code: 200,
         message: '获取打卡记录成功',
         data: {
@@ -266,6 +289,10 @@ export class AttendanceService extends BaseService {
           totalPages,
         },
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 120);
+      }
+      return resp;
     } catch (error) {
       return this.handleError<PaginationResponse<any>>(error, '获取打卡记录失败');
     }
@@ -279,6 +306,13 @@ export class AttendanceService extends BaseService {
    */
   async getStudentAttendanceStats(userId: number, classId?: number): Promise<ApiResponse<any>> {
     try {
+      const keyBase = classId
+        ? `be:attendance:stats:student:${userId}:class:${classId}`
+        : `be:attendance:stats:student:${userId}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(keyBase);
+        if (cached) return JSON.parse(cached) as ApiResponse<any>;
+      }
       const where: WhereOptions = { user_id: userId }; // 注意字段映射
 
       if (classId) {
@@ -333,7 +367,7 @@ export class AttendanceService extends BaseService {
       const leaveCount = records.filter((r: any) => r.status === AttendanceStatus.Leave).length;
       const rate = totalCount > 0 ? (normalCount / totalCount) * 100 : 0;
 
-      return {
+      const resp = {
         code: 200,
         message: '获取学生考勤统计成功',
         data: {
@@ -347,6 +381,10 @@ export class AttendanceService extends BaseService {
           rate: Math.round(rate * 100) / 100,
         },
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(keyBase, JSON.stringify(resp), 60);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '获取学生考勤统计失败');
     }
@@ -359,6 +397,11 @@ export class AttendanceService extends BaseService {
    */
   async getClassAttendanceStats(classId: number): Promise<ApiResponse<any>> {
     try {
+      const cacheKey = `be:attendance:stats:class:${classId}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any>;
+      }
       // 检查班级是否存在
       const classInstance = await this.classModel.findByPk(classId);
       if (!classInstance) {
@@ -401,7 +444,7 @@ export class AttendanceService extends BaseService {
       const leaveCount = records.filter((r: any) => r.status === AttendanceStatus.Leave).length;
       const rate = totalCount > 0 ? (normalCount / totalCount) * 100 : 0;
 
-      return {
+      const resp = {
         code: 200,
         message: '获取班级考勤统计成功',
         data: {
@@ -413,6 +456,10 @@ export class AttendanceService extends BaseService {
           rate: Math.round(rate * 100) / 100,
         },
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 60);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '获取班级考勤统计失败');
     }
@@ -438,11 +485,22 @@ export class AttendanceService extends BaseService {
         };
       }
 
-      return {
+      const resp = {
         code: 200,
         message: '考勤记录更新成功',
         data: result[1][0],
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        // 粗粒度失效：班级与学生统计（如可得）
+        const rec: any = resp.data;
+        const task = await this.model.findByPk(rec.task_id);
+        const classId = task?.classId;
+        const userId = rec.user_id;
+        if (classId) await del(`be:attendance:stats:class:${classId}`);
+        if (userId && classId) await del(`be:attendance:stats:student:${userId}:class:${classId}`);
+        if (userId) await del(`be:attendance:stats:student:${userId}`);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '考勤记录更新失败');
     }
@@ -472,7 +530,12 @@ export class AttendanceService extends BaseService {
         }
         (where as any).course_id = classInstance.course_id;
       }
-
+      let cacheKey = `be:attendance:active`;
+      if (classId) cacheKey = `be:attendance:active:class:${classId}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any[]>;
+      }
       const tasks = await this.model.findAll({
         where,
         include: [
@@ -484,11 +547,15 @@ export class AttendanceService extends BaseService {
         order: [['start_time', 'ASC']], // 注意字段映射
       });
 
-      return {
+      const resp = {
         code: 200,
         message: '获取活跃考勤任务成功',
         data: tasks,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 30);
+      }
+      return resp;
     } catch (error) {
       return this.handleError<any[]>(error, '获取活跃考勤任务失败');
     }

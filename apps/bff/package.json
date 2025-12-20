@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@csisp/middlewares": "workspace:*",
+    "@csisp/redis": "workspace:*",
     "@csisp/validation": "workspace:*",
     "@csisp/upstream": "workspace:*",
     "@csisp/types": "workspace:^1.0.0",

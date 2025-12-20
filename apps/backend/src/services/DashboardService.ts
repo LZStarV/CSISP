@@ -1,4 +1,5 @@
 import { ApiResponse } from '@csisp/types';
+import { get, set } from '@csisp/redis';
 import { Op, fn, col, literal } from 'sequelize';
 
 export class DashboardService {
@@ -22,6 +23,11 @@ export class DashboardService {
 
   async getStats(): Promise<ApiResponse<any>> {
     try {
+      const cacheKey = 'be:dashboard:stats';
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any>;
+      }
       const safeCount = async (model: any, where?: any) => {
         try {
           return await model.count(where ? { where } : {});
@@ -55,7 +61,7 @@ export class DashboardService {
       const homeworkSubmissionRate =
         homeworkTotal > 0 ? Math.round((submissionTotal / homeworkTotal) * 100) : 0;
 
-      return {
+      const resp = {
         code: 200,
         message: 'OK',
         data: {
@@ -67,6 +73,10 @@ export class DashboardService {
           notificationCount,
         },
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 60);
+      }
+      return resp;
     } catch (error: any) {
       return { code: 500, message: error?.message || '统计数据获取失败' };
     }
@@ -74,6 +84,12 @@ export class DashboardService {
 
   async getUserGrowth(days = 30): Promise<ApiResponse<Array<{ date: string; count: number }>>> {
     try {
+      const cacheKey = `be:dashboard:userGrowth:${days}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached)
+          return JSON.parse(cached) as ApiResponse<Array<{ date: string; count: number }>>;
+      }
       const end = new Date();
       const start = new Date();
       start.setDate(end.getDate() - days + 1);
@@ -104,7 +120,11 @@ export class DashboardService {
         cursor.setDate(cursor.getDate() + 1);
       }
 
-      return { code: 200, message: 'OK', data: result };
+      const resp = { code: 200, message: 'OK', data: result };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 300);
+      }
+      return resp;
     } catch (error: any) {
       return { code: 500, message: error?.message || '用户增长数据获取失败' };
     }
@@ -112,6 +132,12 @@ export class DashboardService {
 
   async getCourseDistribution(): Promise<ApiResponse<Array<{ name: string; value: number }>>> {
     try {
+      const cacheKey = 'be:dashboard:courseDistribution';
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached)
+          return JSON.parse(cached) as ApiResponse<Array<{ name: string; value: number }>>;
+      }
       const rows = await this.courseModel.findAll({
         attributes: [
           ['semester', 'name'],
@@ -124,7 +150,11 @@ export class DashboardService {
 
       // 格式化名称
       const data = rows.map((r: any) => ({ name: `第${r.name}学期`, value: parseInt(r.value) }));
-      return { code: 200, message: 'OK', data };
+      const resp = { code: 200, message: 'OK', data };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 300);
+      }
+      return resp;
     } catch (error: any) {
       return { code: 500, message: error?.message || '课程分布数据获取失败' };
     }
@@ -132,6 +162,11 @@ export class DashboardService {
 
   async getRecentActivities(limit = 10): Promise<ApiResponse<any[]>> {
     try {
+      const cacheKey = `be:dashboard:recentActivities:${limit}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any[]>;
+      }
       const safeFindAll = async (fnExec: () => Promise<any[]>) => {
         try {
           return await fnExec();
@@ -212,7 +247,11 @@ export class DashboardService {
       );
 
       list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      return { code: 200, message: 'OK', data: list.slice(0, limit) };
+      const resp = { code: 200, message: 'OK', data: list.slice(0, limit) };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 60);
+      }
+      return resp;
     } catch (error: any) {
       return { code: 500, message: error?.message || '最近活动获取失败' };
     }

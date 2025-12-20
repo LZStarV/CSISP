@@ -4,7 +4,7 @@ set -e
 ROOT_DIR=$(cd "$(dirname "$0")" && pwd)
 cd "$ROOT_DIR"
 
-log_info() { printf "%s[INFO]%s %s\n" "$GREEN" "$RESET" "$1"; }
+log_info() { printf "[INFO] %s\n" "$1"; }
 log_warn() { printf "%s[WARN]%s %s\n" "$YELLOW" "$RESET" "$1"; }
 log_error() { printf "%s[ERROR]%s %s\n" "$RED" "$RESET" "$1" >&2; }
 log_success() { printf "%s[OK]%s %s\n" "$GREEN" "$RESET" "$1"; }
@@ -142,6 +142,7 @@ if command -v docker >/dev/null 2>&1; then
   else
     DOCKER_STATUS="检测到 Docker，但服务未就绪，请确保 Docker Desktop 已启动"
     log_warn "$DOCKER_STATUS"
+    log_info "可以在项目根目录执行: bash infra/database/scripts/init_mac.sh，启动数据库相关容器并等待就绪"
   fi
 else
   if command -v brew >/dev/null 2>&1; then

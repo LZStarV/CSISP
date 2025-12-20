@@ -12,6 +12,7 @@ import {
   Status,
 } from '@csisp/types';
 import { BaseService } from './BaseService';
+import { get, set, del } from '@csisp/redis';
 
 export class HomeworkService extends BaseService {
   private homeworkSubmissionModel: any;
@@ -60,11 +61,15 @@ export class HomeworkService extends BaseService {
 
       const homework = await this.model.create(homeworkData);
 
-      return {
+      const resp = {
         code: 201,
         message: '作业发布成功',
         data: homework,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await del(`be:homework:list:class:${homeworkData.classId}:page=1|size=10`);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '作业发布失败');
     }
@@ -157,11 +162,17 @@ export class HomeworkService extends BaseService {
         });
       }
 
-      return {
+      const resp = {
         code: 201,
         message: '作业提交成功',
         data: submission,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await del(`be:homework:stats:${submissionData.homeworkId}`);
+        await del(`be:homework:submissions:list:${submissionData.homeworkId}:page=1|size=10`);
+        await del(`be:homework:submissions:student:${submissionData.userId}`);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '作业提交失败');
     }
@@ -178,6 +189,11 @@ export class HomeworkService extends BaseService {
     params: PaginationParams
   ): Promise<ApiResponse<PaginationResponse<any>>> {
     try {
+      const cacheKey = `be:homework:list:class:${classId}:page=${params.page}|size=${params.size}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<PaginationResponse<any>>;
+      }
       // 检查班级是否存在
       const classInstance = await this.classModel.findByPk(classId);
       if (!classInstance) {
@@ -187,10 +203,14 @@ export class HomeworkService extends BaseService {
         };
       }
 
-      return await this.findAllWithPagination(params, {
+      const result = await this.findAllWithPagination(params, {
         class_id: classId, // 注意字段映射
         status: Status.Active,
       });
+      if (process.env.REDIS_ENABLED === 'true' && result.code === 200) {
+        await set(cacheKey, JSON.stringify(result), 120);
+      }
+      return result;
     } catch (error) {
       return this.handleError<PaginationResponse<any>>(error, '获取班级作业失败');
     }
@@ -204,6 +224,13 @@ export class HomeworkService extends BaseService {
    */
   async getStudentSubmissions(userId: number, classId?: number): Promise<ApiResponse<any[]>> {
     try {
+      const cacheKey = classId
+        ? `be:homework:submissions:student:${userId}:class:${classId}`
+        : `be:homework:submissions:student:${userId}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any[]>;
+      }
       const where: WhereOptions = { user_id: userId }; // 注意字段映射
 
       if (classId) {
@@ -240,11 +267,15 @@ export class HomeworkService extends BaseService {
         order: [['submit_time', 'DESC']], // 注意字段映射
       });
 
-      return {
+      const resp = {
         code: 200,
         message: '获取学生作业提交成功',
         data: submissions,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 120);
+      }
+      return resp;
     } catch (error) {
       return this.handleError<any[]>(error, '获取学生作业提交失败');
     }
@@ -291,11 +322,16 @@ export class HomeworkService extends BaseService {
         };
       }
 
-      return {
+      const resp = {
         code: 200,
         message: '作业批改成功',
         data: affectedRows[0],
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        const sub: any = resp.data;
+        await del(`be:homework:stats:${sub.homework_id}`);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '作业批改失败');
     }
@@ -312,6 +348,11 @@ export class HomeworkService extends BaseService {
     params: PaginationParams
   ): Promise<ApiResponse<PaginationResponse<any>>> {
     try {
+      const cacheKey = `be:homework:submissions:list:${homeworkId}:page=${params.page}|size=${params.size}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<PaginationResponse<any>>;
+      }
       // 检查作业是否存在
       const homework = await this.model.findByPk(homeworkId);
       if (!homework) {
@@ -343,7 +384,7 @@ export class HomeworkService extends BaseService {
 
       const totalPages = Math.ceil(count / size);
 
-      return {
+      const resp = {
         code: 200,
         message: '获取作业提交情况成功',
         data: {
@@ -354,6 +395,10 @@ export class HomeworkService extends BaseService {
           totalPages,
         },
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 120);
+      }
+      return resp;
     } catch (error) {
       return this.handleError<PaginationResponse<any>>(error, '获取作业提交情况失败');
     }
@@ -366,6 +411,11 @@ export class HomeworkService extends BaseService {
    */
   async getHomeworkStats(homeworkId: number): Promise<ApiResponse<any>> {
     try {
+      const cacheKey = `be:homework:stats:${homeworkId}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any>;
+      }
       // 检查作业是否存在
       const homework = await this.model.findByPk(homeworkId);
       if (!homework) {
@@ -404,7 +454,7 @@ export class HomeworkService extends BaseService {
           ? submissions.reduce((sum: number, s: any) => sum + (s.score || 0), 0) / gradedCount
           : 0;
 
-      return {
+      const resp = {
         code: 200,
         message: '获取作业统计成功',
         data: {
@@ -418,6 +468,10 @@ export class HomeworkService extends BaseService {
           averageScore: Math.round(averageScore * 100) / 100,
         },
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 60);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '获取作业统计失败');
     }
@@ -437,11 +491,15 @@ export class HomeworkService extends BaseService {
         return result;
       }
 
-      return {
+      const resp = {
         code: 200,
         message: '作业状态更新成功',
         data: result.data!,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await del(`be:homework:stats:${homeworkId}`);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '作业状态更新失败');
     }

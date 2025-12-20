@@ -8,6 +8,7 @@ dotenv.config({ path: path.resolve(__dirname, '.env'), override: false });
 dotenv.config({ path: path.resolve(__dirname, '.env.local'), override: true });
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
+import { connect as connectRedis } from '@csisp/redis';
 import router from './src/router';
 import legacyProxy from './src/middleware/legacyProxy';
 import {
@@ -20,6 +21,9 @@ import {
 import traceMiddleware from './src/middleware/trace';
 
 const app = new Koa();
+if (process.env.REDIS_ENABLED === 'true') {
+  void connectRedis({});
+}
 app.use(errorMiddleware());
 app.use(corsMiddleware());
 app.use(loggerMiddleware());

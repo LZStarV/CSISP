@@ -6,6 +6,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { CreateUserInput, LoginParams, ApiResponse, Status } from '@csisp/types';
 import { BaseService } from './BaseService';
+import { get, set, del } from '@csisp/redis';
 
 export class UserService extends BaseService {
   private userRoleModel: any;
@@ -60,11 +61,15 @@ export class UserService extends BaseService {
         status: userData.status || Status.Active,
       });
 
-      return {
+      const resp = {
         code: 201,
         message: '用户注册成功',
         data: user,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await del('be:user:stats');
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '用户注册失败');
     }
@@ -180,11 +185,15 @@ export class UserService extends BaseService {
         await this.userRoleModel.bulkCreate(userRoles);
       }
 
-      return {
+      const resp = {
         code: 200,
         message: '角色分配成功',
         data: true,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await del(`be:user:roles:${userId}`);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '角色分配失败') as ApiResponse<boolean>;
     }
@@ -197,6 +206,11 @@ export class UserService extends BaseService {
    */
   async getUserRoles(userId: number): Promise<ApiResponse<any[]>> {
     try {
+      const cacheKey = `be:user:roles:${userId}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any[]>;
+      }
       const user = await this.model.findByPk(userId, {
         include: [
           {
@@ -213,11 +227,15 @@ export class UserService extends BaseService {
         } as ApiResponse<any[]>;
       }
 
-      return {
+      const resp = {
         code: 200,
         message: '获取用户角色成功',
         data: (user as any).Roles || [],
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 600);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '获取用户角色失败') as ApiResponse<any[]>;
     }
@@ -230,6 +248,11 @@ export class UserService extends BaseService {
    */
   async findByStudentId(studentId: string): Promise<ApiResponse<any | null>> {
     try {
+      const cacheKey = `be:user:byStudentId:${studentId}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any | null>;
+      }
       const user = await this.model.findOne({ where: { student_id: studentId } });
 
       if (!user) {
@@ -239,11 +262,15 @@ export class UserService extends BaseService {
         };
       }
 
-      return {
+      const resp = {
         code: 200,
         message: '查询成功',
         data: user,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 600);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '查询失败');
     }
@@ -273,11 +300,15 @@ export class UserService extends BaseService {
 
       const result = users.map((user: any) => user);
 
-      return {
+      const resp = {
         code: 201,
         message: '批量创建用户成功',
         data: result,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await del('be:user:stats');
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '批量创建用户失败') as ApiResponse<any[]>;
     }
@@ -289,6 +320,11 @@ export class UserService extends BaseService {
    */
   async getUserStats(): Promise<ApiResponse<any>> {
     try {
+      const cacheKey = `be:user:stats`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any>;
+      }
       const totalCount = await this.model.count();
       const activeCount = await this.model.count({ where: { status: Status.Active } });
       const inactiveCount = await this.model.count({ where: { status: Status.Inactive } });
@@ -308,7 +344,7 @@ export class UserService extends BaseService {
         raw: true,
       });
 
-      return {
+      const resp = {
         code: 200,
         message: '获取用户统计成功',
         data: {
@@ -319,6 +355,10 @@ export class UserService extends BaseService {
           yearStats,
         },
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 120);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '获取用户统计失败');
     }

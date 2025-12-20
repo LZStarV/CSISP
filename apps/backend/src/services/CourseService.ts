@@ -14,6 +14,7 @@ import {
   Status,
 } from '@csisp/types';
 import { BaseService } from './BaseService';
+import { get, set, del } from '@csisp/redis';
 
 export class CourseService extends BaseService {
   private courseTeacherModel: any;
@@ -270,6 +271,11 @@ export class CourseService extends BaseService {
     semester?: number
   ): Promise<ApiResponse<PaginationResponse<any>>> {
     try {
+      const cacheKey = `be:courses:list:major=${major ?? ''}|sem=${semester ?? ''}|page=${params.page}|size=${params.size}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<PaginationResponse<any>>;
+      }
       const where: WhereOptions = { status: Status.Active };
 
       if (major) {
@@ -283,7 +289,11 @@ export class CourseService extends BaseService {
         where.semester = semester;
       }
 
-      return await this.findAllWithPagination(params, where);
+      const result = await this.findAllWithPagination(params, where);
+      if (process.env.REDIS_ENABLED === 'true' && result.code === 200) {
+        await set(cacheKey, JSON.stringify(result), 120);
+      }
+      return result;
     } catch (error) {
       return this.handleError(error, '获取课程列表失败') as ApiResponse<PaginationResponse<any>>;
     }
@@ -296,6 +306,11 @@ export class CourseService extends BaseService {
    */
   async getCourseDetail(courseId: number): Promise<ApiResponse<any>> {
     try {
+      const cacheKey = `be:course:detail:${courseId}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any>;
+      }
       const course = await this.model.findByPk(courseId, {
         include: [
           {
@@ -320,11 +335,15 @@ export class CourseService extends BaseService {
         };
       }
 
-      return {
+      const resp = {
         code: 200,
         message: '获取课程详情成功',
         data: course,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 300);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '获取课程详情失败');
     }
@@ -338,6 +357,11 @@ export class CourseService extends BaseService {
    */
   async getCoursesBySemester(academicYear: number, semester: number): Promise<ApiResponse<any[]>> {
     try {
+      const cacheKey = `be:courses:semester:${academicYear}:${semester}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<any[]>;
+      }
       const courses = await this.model.findAll({
         where: {
           academic_year: academicYear, // 注意字段映射
@@ -347,11 +371,15 @@ export class CourseService extends BaseService {
         order: [['course_name', 'ASC']], // 注意字段映射
       });
 
-      return {
+      const resp = {
         code: 200,
         message: '获取学期课程成功',
         data: courses,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 300);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '获取学期课程失败') as ApiResponse<any[]>;
     }
@@ -368,6 +396,11 @@ export class CourseService extends BaseService {
     params: PaginationParams
   ): Promise<ApiResponse<PaginationResponse<any>>> {
     try {
+      const cacheKey = `be:courses:teacher:${teacherId}:page=${params.page}|size=${params.size}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<PaginationResponse<any>>;
+      }
       // 检查教师是否存在
       const teacher = await this.teacherModel.findByPk(teacherId);
       if (!teacher) {
@@ -398,10 +431,14 @@ export class CourseService extends BaseService {
         };
       }
 
-      return await this.findAllWithPagination(params, {
+      const result = await this.findAllWithPagination(params, {
         id: { [Op.in]: courseIds },
         status: Status.Active,
       });
+      if (process.env.REDIS_ENABLED === 'true' && result.code === 200) {
+        await set(cacheKey, JSON.stringify(result), 120);
+      }
+      return result;
     } catch (error) {
       return this.handleError(error, '获取教师课程失败') as ApiResponse<PaginationResponse<any>>;
     }
@@ -421,11 +458,15 @@ export class CourseService extends BaseService {
         return result;
       }
 
-      return {
+      const resp = {
         code: 200,
         message: '课程状态更新成功',
         data: result.data!,
       };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await del(`be:course:detail:${courseId}`);
+      }
+      return resp;
     } catch (error) {
       return this.handleError(error, '课程状态更新失败');
     }
