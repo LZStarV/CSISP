@@ -17,7 +17,7 @@ tests/**
 docs/**
 
 # 忽略后端代码
-apps/backend/**
+apps/backend-integrated/**
 
 # 忽略配置文件
 *.config.js

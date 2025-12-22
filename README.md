@@ -64,7 +64,7 @@ pnpm -F [sub-application-name] dev
 
 ### 开发依赖数据库的后端子项目
 
-对于 `apps/backend` 等需要连接数据库的后端项目，推荐在本地通过 Docker 启动数据库与 Redis 后再启动服务：
+对于 backend-integrated 等需要连接数据库的后端项目，推荐在本地通过 Docker 启动数据库与 Redis 后再启动服务：
 
 ```bash
 # 启动数据库基础设施（以 macOS 为例）
@@ -74,8 +74,8 @@ bash infra/database/scripts/init_mac.sh
 pnpm -F @csisp/db-schema run migrate
 pnpm -F @csisp/db-schema run seed
 
-# 启动 backend
-pnpm -F @csisp/backend dev
+# 启动 backend-integrated
+pnpm -F @csisp/backend-integrated dev
 ```
 
 如果数据库初始化脚本执行失败，可以在项目根目录按以下步骤手动完成数据库启动与初始化：

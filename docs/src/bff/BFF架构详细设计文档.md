@@ -197,7 +197,7 @@ flowchart TB
   end
   subgraph Services
     BFF[apps/bff : BFF_PORT]
-    BE[apps/backend : 3000]
+    BE[apps/backend-integrated : 3100]
   end
   Client --> Nginx
   Nginx -->|/api/bff/*| BFF

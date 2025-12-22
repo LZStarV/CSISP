@@ -131,7 +131,7 @@ if "%COMPLETED%"=="%TOTAL%" (
   echo        pnpm -F @csisp/db-schema run seed
   echo   4^)^ 启动 BFF 和后端服务:
   echo        pnpm -F @csisp/bff dev
-  echo        pnpm -F @csisp/backend dev
+  echo        pnpm -F @csisp/backend-integrated dev
   echo   5^)^ 启动前端项目:
   echo        pnpm -F @csisp/frontend-admin dev
   echo        pnpm -F @csisp/frontend-portal dev
