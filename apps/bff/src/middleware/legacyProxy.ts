@@ -18,8 +18,8 @@ export default function legacyProxy() {
     // 仅处理以 /api/ 开头的路径；其它路径交由前端路由或静态资源处理
     const requestPath = ctx.path;
     if (!requestPath.startsWith('/api/')) return;
-    const backendBaseUrl = process.env.BE_BACKEND_URL;
-    if (!backendBaseUrl) ctx.throw(500, 'BE_BACKEND_URL is not configured');
+    const backendBaseUrl = process.env.BACKEND_INTEGRATED_URL;
+    if (!backendBaseUrl) ctx.throw(500, 'BACKEND_INTEGRATED_URL is not configured');
     const forwardHeaders: Record<string, string> = {};
     // 透传鉴权与链路追踪头
     const authorization = ctx.get('Authorization');

@@ -15,7 +15,7 @@
     "@csisp/validation": "workspace:*",
     "@csisp/upstream": "workspace:*",
     "@csisp/types": "workspace:^1.0.0",
-    "koa": "^2.15.0",
+    "koa": "^3.1.1",
     "@koa/router": "^14.0.0",
     "koa-bodyparser": "^4.4.1",
     "undici": "^6.19.8",

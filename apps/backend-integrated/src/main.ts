@@ -26,6 +26,10 @@ async function bootstrap() {
 
   app.enableCors(corsOptions);
 
+  // 设置全局 API 前缀
+  // TODO: 考虑是否需要根据环境变量配置前缀
+  app.setGlobalPrefix('api');
+
   // 全局限流、日志与错误处理
   app.useGlobalInterceptors(new RateLimitInterceptor(), new LoggingInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());

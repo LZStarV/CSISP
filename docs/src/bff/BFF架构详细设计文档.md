@@ -4,7 +4,7 @@
 
 ### 1.1 整体设计
 
-- 独立应用：BFF 作为独立应用存在于 monorepo `apps/bff/`，采用 Koa 2 + TypeScript + ESM。
+- 独立应用：BFF 作为独立应用存在于 monorepo `apps/bff/`，采用 Koa 3 + TypeScript + ESM。
 - 路由前缀：统一对外暴露 `/api/bff/*`，并按前端场景分区：
   - 管理端（Admin）：`/api/bff/admin/*`
   - 门户端（Portal）：`/api/bff/portal/*`
@@ -41,7 +41,7 @@ graph LR
   BFF --> BE_notify[Backend.Notification]
 
   subgraph Core
-    BFF[BFF Koa 2.x]
+    BFF[BFF Koa 3.x]
   end
 
   classDef a fill:#eef,stroke:#66c,stroke-width:1px

@@ -81,7 +81,7 @@ export async function aggregateAdminOverview(
   if (traceId) headers['X-Trace-Id'] = traceId;
   if (authHeader) headers['Authorization'] = authHeader;
   const backendClient = createHttpClient({
-    baseURL: process.env.BE_BACKEND_URL as string,
+    baseURL: process.env.BACKEND_INTEGRATED_URL as string,
     headers,
   });
   // BFF 兜底返回结构：即使部分上游接口失败，也保证字段完整

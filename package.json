@@ -54,9 +54,6 @@
   },
   "pnpm": {
     "overrides": {
-      "koa": "^2.15.0",
-      "@koa/router": "^14.0.0",
-      "koa-bodyparser": "^4.4.1",
       "dotenv": "^16.4.5"
     }
   }
