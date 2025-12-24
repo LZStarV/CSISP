@@ -4,6 +4,7 @@ import type { Model } from 'mongoose';
 import { POSTGRES_MODELS } from '@infra/postgres/postgres.providers';
 import { get, set, del } from '@infra/redis';
 import type { ContentDocument } from '@infra/mongo/content.schema';
+import { getBackendLogger } from '@infra/logger';
 
 type ListQuery = {
   type?: 'announcement' | 'homework';
@@ -30,24 +31,61 @@ export class ContentService {
   ) {}
 
   async list(query: ListQuery) {
-    const page = Math.max(1, query.page || 1);
-    const size = Math.min(100, Math.max(1, query.size || 20));
-    const key = `csisp:be:content:list:type=${query.type || 'all'}|course=${query.courseId || 'all'}|class=${query.classId || 'all'}|page=${page}|size=${size}`;
-    const cached = await get(key);
-    if (cached) return JSON.parse(cached);
-    const q: any = {};
-    if (query.type) q.type = query.type;
-    if (query.courseId) q['scope.courseId'] = query.courseId;
-    if (query.classId) q['scope.classId'] = query.classId;
-    const docs = await this.contentModel
-      .find(q)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * size)
-      .limit(size)
-      .exec();
-    const total = await this.contentModel.countDocuments(q);
-    const data = {
-      data: docs.map((doc: any) => ({
+    try {
+      const page = Math.max(1, query.page || 1);
+      const size = Math.min(100, Math.max(1, query.size || 20));
+      const key = `csisp:be:content:list:type=${query.type || 'all'}|course=${query.courseId || 'all'}|class=${query.classId || 'all'}|page=${page}|size=${size}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(key);
+        if (cached) return JSON.parse(cached);
+      }
+      const q: any = {};
+      if (query.type) q.type = query.type;
+      if (query.courseId) q['scope.courseId'] = query.courseId;
+      if (query.classId) q['scope.classId'] = query.classId;
+      const docs = await this.contentModel
+        .find(q)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * size)
+        .limit(size)
+        .exec();
+      const total = await this.contentModel.countDocuments(q);
+      const data = {
+        data: docs.map((doc: any) => ({
+          id: String(doc._id),
+          type: doc.type,
+          title: doc.title,
+          richBody: doc.richBody,
+          attachments: doc.attachments || [],
+          authorId: doc.authorId,
+          scope: doc.scope || {},
+          status: doc.status,
+          createdAt: doc.createdAt,
+          updatedAt: doc.updatedAt,
+        })),
+        pagination: { page, size, total },
+      };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(key, JSON.stringify({ code: 200, message: 'ok', data }), 120);
+      }
+      return { code: 200, message: 'ok', data };
+    } catch (e) {
+      const logger = getBackendLogger('content');
+      logger.error({ error: (e as any)?.message }, 'Content list failed');
+      return { code: 500, message: '服务器内部错误' } as any;
+    }
+  }
+
+  async get(id: string) {
+    try {
+      const key = `csisp:be:content:detail:${id}`;
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(key);
+        if (cached) return JSON.parse(cached);
+      }
+      const doc = await this.contentModel.findById(id).exec();
+      if (!doc) return { code: 404, message: 'not found' };
+      const data = {
         id: String(doc._id),
         type: doc.type,
         title: doc.title,
@@ -58,33 +96,16 @@ export class ContentService {
         status: doc.status,
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
-      })),
-      pagination: { page, size, total },
-    };
-    await set(key, JSON.stringify({ code: 200, message: 'ok', data }), 120);
-    return { code: 200, message: 'ok', data };
-  }
-
-  async get(id: string) {
-    const key = `csisp:be:content:detail:${id}`;
-    const cached = await get(key);
-    if (cached) return JSON.parse(cached);
-    const doc = await this.contentModel.findById(id).exec();
-    if (!doc) return { code: 404, message: 'not found' };
-    const data = {
-      id: String(doc._id),
-      type: doc.type,
-      title: doc.title,
-      richBody: doc.richBody,
-      attachments: doc.attachments || [],
-      authorId: doc.authorId,
-      scope: doc.scope || {},
-      status: doc.status,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-    };
-    await set(key, JSON.stringify({ code: 200, message: 'ok', data }), 300);
-    return { code: 200, message: 'ok', data };
+      };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(key, JSON.stringify({ code: 200, message: 'ok', data }), 300);
+      }
+      return { code: 200, message: 'ok', data };
+    } catch (e) {
+      const logger = getBackendLogger('content');
+      logger.error({ error: (e as any)?.message }, 'Content detail failed');
+      return { code: 500, message: '服务器内部错误' } as any;
+    }
   }
 
   async create(body: CreateBody) {
@@ -109,8 +130,55 @@ export class ContentService {
   }
 
   async remove(id: string) {
-    await this.contentModel.findByIdAndDelete(id).exec();
-    await del(`csisp:be:content:detail:${id}`);
-    return { code: 200, message: 'deleted' };
+    try {
+      await this.contentModel.findByIdAndDelete(id).exec();
+      if (process.env.REDIS_ENABLED === 'true') {
+        await del(`csisp:be:content:detail:${id}`);
+      }
+      return { code: 200, message: 'deleted' };
+    } catch (e) {
+      const logger = getBackendLogger('content');
+      logger.error({ error: (e as any)?.message }, 'Content remove failed');
+      return { code: 500, message: '服务器内部错误' } as any;
+    }
+  }
+
+  async stats() {
+    try {
+      const key = 'csisp:be:content:stats';
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(key);
+        if (cached) return JSON.parse(cached);
+      }
+      const notificationCount = await this.contentModel.countDocuments({ type: 'announcement' });
+      const resp = { code: 200, message: 'ok', data: { notificationCount } };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(key, JSON.stringify(resp), 60);
+      }
+      return resp;
+    } catch (e) {
+      const logger = getBackendLogger('content');
+      logger.error({ error: (e as any)?.message }, 'Content stats failed');
+      return { code: 500, message: '服务器内部错误' } as any;
+    }
+  }
+
+  async recent(limit = 10) {
+    try {
+      const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10));
+      const docs = await this.contentModel.find({}).sort({ createdAt: -1 }).limit(safeLimit).exec();
+      const data = docs.map((doc: any) => ({
+        id: String(doc._id),
+        type: doc.type,
+        title: doc.title,
+        description: doc.richBody.slice(0, 140),
+        timestamp: doc.createdAt,
+      }));
+      return { code: 200, message: 'ok', data };
+    } catch (e) {
+      const logger = getBackendLogger('content');
+      logger.error({ error: (e as any)?.message }, 'Content recent failed');
+      return { code: 500, message: '服务器内部错误' } as any;
+    }
   }
 }

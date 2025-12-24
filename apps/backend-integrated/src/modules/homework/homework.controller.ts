@@ -71,6 +71,13 @@ export class HomeworkController {
     return this.homeworkService.getHomeworkStats(homeworkId);
   }
 
+  @Get('stats/submission-rate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async getSystemSubmissionRate(): Promise<ApiResponse<{ rate: number }>> {
+    return this.homeworkService.getSystemSubmissionRate();
+  }
+
   @Put(':homeworkId/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher')

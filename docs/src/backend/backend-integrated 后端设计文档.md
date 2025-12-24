@@ -432,25 +432,11 @@ if (process.env.REDIS_ENABLED === 'true') {
 - 权限与归属：在 Service 层通过 Postgres 校验 `courseId/classId/authorId`
 - 缓存：列表/详情短 TTL；写/删后精确失效相关键
 
-### 5.6 Dashboard 模块
-
-**职责**：
-
-- 管理员仪表盘：用户/课程/班级/考勤/作业/通知等全局统计
-- 未来可扩展学生/教师仪表盘接口
-
-**典型路由**：
-
-- `GET /api/dashboard/stats`：顶卡统计
-- `GET /api/dashboard/user-growth`：用户增长趋势
-- `GET /api/dashboard/course-distribution`：课程学期/专业分布
-- `GET /api/dashboard/recent-activities`：最近活动（考勤、作业、通知等）
-
 **缓存策略**：
 
 - 统计接口均使用 Redis 做短 TTL 缓存（例如 30~60s），键以 `be:dashboard:*` 为前缀
 
-### 5.7 Health 模块
+### 5.6 Health 模块
 
 **职责**：
 

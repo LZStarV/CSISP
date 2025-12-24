@@ -416,4 +416,39 @@ export class CourseService {
     this.logger.error(message, error instanceof Error ? error.stack : undefined);
     return { code: 500, message };
   }
+
+  async getCourseDistribution(): Promise<ApiResponse<Array<{ name: string; value: number }>>> {
+    try {
+      const cacheKey = 'be:courses:stats:distribution';
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached)
+          return JSON.parse(cached) as ApiResponse<Array<{ name: string; value: number }>>;
+      }
+
+      const rows = await this.courseModel.findAll({ attributes: ['semester'] });
+      const map: Record<string, number> = {};
+      for (const c of rows) {
+        const sem = String((c as any).semester ?? '未知');
+        map[sem] = (map[sem] ?? 0) + 1;
+      }
+      const data = Object.entries(map)
+        .map(([name, value]) => ({ name: `Semester ${name}`, value }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const resp: ApiResponse<Array<{ name: string; value: number }>> = {
+        code: 200,
+        message: '获取课程分布成功',
+        data,
+      };
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 300);
+      }
+      return resp;
+    } catch (error) {
+      return this.handleError(error, '获取课程分布失败') as ApiResponse<
+        Array<{ name: string; value: number }>
+      >;
+    }
+  }
 }

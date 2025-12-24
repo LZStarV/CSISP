@@ -140,6 +140,13 @@ export class CourseController {
     return this.courseService.getTeacherCourses(teacherId, pagination);
   }
 
+  @Get('distribution')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async getCourseDistribution(): Promise<ApiResponse<Array<{ name: string; value: number }>>> {
+    return this.courseService.getCourseDistribution();
+  }
+
   @Put(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')

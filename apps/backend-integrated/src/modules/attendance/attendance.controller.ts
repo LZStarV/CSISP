@@ -85,6 +85,13 @@ export class AttendanceController {
     return this.attendanceService.getClassAttendanceStats(classId);
   }
 
+  @Get('stats/average')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async getAverageAttendanceRate(): Promise<ApiResponse<{ rate: number }>> {
+    return this.attendanceService.getAverageAttendanceRate();
+  }
+
   @Get('records/student/:userId')
   @UseGuards(JwtAuthGuard)
   async getStudentAttendanceRecords(

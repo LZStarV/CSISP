@@ -505,4 +505,32 @@ export class AttendanceService {
     this.logger.error(message, error instanceof Error ? error.stack : undefined);
     return { code: 500, message } as ApiResponse<T>;
   }
+
+  async getAverageAttendanceRate(): Promise<ApiResponse<{ rate: number }>> {
+    try {
+      const cacheKey = 'be:attendance:stats:average';
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<{ rate: number }>;
+      }
+
+      const records = await this.recordModel.findAll({ attributes: ['status'] });
+      const totalCount = records.length;
+      const normalCount = records.filter((r: any) => r.status === AttendanceStatus.Normal).length;
+      const rate = totalCount > 0 ? Math.round((normalCount / totalCount) * 100 * 100) / 100 : 0;
+
+      const resp: ApiResponse<{ rate: number }> = {
+        code: 200,
+        message: '获取全局平均出勤率成功',
+        data: { rate },
+      };
+
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 60);
+      }
+      return resp;
+    } catch (error) {
+      return this.handleError<{ rate: number }>(error, '获取全局平均出勤率失败');
+    }
+  }
 }

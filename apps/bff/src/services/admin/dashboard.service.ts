@@ -91,54 +91,73 @@ export async function aggregateAdminOverview(
     };
 
     // 并发拉取仪表盘相关的四类数据
-    const [statsPayload, userGrowthPayload, courseDistPayload, recentActPayload] =
-      await Promise.all([
-        safeJson(backendClient.get('/api/dashboard/stats'), 'dashboard.stats'),
-        safeJson(
-          backendClient.get(`/api/dashboard/user-growth?days=${days}`),
-          'dashboard.userGrowth'
-        ),
-        safeJson(
-          backendClient.get('/api/dashboard/course-distribution'),
-          'dashboard.courseDistribution'
-        ),
-        safeJson(
-          backendClient.get(`/api/dashboard/recent-activities?limit=${limit}`),
-          'dashboard.recentActivities'
-        ),
-      ]);
+    const [
+      userStatsPayload,
+      usersPagePayload,
+      coursesPayload,
+      attendanceAvgPayload,
+      homeworkRatePayload,
+      contentStatsPayload,
+      recentPayload,
+      courseDistPayload,
+    ] = await Promise.all([
+      safeJson(backendClient.get('/api/users/stats'), 'users.stats'),
+      safeJson(backendClient.get('/api/users?page=1&size=1'), 'users.page'),
+      safeJson(backendClient.get('/api/courses?page=1&size=1'), 'courses.count'),
+      safeJson(backendClient.get('/api/attendance/stats/average'), 'attendance.avg'),
+      safeJson(backendClient.get('/api/homework/stats/submission-rate'), 'homework.rate'),
+      safeJson(backendClient.get('/api/contents/stats'), 'contents.stats'),
+      safeJson(backendClient.get(`/api/contents/recent?limit=${limit}`), 'contents.recent'),
+      safeJson(backendClient.get('/api/courses/distribution'), 'courses.distribution'),
+    ]);
 
-    // 解析统计数据，若后端未返回则使用兜底逻辑计算部分字段
-    const statsData = unwrapData(statsPayload) || {};
-    let userCount = toNum((statsData as any).userCount);
-    let courseCount = toNum((statsData as any).courseCount);
-    const attendanceRate = toNum((statsData as any).attendanceRate);
-    const homeworkSubmissionRate = toNum((statsData as any).homeworkSubmissionRate);
-    const notificationCount = toNum((statsData as any).notificationCount);
+    const userCount =
+      toNum(unwrapData(userStatsPayload)?.totalCount) ||
+      pickTotal(userStatsPayload) ||
+      pickTotal(usersPagePayload);
+    const courseCount = pickTotal(coursesPayload);
+    const attendanceRate = toNum(unwrapData(attendanceAvgPayload)?.rate);
+    const homeworkSubmissionRate = toNum(unwrapData(homeworkRatePayload)?.rate);
+    const notificationCount = toNum(unwrapData(contentStatsPayload)?.notificationCount);
 
-    if (!statsPayload) {
-      try {
-        const users = await backendClient.json(backendClient.get('/api/users?page=1&size=1'));
-        userCount = pickTotal(users);
-      } catch {}
-      try {
-        const courses = await backendClient.json(backendClient.get('/api/courses?page=1&size=1'));
-        courseCount = pickTotal(courses);
-      } catch {}
-    }
-
-    // 归一化折线图和图表数据，避免前端处理 undefined / null
-    const userGrowth = Array.isArray(unwrapData(userGrowthPayload))
-      ? (unwrapData(userGrowthPayload) as any[])
-      : [];
-    const courseDistribution = Array.isArray(unwrapData(courseDistPayload))
-      ? (unwrapData(courseDistPayload) as any[])
-      : [];
-    const recentActivities = Array.isArray(unwrapData(recentActPayload))
-      ? (unwrapData(recentActPayload) as any[])
+    const userGrowthRaw = unwrapData(userStatsPayload)?.yearStats || [];
+    const userGrowth = Array.isArray(userGrowthRaw)
+      ? userGrowthRaw.map((i: any) => ({
+          date: String(i?.enrollment_year ?? ''),
+          count: toNum(i?.count),
+        }))
       : [];
 
-    // 聚合最终结果，字段尽量保持稳定，便于前端直接消费
+    const courseDistributionRaw = unwrapData(courseDistPayload) || [];
+    const courseDistribution = Array.isArray(courseDistributionRaw)
+      ? courseDistributionRaw.map((i: any) => ({
+          name: String(i?.name ?? ''),
+          value: toNum(i?.value),
+        }))
+      : [];
+
+    const recentActivitiesRaw = unwrapData(recentPayload) || [];
+    const recentActivities = Array.isArray(recentActivitiesRaw)
+      ? recentActivitiesRaw.map((a: any) => ({
+          id: toNum(a?.id),
+          type: String(a?.type ?? ''),
+          title: String(a?.title ?? ''),
+          description: String(a?.description ?? ''),
+          timestamp: String(a?.timestamp ?? ''),
+        }))
+      : [];
+
+    const allUndefined = [
+      userStatsPayload,
+      usersPagePayload,
+      coursesPayload,
+      attendanceAvgPayload,
+      homeworkRatePayload,
+      contentStatsPayload,
+      recentPayload,
+      courseDistPayload,
+    ].every(v => v === undefined);
+
     return {
       stats: {
         userCount,
@@ -160,13 +179,9 @@ export async function aggregateAdminOverview(
           title: String(a?.title ?? ''),
           description: String(a?.description ?? ''),
           timestamp: String(a?.timestamp ?? ''),
-          user:
-            a?.user && typeof a.user === 'object'
-              ? { id: toNum(a.user?.id), realName: String(a.user?.realName ?? '') }
-              : undefined,
         }))
-        .filter(a => a.id && a.title && a.timestamp),
-      meta: errors.length ? { error: errors.join(' | ') } : undefined,
+        .filter(a => a.title && a.timestamp),
+      meta: allUndefined ? { error: errors.join(' | ') } : undefined,
     } satisfies AdminOverviewResult;
   } catch (e: any) {
     // 发生未捕获异常时，返回兜底结构并附带错误原因，避免前端崩溃

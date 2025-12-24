@@ -559,4 +559,53 @@ export class HomeworkService {
     this.logger.error(message, error instanceof Error ? error.stack : undefined);
     return { code: 500, message } as ApiResponse<T>;
   }
+
+  async getSystemSubmissionRate(): Promise<ApiResponse<{ rate: number }>> {
+    try {
+      const cacheKey = 'be:homework:stats:system:submissionRate';
+      if (process.env.REDIS_ENABLED === 'true') {
+        const cached = await get(cacheKey);
+        if (cached) return JSON.parse(cached) as ApiResponse<{ rate: number }>;
+      }
+
+      const homeworks = await this.homeworkModel.findAll({ attributes: ['id', 'class_id'] });
+      if (homeworks.length === 0) {
+        const empty: ApiResponse<{ rate: number }> = {
+          code: 200,
+          message: '获取系统提交率成功',
+          data: { rate: 0 },
+        };
+        return empty;
+      }
+
+      const classIds = Array.from(new Set(homeworks.map((h: any) => h.class_id))).filter(Boolean);
+      const classes = await this.classModel.findAll({
+        where: { id: { [Op.in]: classIds } },
+        include: [{ model: this.userModel, through: { attributes: [] } }],
+      });
+
+      const expectedTotal = homeworks.reduce((sum: number, h: any) => {
+        const cls = classes.find((c: any) => c.id === h.class_id);
+        const studentCount = (cls as any)?.Users?.length ?? 0;
+        return sum + studentCount;
+      }, 0);
+
+      const submissionsCount = await this.submissionModel.count();
+      const rate =
+        expectedTotal > 0 ? Math.round((submissionsCount / expectedTotal) * 100 * 100) / 100 : 0;
+
+      const resp: ApiResponse<{ rate: number }> = {
+        code: 200,
+        message: '获取系统提交率成功',
+        data: { rate },
+      };
+
+      if (process.env.REDIS_ENABLED === 'true') {
+        await set(cacheKey, JSON.stringify(resp), 60);
+      }
+      return resp;
+    } catch (error) {
+      return this.handleError<{ rate: number }>(error, '获取系统提交率失败');
+    }
+  }
 }

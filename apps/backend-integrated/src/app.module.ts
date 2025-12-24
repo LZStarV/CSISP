@@ -5,7 +5,6 @@ import { UserModule } from './modules/user/user.module';
 import { CourseModule } from './modules/course/course.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { HomeworkModule } from './modules/homework/homework.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ContentModule } from './modules/content/content.module';
 
@@ -20,7 +19,6 @@ import { ContentModule } from './modules/content/content.module';
     CourseModule,
     AttendanceModule,
     HomeworkModule,
-    DashboardModule,
     ContentModule,
   ],
 })

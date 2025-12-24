@@ -26,4 +26,14 @@ export class ContentController {
   remove(@Param('id') id: string) {
     return this.service.remove(id);
   }
+
+  @Get('stats')
+  stats() {
+    return this.service.stats();
+  }
+
+  @Get('recent')
+  recent(@Query('limit') limit?: string) {
+    return this.service.recent(limit ? Number(limit) : 10);
+  }
 }
