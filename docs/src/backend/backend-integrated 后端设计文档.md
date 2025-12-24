@@ -10,7 +10,7 @@
 
 backend-integrated 是新一代后端实现：
 
-- 使用 NestJS + TypeScript + Sequelize + PostgreSQL + Redis
+- 使用 NestJS + TypeScript + Sequelize + PostgreSQL + Redis + MongoDB（内容域，Mongoose）
 - 通过统一的 RESTful API 对接 BFF（Koa）与前端应用
 
 ### 1.2 设计目标
@@ -46,7 +46,7 @@ CSISP/
 │   └── frontend-portal/      # 门户（学生/教师）前端
 ├── packages/
 │   ├── types/                # @csisp/types 共享业务类型
-│   ├── db-schema/            # 数据库迁移与 schema 定义
+│   ├── db-workflows/         # 数据库工作流统一入口（Postgres 迁移/种子、Mongo 种子）
 │   ├── redis/                # @csisp/redis Redis 客户端封装
 │   ├── upstream/             # @csisp/upstream HTTP 上游封装
 │   └── utils/                # @csisp/utils 其他通用工具
@@ -87,6 +87,7 @@ NestJS]:::be
   subgraph 数据层
     PG[(PostgreSQL 15)]:::db
     RDS[(Redis)]:::redis
+    MG[(MongoDB)]:::db
   end
 
   Admin --> FEAdmin
@@ -100,6 +101,7 @@ NestJS]:::be
   BE --> BEUser & BECourse & BEAtt & BEHw & BENotify & BEDash
   BEUser & BECourse & BEAtt & BEHw & BENotify & BEDash --> PG
   BEAtt & BEHw & BEDash --> RDS
+  BEContent[Content 模块] --> MG
 
   classDef user fill:#eef,stroke:#88a
   classDef fe fill:#f5faff,stroke:#66c
@@ -120,6 +122,7 @@ NestJS]:::be
 - 创建 Nest 应用实例并加载 `AppModule`
 - 注册全局拦截器 / 过滤器 / CORS 配置
 - 监听 `BACKEND_INTEGRATED_PORT` 端口，暴露 `/api` REST 接口
+- 通过 `MongooseModule.forRoot(MONGODB_URI, { dbName: MONGODB_DB })` 初始化 Mongo（内容域）
 
 应用启动流程（简化）：
 
@@ -164,7 +167,8 @@ apps/backend-integrated/
 │   │   │   ├── postgres.module.ts
 │   │   │   ├── postgres.providers.ts  # POSTGRES_SEQUELIZE / POSTGRES_MODELS
 │   │   │   └── load-models.ts         # 动态加载 models + associate
-│   │   └── redis/
+│   │   ├── 📁 mongo/                 # Mongoose Schema（内容域：content）
+│   │   └── 📁 redis/
 │   │       ├── index.ts               # 从 @csisp/redis re-export API
 │   │       ├── redis.providers.ts     # REDIS_CLIENT provider（预留）
 │   │       └── redis.module.ts        # @Global RedisModule（预留）
@@ -186,7 +190,8 @@ apps/backend-integrated/
 │       ├── user/
 │       ├── course/
 │       ├── attendance/
-│       ├── homework/
+│       ├── � homework/
+│       ├── 📁 content/               # 内容域（公告/作业文档，Mongo + DTO）
 │       ├── dashboard/
 │       └── health/
 └── package.json
@@ -375,14 +380,14 @@ backend-integrated 下的业务模块均位于 `src/modules/*`，每个模块包
 
 **职责**：
 
-- 班级作业创建、更新、删除
+- 班级作业创建、更新、删除（正文持久化到内容域 Mongo）
 - 学生作业提交（支持附件元数据）
 - 作业提交列表与统计
 - 作业批改与评分
 
 **典型路由（摘录）**：
 
-- `POST /api/homework`：发布作业（班级维度）
+- `POST /api/homework`：发布作业（班级维度，正文写入内容域）
 - `GET /api/homework/class/:classId`：班级作业列表
 - `POST /api/homework/:homeworkId/submissions`：学生提交作业
 - `GET /api/homework/:homeworkId/submissions`：提交列表（教师视角，分页）
@@ -406,24 +411,26 @@ if (process.env.REDIS_ENABLED === 'true') {
 // 查询数据库并聚合后写回缓存
 ```
 
-### 5.5 Notification 模块
+### 5.5 Content/Notification 模块
 
 **职责**：
 
-- 通知创建（课程通知/系统通知）
-- 列表与详情查询
-- 阅读状态管理（已读/未读统计）
+- 内容域：公告/作业的“标题 + 富文本 + 附件”（Mongo `content` 集合）
+- 通知阅读状态：PostgreSQL（`notification_read`）可选保留为权威
 
 **典型路由（示意）**：
 
-- `POST /api/notifications`：创建通知
-- `GET /api/notifications`：当前用户通知列表（支持 unreadOnly）
-- `POST /api/notifications/:id/read`：标记已读
+- `POST /api/contents`：创建内容（公告/作业）
+- `GET /api/contents`：内容列表（分页 + 过滤）
+- `GET /api/contents/:id`：内容详情
+- `DELETE /api/contents/:id`：删除内容
+- `POST /api/notifications/:id/read`：标记已读（PostgreSQL）
 
 **实现要点**：
 
-- 使用 `Notification/NotificationRead` 模型
-- 可使用 Redis 缓存用户未读数量或列表摘要
+- 内容文档：`content` 集合；索引 `type+createdAt`、`scope.courseId+createdAt`、`scope.classId+createdAt`
+- 权限与归属：在 Service 层通过 Postgres 校验 `courseId/classId/authorId`
+- 缓存：列表/详情短 TTL；写/删后精确失效相关键
 
 ### 5.6 Dashboard 模块
 
@@ -508,7 +515,7 @@ flowchart LR
 
 ### 7.3 输入校验
 
-- 控制器层通过 DTO + Pipe 校验基础类型
+- 控制器层通过 DTO + Pipe 校验基础类型（class-validator/class-transformer，与 `@csisp/types` 对齐）
 - 复杂业务校验（如时间区间合法性、学年/学期范围）在 Service 层实现
 
 ---
@@ -544,10 +551,12 @@ backend-integrated 的缓存策略与《技术架构文档》中 Redis 部分一
 - 数据库：`DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`
 - Redis：`REDIS_HOST/REDIS_PORT/REDIS_DB/REDIS_PASSWORD/REDIS_ENABLED`
 - 端口：`BACKEND_INTEGRATED_PORT`
+- Mongo：`MONGODB_URI`、`MONGODB_DB`
 - JWT：`JWT_SECRET/JWT_EXPIRES_IN`
 
 ### 9.2 健康检查
 
 - 建议在部署层（Kubernetes / Docker Compose / 其他）使用：
   - `GET /api/health/app` 作为 liveness probe
-  - `GET /api/health/db` 作为 readiness/依赖检查的一部分
+- - `GET /api/health/db` 作为 readiness/依赖检查的一部分
+- - `GET /api/health/db/mongo` 检查 Mongo 连接 `readyState` 与 `ping` 延时

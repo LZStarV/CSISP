@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ContentModule } from '../content/content.module';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { HomeworkController } from './homework.controller';
 import { HomeworkService } from './homework.service';
@@ -9,6 +10,7 @@ import { HomeworkService } from './homework.service';
  * 负责作业发布、提交、统计与批改相关接口聚合。
  */
 @Module({
+  imports: [ContentModule],
   controllers: [HomeworkController],
   providers: [
     {

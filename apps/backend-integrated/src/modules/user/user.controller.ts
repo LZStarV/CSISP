@@ -11,13 +11,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import type {
-  CreateUserInput,
-  LoginParams,
-  ApiResponse,
-  UpdateUserInput,
-  PaginationParams,
-} from '@csisp/types';
+import type { ApiResponse, PaginationParams } from '@csisp/types';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { LoginDto } from './dto/login.dto';
+import { ListUsersQueryDto } from './dto/list-users-query.dto';
+import { AssignRolesDto } from './dto/assign-roles.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -41,12 +40,12 @@ export class UserController {
   }
 
   @Post('register')
-  async register(@Body() body: CreateUserInput): Promise<ApiResponse<any>> {
-    return this.userService.register(body);
+  async register(@Body() body: CreateUserDto): Promise<ApiResponse<any>> {
+    return this.userService.register(body as any);
   }
 
   @Post('login')
-  async login(@Body() body: LoginParams): Promise<ApiResponse<any>> {
+  async login(@Body() body: LoginDto): Promise<ApiResponse<any>> {
     this.logger.log(`login called, userService: ${this.userService ? 'ok' : 'undefined'}`);
     if (!this.userService) {
       return { code: 500, message: 'UserService not initialized' } as ApiResponse<any>;
@@ -86,9 +85,9 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async updateUser(
     @Param('id', ParseIdPipe) id: number,
-    @Body() body: UpdateUserInput
+    @Body() body: UpdateUserDto
   ): Promise<ApiResponse<any>> {
-    return this.userService.update(id, body);
+    return this.userService.update(id, body as any);
   }
 
   @Get()
@@ -96,22 +95,20 @@ export class UserController {
   @Roles('admin')
   async getUsers(
     @Query(PaginationPipe) pagination: PaginationParams,
-    @Query() query: Record<string, any>
+    @Query() query: ListUsersQueryDto
   ): Promise<ApiResponse<any>> {
     const where: Record<string, any> = {};
     const { major, enrollmentYear, status } = query;
-
     if (major) where.major = major;
-    if (enrollmentYear !== undefined) where.enrollmentYear = Number(enrollmentYear);
-    if (status !== undefined) where.status = Number(status);
-
+    if (enrollmentYear !== undefined) where.enrollmentYear = enrollmentYear;
+    if (status !== undefined) where.status = status;
     return this.userService.findAllWithPagination(pagination, where);
   }
 
   @Post('bulk')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async bulkCreateUsers(@Body() usersData: CreateUserInput[]): Promise<ApiResponse<any>> {
+  async bulkCreateUsers(@Body() usersData: CreateUserDto[]): Promise<ApiResponse<any>> {
     if (!Array.isArray(usersData) || usersData.length === 0) {
       return { code: 400, message: '用户数据必须是数组且不能为空' };
     }
@@ -122,7 +119,7 @@ export class UserController {
 
     for (let i = 0; i < usersData.length; i += 1) {
       const user = usersData[i];
-      const requiredParams: (keyof CreateUserInput)[] = [
+      const requiredParams: (keyof CreateUserDto)[] = [
         'username',
         'password',
         'realName',
@@ -130,7 +127,7 @@ export class UserController {
         'enrollmentYear',
         'major',
       ];
-      const missing = requiredParams.filter(key => !user[key]);
+      const missing = requiredParams.filter(key => !(user as any)[key]);
       if (missing.length > 0) {
         return {
           code: 400,
@@ -139,7 +136,7 @@ export class UserController {
       }
     }
 
-    return this.userService.bulkCreate(usersData);
+    return this.userService.bulkCreate(usersData as any);
   }
 
   @Post(':id/roles')
@@ -147,16 +144,9 @@ export class UserController {
   @Roles('admin')
   async assignRoles(
     @Param('id', ParseIdPipe) id: number,
-    @Body() body: { roleIds: number[] }
+    @Body() body: AssignRolesDto
   ): Promise<ApiResponse<boolean>> {
-    const { roleIds } = body;
-    if (!Array.isArray(roleIds)) {
-      return { code: 400, message: '角色ID必须是数组' } as ApiResponse<boolean>;
-    }
-    if (roleIds.length > 10) {
-      return { code: 400, message: '用户最多分配10个角色' } as ApiResponse<boolean>;
-    }
-    return this.userService.assignRoles(id, roleIds);
+    return this.userService.assignRoles(id, body.roleIds);
   }
 
   @Get(':id/roles')

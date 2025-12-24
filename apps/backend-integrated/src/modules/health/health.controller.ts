@@ -1,6 +1,8 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 import type { Sequelize } from 'sequelize';
 import { POSTGRES_SEQUELIZE } from '@infra/postgres/postgres.providers';
+import { InjectConnection } from '@nestjs/mongoose';
+import type { Connection } from 'mongoose';
 
 /**
  * 健康检查控制器
@@ -10,7 +12,10 @@ import { POSTGRES_SEQUELIZE } from '@infra/postgres/postgres.providers';
  */
 @Controller('health')
 export class HealthController {
-  constructor(@Inject(POSTGRES_SEQUELIZE) private readonly sequelize: Sequelize) {}
+  constructor(
+    @Inject(POSTGRES_SEQUELIZE) private readonly sequelize: Sequelize,
+    @InjectConnection() private readonly mongoConn: Connection
+  ) {}
 
   @Get()
   getHealth() {
@@ -28,6 +33,19 @@ export class HealthController {
       return { code: 200, message: '数据库连接正常' };
     } catch (error) {
       return { code: 503, message: '数据库连接失败' };
+    }
+  }
+
+  @Get('db/mongo')
+  async getMongoHealth() {
+    try {
+      const start = Date.now();
+      await this.mongoConn.db?.command({ ping: 1 });
+      const latency = Date.now() - start;
+      const readyState = this.mongoConn.readyState;
+      return { code: 200, message: 'Mongo 连接正常', latency, readyState };
+    } catch (e) {
+      return { code: 503, message: 'Mongo 连接失败' };
     }
   }
 }

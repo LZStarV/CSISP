@@ -38,16 +38,29 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 
 log_info "启动数据库服务"
-docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" --env-file "$ROOT_DIR/.env" up -d postgres redis
+docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" --env-file "$ROOT_DIR/.env" up -d postgres redis mongo
 
-log_info "等待数据库就绪"
+log_info "等待 PostgreSQL 数据库就绪"
 for i in {1..30}; do
   if docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres pg_isready >/dev/null 2>&1; then
     log_success "PostgreSQL 已就绪"
     break
   fi
   if [ "$i" -eq 30 ]; then
-    log_error "数据库启动超时"
+    log_error "PostgreSQL 数据库启动超时"
+    exit 1
+  fi
+  sleep 2
+done
+
+log_info "等待 MongoDB 就绪"
+for i in {1..30}; do
+  if docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T mongo mongosh --eval 'db.runCommand({ ping: 1 })' >/dev/null 2>&1; then
+    log_success "MongoDB 已就绪"
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    log_error "MongoDB 启动超时"
     exit 1
   fi
   sleep 2

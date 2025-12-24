@@ -1,10 +1,8 @@
 import { Body, Controller, Get, Inject, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
-import type {
-  ApiResponse,
-  AttendanceStatus,
-  CreateAttendanceTaskInput,
-  PaginationParams,
-} from '@csisp/types';
+import type { ApiResponse, AttendanceStatus, PaginationParams } from '@csisp/types';
+import { CreateAttendanceTaskDto } from './dto/create-attendance-task.dto';
+import { CreateAttendanceRecordDto } from './dto/create-attendance-record.dto';
+import { UpdateAttendanceTaskStatusDto } from './dto/update-attendance-task-status.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -27,8 +25,8 @@ export class AttendanceController {
   @Post('tasks')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher')
-  async createAttendanceTask(@Body() body: CreateAttendanceTaskInput): Promise<ApiResponse<any>> {
-    return this.attendanceService.createAttendanceTask(body);
+  async createAttendanceTask(@Body() body: CreateAttendanceTaskDto): Promise<ApiResponse<any>> {
+    return this.attendanceService.createAttendanceTask(body as any);
   }
 
   @Post('checkin')

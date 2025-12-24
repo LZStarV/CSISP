@@ -12,20 +12,34 @@ if exist "%ROOT_DIR%\.env" (
 )
 
 echo [INFO] 启动数据库服务
-docker compose -f "%ROOT_DIR%\infra\database\docker-compose.db.yml" --env-file "%ROOT_DIR%\.env" up -d postgres redis
+docker compose -f "%ROOT_DIR%\infra\database\docker-compose.db.yml" --env-file "%ROOT_DIR%\.env" up -d postgres redis mongo
 
-echo [INFO] 等待数据库就绪
+echo [INFO] 等待 PostgreSQL 数据库就绪
 set /a counter=0
 :wait_db
 set /a counter+=1
 if !counter! gtr 30 (
-  echo [ERROR] 数据库启动超时
+  echo [ERROR] PostgreSQL 数据库启动超时
   exit /b 1
 )
 docker compose -f "%ROOT_DIR%\infra\database\docker-compose.db.yml" exec -T postgres pg_isready >nul 2>&1
 if errorlevel 1 (
   timeout /t 2 /nobreak >nul
   goto wait_db
+)
+
+echo [INFO] 等待 MongoDB 就绪
+set /a counter=0
+:wait_mongo
+set /a counter+=1
+if !counter! gtr 30 (
+  echo [ERROR] MongoDB 启动超时
+  exit /b 1
+)
+docker compose -f "%ROOT_DIR%\infra\database\docker-compose.db.yml" exec -T mongo mongosh --eval "db.runCommand({ ping: 1 })" >nul 2>&1
+if errorlevel 1 (
+  timeout /t 2 /nobreak >nul
+  goto wait_mongo
 )
 
 echo [INFO] 创建应用用户与数据库

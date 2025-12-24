@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -33,6 +34,7 @@ async function bootstrap() {
   // 全局限流、日志与错误处理
   app.useGlobalInterceptors(new RateLimitInterceptor(), new LoggingInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   const port = Number(process.env.BACKEND_INTEGRATED_PORT ?? 3100);
   await app.listen(port);

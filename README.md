@@ -70,9 +70,13 @@ pnpm -F [sub-application-name] dev
 # 启动数据库基础设施（以 macOS 为例）
 bash infra/database/scripts/init_mac.sh
 
-# 初始化数据库结构与种子数据
-pnpm -F @csisp/db-schema run migrate
-pnpm -F @csisp/db-schema run seed
+# 初始化数据库结构与种子数据（PostgreSQL）
+pnpm -F @csisp/db-workflows run migrate:pg
+pnpm -F @csisp/db-workflows run seed:pg
+
+# 初始化 Mongo 内容集合与示例数据
+# 需在 .env 设置 MONGODB_URI/MONGODB_DB 并确保 mongo 已启动
+pnpm -F @csisp/db-workflows run seed:mongo
 
 # 启动 backend-integrated
 pnpm -F @csisp/backend-integrated dev
@@ -80,16 +84,19 @@ pnpm -F @csisp/backend-integrated dev
 
 如果数据库初始化脚本执行失败，可以在项目根目录按以下步骤手动完成数据库启动与初始化：
 
-1. 启动 PostgreSQL 与 Redis 容器
+1. 启动 PostgreSQL、Redis 与 Mongo 容器
 2. 检查 PostgreSQL 是否就绪
 3. 在容器内创建应用用户、数据库并授予权限
 
 ```bash
-# 1. 启动 PostgreSQL 与 Redis 容器（使用 .env 中的环境变量）
-docker compose -f infra/database/docker-compose.db.yml --env-file .env up -d postgres redis
+# 1. 启动 PostgreSQL、Redis 与 Mongo 容器（使用 .env 中的环境变量）
+docker compose -f infra/database/docker-compose.db.yml --env-file .env up -d postgres redis mongo
 
 # 2. 检查 PostgreSQL 是否就绪（可多次执行，直到状态为 accepting connections）
 docker compose -f infra/database/docker-compose.db.yml exec -T postgres pg_isready
+
+# 2.1 检查 MongoDB 是否就绪（可选，需已启动 mongo 服务）
+docker compose -f infra/database/docker-compose.db.yml exec -T mongo mongosh --eval "db.runCommand({ ping: 1 })"
 
 # 3. 在容器中创建应用数据库用户（若已存在会提示错误，可忽略）
 docker compose -f infra/database/docker-compose.db.yml exec -T postgres \

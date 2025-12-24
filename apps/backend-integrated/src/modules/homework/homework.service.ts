@@ -10,6 +10,7 @@ import type {
 } from '@csisp/types';
 import { Status as StatusEnum } from '@csisp/types';
 import { get, set, del } from '@infra/redis';
+import { ContentService } from '../content/content.service';
 import { POSTGRES_MODELS } from '@infra/postgres/postgres.providers';
 
 type ModelsDict = Record<string, any>;
@@ -30,7 +31,10 @@ export class HomeworkService {
   private readonly fileModel: any;
   private readonly userModel: any;
 
-  constructor(@Inject(POSTGRES_MODELS) models: ModelsDict) {
+  constructor(
+    @Inject(POSTGRES_MODELS) models: ModelsDict,
+    private readonly contentService: ContentService
+  ) {
     this.homeworkModel = models.Homework;
     this.submissionModel = models.HomeworkSubmission;
     this.fileModel = models.HomeworkFile;
@@ -50,12 +54,20 @@ export class HomeworkService {
         return { code: 400, message: '截止时间必须晚于当前时间' };
       }
 
-      const homework = await this.homeworkModel.create(input);
+      const createdResp = await this.contentService.create({
+        type: 'homework',
+        title: input.title,
+        richBody: input.content,
+        attachments: [],
+        authorId: input.classId,
+        scope: { classId: input.classId },
+        status: 'published',
+      });
 
       const resp: ApiResponse<any> = {
         code: 201,
         message: '作业发布成功',
-        data: homework,
+        data: createdResp.data,
       };
       if (process.env.REDIS_ENABLED === 'true') {
         await del(`be:homework:list:class:${input.classId}:page=1|size=10`);
@@ -157,10 +169,18 @@ export class HomeworkService {
         return { code: 404, message: '班级不存在' } as ApiResponse<PaginationResponse<any>>;
       }
 
-      const result = await this.findAllWithPagination(pagination, {
-        class_id: classId,
-        status: StatusEnum.Active,
+      const listResp = await this.contentService.list({
+        type: 'homework',
+        classId,
+        page: pagination.page,
+        size: pagination.size,
       });
+      const data = listResp.data;
+      const result: ApiResponse<PaginationResponse<any>> = {
+        code: 200,
+        message: '获取班级作业成功',
+        data,
+      } as any;
 
       if (process.env.REDIS_ENABLED === 'true' && result.code === 200) {
         await set(cacheKey, JSON.stringify(result), 120);

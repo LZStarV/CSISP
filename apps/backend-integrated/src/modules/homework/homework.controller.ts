@@ -10,13 +10,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import type {
-  ApiResponse,
-  CreateHomeworkInput,
-  CreateHomeworkSubmissionInput,
-  PaginationParams,
-  Status,
-} from '@csisp/types';
+import type { ApiResponse, PaginationParams, Status } from '@csisp/types';
+import { CreateHomeworkDto } from './dto/create-homework.dto';
+import { CreateHomeworkSubmissionDto } from './dto/create-homework-submission.dto';
+import { UpdateHomeworkStatusDto } from './dto/update-homework-status.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -25,7 +22,7 @@ import { PaginationPipe } from '@common/pipes/pagination.pipe';
 import { HomeworkService } from './homework.service';
 
 /**
- * 作业控制器（Nest 版本）
+ * 作业控制器
  *
  * 提供作业发布、提交、列表、统计与批改等接口。
  */
@@ -36,14 +33,14 @@ export class HomeworkController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher')
-  async createHomework(@Body() body: CreateHomeworkInput): Promise<ApiResponse<any>> {
-    return this.homeworkService.createHomework(body);
+  async createHomework(@Body() body: CreateHomeworkDto): Promise<ApiResponse<any>> {
+    return this.homeworkService.createHomework(body as any);
   }
 
   @Post('submit')
   @UseGuards(JwtAuthGuard)
-  async submitHomework(@Body() body: CreateHomeworkSubmissionInput): Promise<ApiResponse<any>> {
-    return this.homeworkService.submitHomework(body);
+  async submitHomework(@Body() body: CreateHomeworkSubmissionDto): Promise<ApiResponse<any>> {
+    return this.homeworkService.submitHomework(body as any);
   }
 
   @Get('class/:classId')
@@ -79,9 +76,9 @@ export class HomeworkController {
   @Roles('teacher')
   async updateHomeworkStatus(
     @Param('homeworkId', ParseIdPipe) homeworkId: number,
-    @Body('status') status: Status
+    @Body() body: UpdateHomeworkStatusDto
   ): Promise<ApiResponse<any>> {
-    return this.homeworkService.updateHomeworkStatus(homeworkId, status);
+    return this.homeworkService.updateHomeworkStatus(homeworkId, body.status);
   }
 
   @Get('student/:userId')
@@ -111,9 +108,9 @@ export class HomeworkController {
   @Roles('teacher')
   async updateHomework(
     @Param('homeworkId', ParseIdPipe) homeworkId: number,
-    @Body() body: Partial<CreateHomeworkInput>
+    @Body() body: Partial<CreateHomeworkDto>
   ): Promise<ApiResponse<any>> {
-    return this.homeworkService.updateHomework(homeworkId, body);
+    return this.homeworkService.updateHomework(homeworkId, body as any);
   }
 
   @Delete(':homeworkId')

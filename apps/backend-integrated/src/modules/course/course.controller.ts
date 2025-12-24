@@ -1,13 +1,9 @@
 import { Body, Controller, Get, Inject, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
-import type {
-  ApiResponse,
-  CreateClassInput,
-  CreateCourseInput,
-  CreateTimeSlotInput,
-  CreateSubCourseInput,
-  PaginationParams,
-  Status,
-} from '@csisp/types';
+import type { ApiResponse, PaginationParams, Status } from '@csisp/types';
+import { CreateCourseDto } from './dto/create-course.dto';
+import { CreateClassDto } from './dto/create-class.dto';
+import { CreateTimeSlotDto } from './dto/create-time-slot.dto';
+import { CreateSubCourseDto } from './dto/create-sub-course.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -27,8 +23,8 @@ export class CourseController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async createCourse(@Body() body: CreateCourseInput): Promise<ApiResponse<any>> {
-    return this.courseService.createCourse(body);
+  async createCourse(@Body() body: CreateCourseDto): Promise<ApiResponse<any>> {
+    return this.courseService.createCourse(body as any);
   }
 
   @Post(':id/teachers')
@@ -51,22 +47,22 @@ export class CourseController {
   @Post('classes')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher', 'admin')
-  async createClass(@Body() body: CreateClassInput): Promise<ApiResponse<any>> {
-    return this.courseService.createClass(body);
+  async createClass(@Body() body: CreateClassDto): Promise<ApiResponse<any>> {
+    return this.courseService.createClass(body as any);
   }
 
   @Post('time-slots')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher', 'admin')
-  async createTimeSlot(@Body() body: CreateTimeSlotInput): Promise<ApiResponse<any>> {
-    return this.courseService.createTimeSlot(body);
+  async createTimeSlot(@Body() body: CreateTimeSlotDto): Promise<ApiResponse<any>> {
+    return this.courseService.createTimeSlot(body as any);
   }
 
   @Post('sub-courses')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher', 'admin')
-  async createSubCourse(@Body() body: CreateSubCourseInput): Promise<ApiResponse<any>> {
-    return this.courseService.createSubCourse(body);
+  async createSubCourse(@Body() body: CreateSubCourseDto): Promise<ApiResponse<any>> {
+    return this.courseService.createSubCourse(body as any);
   }
 
   @Get()

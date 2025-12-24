@@ -9,7 +9,7 @@
 - **数据库类型**：PostgreSQL 15
 - **使用场景**：所有结构化业务数据（用户、课程、班级、子课程、时间段、考勤、作业、作业附件、通知等）
 - **连接方式**：通过 Sequelize 由 backend-integrated 与 BFF 间接访问，不允许业务代码直接写 SQL
-- **schema 来源**：`packages/db-schema` 中的迁移与模型定义
+- **schema 来源**：`packages/db-workflows/postgres/` 中的迁移与种子（sequelize-cli 配置在该目录下）
 
 整体数据流：
 
@@ -49,12 +49,17 @@ frontend-admin / frontend-portal] --> BFF[bff]
 - **迁移**：`packages/db-schema/migrations/*.js` / `.ts`
 - **种子**：`packages/db-schema/seeders/*.js` / `.ts`
 
-推荐使用方式（在仓库根目录）：
+- 推荐使用方式（在仓库根目录）：
 
-```bash
-pnpm --filter @csisp/db-schema run migrate
-pnpm --filter @csisp/db-schema run seed
 ```
+pnpm -F @csisp/db-workflows run migrate:pg
+pnpm -F @csisp/db-workflows run seed:pg
+```
+
+### 2.1 内容数据归属说明
+
+- 公告与作业的“标题/富文本/附件”统一存储于 MongoDB 的 `content` 集合，不再写入 PostgreSQL。
+- PostgreSQL 继续承载课程/班级/用户等强关系与权限校验、阅读状态等权威数据。
 
 backend-integrated 在运行时只负责：
 
