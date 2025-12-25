@@ -1,6 +1,4 @@
-import { Controller, Get, Inject } from '@nestjs/common';
-import type { Sequelize } from 'sequelize';
-import { POSTGRES_SEQUELIZE } from '@infra/postgres/postgres.providers';
+import { Controller, Get } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import type { Connection } from 'mongoose';
 
@@ -12,10 +10,7 @@ import type { Connection } from 'mongoose';
  */
 @Controller('health')
 export class HealthController {
-  constructor(
-    @Inject(POSTGRES_SEQUELIZE) private readonly sequelize: Sequelize,
-    @InjectConnection() private readonly mongoConn: Connection
-  ) {}
+  constructor(@InjectConnection() private readonly mongoConn: Connection) {}
 
   @Get()
   getHealth() {
@@ -24,16 +19,6 @@ export class HealthController {
       service: 'backend-integrated',
       timestamp: new Date().toISOString(),
     };
-  }
-
-  @Get('db/health')
-  async getDbHealth() {
-    try {
-      await this.sequelize.authenticate();
-      return { code: 200, message: '数据库连接正常' };
-    } catch (error) {
-      return { code: 503, message: '数据库连接失败' };
-    }
   }
 
   @Get('db/mongo')

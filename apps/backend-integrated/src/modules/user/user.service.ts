@@ -1,13 +1,14 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import type { CreateUserInput, LoginParams, ApiResponse, UpdateUserInput } from '@csisp/types';
 import { Status } from '@csisp/types';
 import { get, set, del } from '@infra/redis';
-import { POSTGRES_MODELS } from '@infra/postgres/postgres.providers';
+import { User } from '@infra/postgres/models/user.model';
+import { Role } from '@infra/postgres/models/role.model';
+import { UserRole } from '@infra/postgres/models/user-role.model';
 import type { PaginationParams, PaginationResponse } from '@csisp/types';
-
-type ModelsDict = Record<string, any>;
 
 /**
  * 用户领域服务
@@ -17,16 +18,13 @@ type ModelsDict = Record<string, any>;
  */
 @Injectable()
 export class UserService {
-  private readonly userModel: any;
-  private readonly userRoleModel: any;
-  private readonly roleModel: any;
   private readonly logger = new Logger(UserService.name);
 
-  constructor(@Inject(POSTGRES_MODELS) models: ModelsDict) {
-    this.userModel = models.User;
-    this.userRoleModel = models.UserRole;
-    this.roleModel = models.Role;
-  }
+  constructor(
+    @InjectModel(User) private readonly userModel: any,
+    @InjectModel(UserRole) private readonly userRoleModel: any,
+    @InjectModel(Role) private readonly roleModel: any
+  ) {}
 
   async register(userData: CreateUserInput): Promise<ApiResponse<any>> {
     try {

@@ -36,7 +36,7 @@ frontend-admin / frontend-portal] --> BFF[bff]
 - `DB_USER`：应用连接用户名，例如 `admin` 或 `postgres`
 - `DB_PASSWORD`：应用连接用户密码
 
-在容器初始化阶段（由 `infra/database` / `packages/db-schema` 使用）还可能涉及：
+在容器初始化阶段（由 `infra/database` / `packages/db-workflows` 使用）还可能涉及：
 
 - `POSTGRES_DB`
 - `POSTGRES_USER`
@@ -44,10 +44,10 @@ frontend-admin / frontend-portal] --> BFF[bff]
 
 ### 2.2 迁移与种子
 
-所有表结构与初始数据不在 backend-integrated 内部重复定义，而是统一由 `packages/db-schema` 维护：
+所有表结构与初始数据不在 backend-integrated 内部重复定义，而是统一由 `packages/db-workflows/postgres` 维护：
 
-- **迁移**：`packages/db-schema/migrations/*.js` / `.ts`
-- **种子**：`packages/db-schema/seeders/*.js` / `.ts`
+- **迁移**：`packages/db-workflows/postgres/migrations/*.cjs`
+- **种子**：`packages/db-workflows/postgres/seeders/*.cjs`
 
 - 推荐使用方式（在仓库根目录）：
 
@@ -63,9 +63,9 @@ pnpm -F @csisp/db-workflows run seed:pg
 
 backend-integrated 在运行时只负责：
 
-- 通过 `PostgresModule` 创建 Sequelize 实例；
-- 动态加载 db-schema 导出的 model 工厂并执行 `associate`；
-- 通过 `POSTGRES_MODELS` Provider 将模型注入各业务 Service。
+- 通过 `SequelizePostgresModule` 使用 `@nestjs/sequelize` 创建 Sequelize 连接；
+- 加载 `apps/backend-integrated/src/infra/postgres/models/*.model.ts` 中的 `sequelize-typescript` 模型类并注册到连接；
+- 通过 `@InjectModel(ModelClass)` 将模型注入各业务 Service。
 
 ---
 
@@ -73,7 +73,7 @@ backend-integrated 在运行时只负责：
 
 ### 3.1 ER 概览
 
-> 仅列出主要实体与关系，详细字段以 db-schema 迁移文件为准。
+> 仅列出主要实体与关系，详细字段以 `packages/db-workflows/postgres/migrations` 中的迁移文件为准。
 
 ```mermaid
 erDiagram
@@ -153,55 +153,56 @@ erDiagram
 
 ## 4. backend-integrated 中的使用约定
 
-### 4.1 模型注入
+### 4.1 模型注入与 ORM 访问
 
-所有业务 Service 不直接从 sequelize 单例访问模型，而是通过 `POSTGRES_MODELS` Provider 获取：
+backend-integrated 通过 `SequelizePostgresModule` 统一管理 PostgreSQL 连接与模型注册：
+
+- 连接配置位于 `apps/backend-integrated/src/infra/postgres/sequelize.module.ts`
+- 模型定义位于 `apps/backend-integrated/src/infra/postgres/models/*.model.ts`
+- 各领域 Service 通过 `@InjectModel` 注入强类型模型
+
+示例（以 UserService 为例）：
 
 ```ts
-import { Inject, Injectable } from '@nestjs/common';
-import { POSTGRES_MODELS } from '@infra/postgres/postgres.providers';
-
-type ModelsDict = Record<string, any>;
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import { User } from '@infra/postgres/models/user.model';
 
 @Injectable()
-export class CourseService {
-  private readonly courseModel: any;
-  private readonly classModel: any;
+export class UserService {
+  constructor(@InjectModel(User) private readonly userModel: typeof User) {}
 
-  constructor(@Inject(POSTGRES_MODELS) models: ModelsDict) {
-    this.courseModel = models.Course;
-    this.classModel = models.Class;
+  async findByUsername(username: string) {
+    return this.userModel.findOne({ where: { username } });
   }
 }
 ```
 
 ### 4.2 命名与类型对齐
 
-- 数据库字段使用 `snake_case`：如 `real_name`、`student_id`、`enrollment_year`
-- TypeScript 类型与 DTO 使用 `camelCase`：如 `realName`、`studentId`、`enrollmentYear`
-- Service 层负责双向映射，确保：
-  - 读取时将 ORM 实例转换为 DTO
-  - 写入时将 DTO转换为 ORM 所需字段
-
-示例：
+- 数据库字段使用 `snake_case`：如 `real_name`、`student_id`、`enrollment_year`。
+- `sequelize-typescript` 模型通过 `field` 属性完成字段映射，例如：
 
 ```ts
-// 从数据库读出 User 实例后，映射为 DTO
-function mapUserToDto(user: any) {
-  return {
-    id: user.id,
-    username: user.username,
-    realName: user.real_name,
-    studentId: user.student_id,
-    enrollmentYear: user.enrollment_year,
-    major: user.major,
-  };
+@Table({ tableName: 'user', underscored: true, timestamps: true })
+export class User extends Model {
+  @Column({ field: 'real_name' })
+  realName!: string;
+
+  @Column({ field: 'student_id' })
+  studentId!: string;
+
+  @Column({ field: 'enrollment_year' })
+  enrollmentYear!: number;
 }
 ```
 
+- DTO 与前端字段统一使用 `camelCase`，字段形状与模型保持一致。
+- Service 层直接在模型实例上读写 `realName`、`studentId`、`enrollmentYear` 等属性，只在需要裁剪字段或组合视图时构造响应 DTO。
+
 ### 4.3 索引与性能
 
-索引定义位于 db-schema 的迁移中，主要遵循：
+索引定义位于 `packages/db-workflows/postgres/migrations` 的迁移中，主要遵循：
 
 - 常用查询条件字段建立单列索引：
   - 用户：`username`、`email`、`student_id`、`status`
@@ -219,7 +220,7 @@ backend-integrated 中应遵循：
 
 ## 5. 注意事项
 
-1. 所有表的新增/修改必须通过 `packages/db-schema` 的迁移完成，不允许直接在生产库修改结构。
+1. 所有表的新增/修改必须通过 `packages/db-workflows/postgres` 的迁移完成，不允许直接在生产库修改结构。
 2. 当修改字段或添加新表时：
    - 同步更新：
      - 迁移文件

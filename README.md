@@ -67,15 +67,14 @@ pnpm -F [sub-application-name] dev
 对于 backend-integrated 等需要连接数据库的后端项目，推荐在本地通过 Docker 启动数据库与 Redis 后再启动服务：
 
 ```bash
-# 启动数据库基础设施（以 macOS 为例）
-bash infra/database/scripts/init_mac.sh
+# 启动数据库基础设施
+bash infra/database/scripts/init_[os].[ext]
 
 # 初始化数据库结构与种子数据（PostgreSQL）
 pnpm -F @csisp/db-workflows run migrate:pg
 pnpm -F @csisp/db-workflows run seed:pg
 
 # 初始化 Mongo 内容集合与示例数据
-# 需在 .env 设置 MONGODB_URI/MONGODB_DB 并确保 mongo 已启动
 pnpm -F @csisp/db-workflows run seed:mongo
 
 # 启动 backend-integrated

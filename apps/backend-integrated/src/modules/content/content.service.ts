@@ -1,10 +1,12 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import { Injectable } from '@nestjs/common';
+import { InjectModel as InjectMongoModel } from '@nestjs/mongoose';
+import { InjectModel } from '@nestjs/sequelize';
 import type { Model } from 'mongoose';
-import { POSTGRES_MODELS } from '@infra/postgres/postgres.providers';
 import { get, set, del } from '@infra/redis';
 import type { ContentDocument } from '@infra/mongo/content.schema';
 import { getBackendLogger } from '@infra/logger';
+import { Class } from '@infra/postgres/models/class.model';
+import { Course } from '@infra/postgres/models/course.model';
 
 type ListQuery = {
   type?: 'announcement' | 'homework';
@@ -26,8 +28,9 @@ type CreateBody = {
 @Injectable()
 export class ContentService {
   constructor(
-    @InjectModel('Content') private readonly contentModel: Model<ContentDocument>,
-    @Inject(POSTGRES_MODELS) private readonly models: Record<string, any>
+    @InjectMongoModel('Content') private readonly contentModel: Model<ContentDocument>,
+    @InjectModel(Class) private readonly classModel: any,
+    @InjectModel(Course) private readonly courseModel: any
   ) {}
 
   async list(query: ListQuery) {
@@ -110,11 +113,11 @@ export class ContentService {
 
   async create(body: CreateBody) {
     if (body.scope?.classId) {
-      const classInst = await this.models.Class.findByPk(body.scope.classId);
+      const classInst = await this.classModel.findByPk(body.scope.classId);
       if (!classInst) return { code: 404, message: '班级不存在' };
     }
     if (body.scope?.courseId) {
-      const courseInst = await this.models.Course.findByPk(body.scope.courseId);
+      const courseInst = await this.courseModel.findByPk(body.scope.courseId);
       if (!courseInst) return { code: 404, message: '课程不存在' };
     }
     const created = await this.contentModel.create({

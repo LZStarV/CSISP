@@ -1,5 +1,6 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Op, type WhereOptions } from 'sequelize';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import { Op } from 'sequelize';
 import type {
   ApiResponse,
   CreateAttendanceTaskInput,
@@ -8,9 +9,13 @@ import type {
 } from '@csisp/types';
 import { AttendanceStatus, Status as StatusEnum } from '@csisp/types';
 import { get, set, del } from '@infra/redis';
-import { POSTGRES_MODELS } from '@infra/postgres/postgres.providers';
+import { AttendanceTask } from '@infra/postgres/models/attendance-task.model';
+import { AttendanceRecord } from '@infra/postgres/models/attendance-record.model';
+import { Class } from '@infra/postgres/models/class.model';
+import { User } from '@infra/postgres/models/user.model';
+import { Course } from '@infra/postgres/models/course.model';
 
-type ModelsDict = Record<string, any>;
+type WhereOptions = Record<string, unknown>;
 
 /**
  * 考勤领域服务
@@ -21,20 +26,13 @@ type ModelsDict = Record<string, any>;
 export class AttendanceService {
   private readonly logger = new Logger(AttendanceService.name);
 
-  // 预留模型引用，后续补全业务逻辑时使用
-  private readonly taskModel: any;
-  private readonly recordModel: any;
-  private readonly classModel: any;
-  private readonly userModel: any;
-  private readonly courseModel: any;
-
-  constructor(@Inject(POSTGRES_MODELS) models: ModelsDict) {
-    this.taskModel = models.AttendanceTask;
-    this.recordModel = models.AttendanceRecord;
-    this.classModel = models.Class;
-    this.userModel = models.User;
-    this.courseModel = models.Course;
-  }
+  constructor(
+    @InjectModel(AttendanceTask) private readonly taskModel: any,
+    @InjectModel(AttendanceRecord) private readonly recordModel: any,
+    @InjectModel(Class) private readonly classModel: any,
+    @InjectModel(User) private readonly userModel: any,
+    @InjectModel(Course) private readonly courseModel: any
+  ) {}
 
   async createAttendanceTask(input: CreateAttendanceTaskInput): Promise<ApiResponse<any>> {
     try {

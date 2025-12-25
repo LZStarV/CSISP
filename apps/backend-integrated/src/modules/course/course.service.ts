@@ -1,5 +1,6 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Op, type WhereOptions } from 'sequelize';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import { Op } from 'sequelize';
 import type {
   ApiResponse,
   CreateClassInput,
@@ -12,9 +13,16 @@ import type {
 } from '@csisp/types';
 import { Status as StatusEnum } from '@csisp/types';
 import { get, set, del } from '@infra/redis';
-import { POSTGRES_MODELS } from '@infra/postgres/postgres.providers';
+import { Course } from '@infra/postgres/models/course.model';
+import { CourseTeacher } from '@infra/postgres/models/course-teacher.model';
+import { Teacher } from '@infra/postgres/models/teacher.model';
+import { Class } from '@infra/postgres/models/class.model';
+import { TimeSlot } from '@infra/postgres/models/time-slot.model';
+import { SubCourse } from '@infra/postgres/models/sub-course.model';
+import { User } from '@infra/postgres/models/user.model';
 
 type ModelsDict = Record<string, any>;
+type WhereOptions = Record<string, unknown>;
 
 /**
  * 课程领域服务
@@ -25,23 +33,15 @@ type ModelsDict = Record<string, any>;
 export class CourseService {
   private readonly logger = new Logger(CourseService.name);
 
-  private readonly courseModel: any;
-  private readonly courseTeacherModel: any;
-  private readonly teacherModel: any;
-  private readonly classModel: any;
-  private readonly timeSlotModel: any;
-  private readonly subCourseModel: any;
-  private readonly userModel: any;
-
-  constructor(@Inject(POSTGRES_MODELS) models: ModelsDict) {
-    this.courseModel = models.Course;
-    this.courseTeacherModel = models.CourseTeacher;
-    this.teacherModel = models.Teacher;
-    this.classModel = models.Class;
-    this.timeSlotModel = models.TimeSlot;
-    this.subCourseModel = models.SubCourse;
-    this.userModel = models.User;
-  }
+  constructor(
+    @InjectModel(Course) private readonly courseModel: any,
+    @InjectModel(CourseTeacher) private readonly courseTeacherModel: any,
+    @InjectModel(Teacher) private readonly teacherModel: any,
+    @InjectModel(Class) private readonly classModel: any,
+    @InjectModel(TimeSlot) private readonly timeSlotModel: any,
+    @InjectModel(SubCourse) private readonly subCourseModel: any,
+    @InjectModel(User) private readonly userModel: any
+  ) {}
 
   async createCourse(courseData: CreateCourseInput): Promise<ApiResponse<any>> {
     try {

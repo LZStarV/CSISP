@@ -1,5 +1,6 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Op, type WhereOptions } from 'sequelize';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import { Op } from 'sequelize';
 import type {
   ApiResponse,
   CreateHomeworkInput,
@@ -11,9 +12,14 @@ import type {
 import { Status as StatusEnum } from '@csisp/types';
 import { get, set, del } from '@infra/redis';
 import { ContentService } from '../content/content.service';
-import { POSTGRES_MODELS } from '@infra/postgres/postgres.providers';
+import { Class } from '@infra/postgres/models/class.model';
+import { Homework } from '@infra/postgres/models/homework.model';
+import { HomeworkSubmission } from '@infra/postgres/models/homework-submission.model';
+import { HomeworkFile } from '@infra/postgres/models/homework-file.model';
+import { User } from '@infra/postgres/models/user.model';
 
 type ModelsDict = Record<string, any>;
+type WhereOptions = Record<string, unknown>;
 
 /**
  * 作业领域服务
@@ -25,22 +31,14 @@ type ModelsDict = Record<string, any>;
 export class HomeworkService {
   private readonly logger = new Logger(HomeworkService.name);
 
-  private readonly homeworkModel: any;
-  private readonly submissionModel: any;
-  private readonly classModel: any;
-  private readonly fileModel: any;
-  private readonly userModel: any;
-
   constructor(
-    @Inject(POSTGRES_MODELS) models: ModelsDict,
+    @InjectModel(Homework) private readonly homeworkModel: any,
+    @InjectModel(HomeworkSubmission) private readonly submissionModel: any,
+    @InjectModel(Class) private readonly classModel: any,
+    @InjectModel(HomeworkFile) private readonly fileModel: any,
+    @InjectModel(User) private readonly userModel: any,
     private readonly contentService: ContentService
-  ) {
-    this.homeworkModel = models.Homework;
-    this.submissionModel = models.HomeworkSubmission;
-    this.fileModel = models.HomeworkFile;
-    this.classModel = models.Class;
-    this.userModel = models.User;
-  }
+  ) {}
 
   async createHomework(input: CreateHomeworkInput): Promise<ApiResponse<any>> {
     try {

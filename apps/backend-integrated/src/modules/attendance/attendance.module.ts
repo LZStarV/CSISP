@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RolesGuard } from '@common/guards/roles.guard';
+import { SequelizePostgresModule } from '@infra/postgres/sequelize.module';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
 
@@ -10,6 +11,7 @@ import { AttendanceService } from './attendance.service';
  * 负责考勤任务、打卡与统计相关接口聚合。
  */
 @Module({
+  imports: [SequelizePostgresModule],
   controllers: [AttendanceController],
   providers: [
     {

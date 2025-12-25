@@ -91,7 +91,7 @@ MongooseModule.forFeature([{ name: 'Content', schema: ContentSchema }]);
 ### 4.1 模型注入与 Service 使用
 
 - 在 `content.module.ts` 中注入 `Model<Content>`；在 `ContentService` 中以模型完成 CRUD 与分页
-- 与 Postgres 联动：在创建/删除前，使用 `POSTGRES_MODELS` 对 `authorId/courseId/classId` 做存在性与权限校验
+- 与 Postgres 联动：在创建/删除前，通过 `@InjectModel(User/Course/Class)` 对 `authorId/courseId/classId` 做存在性与权限校验
 
 示例（伪代码）：
 

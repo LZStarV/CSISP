@@ -10,7 +10,7 @@
 
 backend-integrated 是新一代后端实现：
 
-- 使用 NestJS + TypeScript + Sequelize + PostgreSQL + Redis + MongoDB（内容域，Mongoose）
+- 使用 NestJS + TypeScript + Sequelize（@nestjs/sequelize + sequelize-typescript）+ PostgreSQL + Redis + MongoDB（内容域，Mongoose）
 - 通过统一的 RESTful API 对接 BFF（Koa）与前端应用
 
 ### 1.2 设计目标
@@ -81,7 +81,7 @@ NestJS]:::be
     BEAtt[Attendance 模块]
     BEHw[Homework 模块]
     BENotify[Notification 模块]
-    BEDash[Dashboard 模块]
+    BEContent[Content 模块]
   end
 
   subgraph 数据层
@@ -98,10 +98,10 @@ NestJS]:::be
   FEPortal --> BFF
   BFF --> BE
 
-  BE --> BEUser & BECourse & BEAtt & BEHw & BENotify & BEDash
-  BEUser & BECourse & BEAtt & BEHw & BENotify & BEDash --> PG
-  BEAtt & BEHw & BEDash --> RDS
-  BEContent[Content 模块] --> MG
+  BE --> BEUser & BECourse & BEAtt & BEHw & BENotify & BEContent
+  BEUser & BECourse & BEAtt & BEHw & BENotify & BEContent --> PG
+  BEAtt & BEHw --> RDS
+  BEContent --> MG
 
   classDef user fill:#eef,stroke:#88a
   classDef fe fill:#f5faff,stroke:#66c
@@ -132,18 +132,15 @@ sequenceDiagram
   participant Main as main.ts
   participant Nest as NestFactory
   participant AppMod as AppModule
-  participant PG as PostgresModule
-  participant Models as loadModelsAndAssociations
+  participant PGMod as SequelizePostgresModule
 
   Dev->>Main: pnpm --filter @csisp/backend-integrated dev
   Main->>Main: 加载根 .env + backend-integrated/.env
   Main->>Main: 若 REDIS_ENABLED=true 则 connectRedis()
   Main->>Nest: NestFactory.create(AppModule)
   Nest->>AppMod: 解析模块依赖
-  AppMod->>PG: 初始化 Sequelize 实例
-  PG->>Models: 动态加载模型并执行关联
-  Models-->>PG: 返回 models
-  PG-->>Nest: POSTGRES_MODELS provider 就绪
+  AppMod->>PGMod: 通过 @nestjs/sequelize 初始化 Postgres 连接
+  PGMod-->>Nest: 注册 sequelize-typescript 模型并提供 @InjectModel 注入
   Nest-->>Main: 应用实例构建完成
   Main->>Main: 注册拦截器/过滤器/CORS
   Main->>Main: app.listen(BACKEND_INTEGRATED_PORT)
@@ -163,10 +160,9 @@ apps/backend-integrated/
 │   ├── config/
 │   │   └── cors.config.ts     # CORS 配置
 │   ├── infra/
-│   │   ├── postgres/          # Sequelize + Postgres 装配
-│   │   │   ├── postgres.module.ts
-│   │   │   ├── postgres.providers.ts  # POSTGRES_SEQUELIZE / POSTGRES_MODELS
-│   │   │   └── load-models.ts         # 动态加载 models + associate
+│   │   ├── postgres/          # Sequelize + Postgres 装配（@nestjs/sequelize + sequelize-typescript）
+│   │   │   ├── sequelize.module.ts    # SequelizePostgresModule：集中管理连接与模型注册
+│   │   │   └── models/                # 各业务域对应的 sequelize-typescript 模型类
 │   │   ├── 📁 mongo/                 # Mongoose Schema（内容域：content）
 │   │   └── 📁 redis/
 │   │       ├── index.ts               # 从 @csisp/redis re-export API
@@ -190,30 +186,28 @@ apps/backend-integrated/
 │       ├── user/
 │       ├── course/
 │       ├── attendance/
-│       ├── � homework/
+│       ├── 📁 homework/
 │       ├── 📁 content/               # 内容域（公告/作业文档，Mongo + DTO）
-│       ├── dashboard/
-│       └── health/
+│       └── 📁 health/
 └── package.json
 ```
 
 ### 3.2 Postgres 与 Sequelize 装配
 
-backend-integrated 不直接使用 `sequelize-cli` 的 runtime 模型，而是：
+backend-integrated 不直接使用 `sequelize-cli` 的 runtime 模型，而是基于 Nest 官方集成与 `sequelize-typescript` 进行装配：
 
-- 在 `PostgresModule` 中创建单例 `Sequelize` 实例（从 `.env` 读取 DB 配置）
-- 动态加载 `packages/db-schema` 对应的模型定义（ESM factories）
-- 调用每个模型的 `associate(models)` 完成关联关系装配
-- 通过 `POSTGRES_MODELS` provider 将 `models: Record<string, any>` 注入到各 Service
+- 在 `SequelizePostgresModule` 中使用 `SequelizeModule.forRootAsync` 创建单例 `Sequelize` 连接（从 `.env` 读取 DB 配置，禁止 `synchronize`）。
+- 在同一模块中通过 `SequelizeModule.forFeature([...ModelClasses])` 注册各业务模型类（`apps/backend-integrated/src/infra/postgres/models/*.model.ts`）。
+- 在根模块 `AppModule` 中引入 `SequelizePostgresModule`，在各业务模块中通过 `@InjectModel(ModelClass)` 注入模型。
 
 数据链路示意：
 
 ```mermaid
 flowchart LR
   Svc[领域 Service
-User/Course/Attendance/...] --> Models[POSTGRES_MODELS
-Record<string, Model>]
-  Models --> SQ[Sequelize 实例]
+User/Course/Attendance/...] --> ModelCls[@InjectModel(User/Course/...)]
+  ModelCls --> SQ[Sequelize 实例
+@nestjs/sequelize]
   SQ --> PG[(PostgreSQL 15)]
 ```
 
@@ -317,7 +311,7 @@ backend-integrated 下的业务模块均位于 `src/modules/*`，每个模块包
 
 **实现要点**：
 
-- Service 注入 `POSTGRES_MODELS`，访问 `User/Role/UserRole` 等模型
+- Service 通过 `@InjectModel(User/Role/UserRole)` 注入模型，避免手动管理模型字典
 - 登录成功后可将部分用户信息写入 Redis（可选）以加速频繁读取
 - 所有与用户相关字段需与 `@csisp/types` 与数据库 schema 对齐
 
