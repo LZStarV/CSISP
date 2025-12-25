@@ -5,9 +5,9 @@ import { fileURLToPath } from 'url';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { RateLimitInterceptor } from './common/interceptors/rate-limit.interceptor';
+import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
+import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
+import { RateLimitInterceptor } from '@common/interceptors/rate-limit.interceptor';
 import { corsOptions } from './config/cors.config';
 import { connect as connectRedis } from '@infra/redis';
 
