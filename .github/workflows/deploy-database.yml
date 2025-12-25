@@ -1,0 +1,242 @@
+# 数据库容器自动部署工作流
+# 用于通过SSH在远程Linux服务器上部署PostgreSQL和Redis容器
+name: 数据库容器部署
+
+on:
+  # 当代码推送到main、staging或development分支时触发
+  push:
+    branches:
+      - main
+      - staging
+      - development
+  # 允许手动触发部署
+  workflow_dispatch:
+    inputs:
+      # 部署环境选择
+      environment:
+        description: 部署目标环境
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+        default: development
+      # 部署版本标签
+      version_tag:
+        description: 容器版本标签
+        required: false
+        type: string
+        default: latest
+
+# 环境变量定义
+env:
+  # Docker Compose配置文件路径
+  DOCKER_COMPOSE_FILE: infra/database/docker-compose.db.yml
+  # 项目根目录
+  PROJECT_ROOT: csisp
+
+jobs:
+  # 数据库部署作业
+  deploy-database:
+    # 使用最新的Ubuntu runner
+    runs-on: ubuntu-latest
+    # 根据触发条件或手动输入确定部署环境
+    environment: ${{ inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name == 'staging' && 'staging' || 'development') }}
+    # 设置作业权限
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+      checks: write
+
+    steps:
+      # 步骤1: 检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 步骤2: 设置部署环境
+      - name: 设置部署环境
+        run: |
+          # 根据分支或输入确定环境
+          if [ -n "${{ inputs.environment }}" ]; then
+            DEPLOY_ENV=${{ inputs.environment }}
+          elif [ "${{ github.ref_name }}" = "main" ]; then
+            DEPLOY_ENV=production
+          elif [ "${{ github.ref_name }}" = "staging" ]; then
+            DEPLOY_ENV=staging
+          else
+            DEPLOY_ENV=development
+          fi
+          echo "部署环境: $DEPLOY_ENV"
+          echo "DEPLOY_ENV=$DEPLOY_ENV" >> $GITHUB_ENV
+          
+          # 设置环境特定的环境变量文件
+          ENV_FILE=.env.$DEPLOY_ENV.example
+          if [ ! -f "$ENV_FILE" ]; then
+            ENV_FILE=.env.example
+          fi
+          echo "使用环境变量文件: $ENV_FILE"
+          echo "ENV_FILE=$ENV_FILE" >> $GITHUB_ENV
+
+      # 步骤3: 安装SSH客户端
+      - name: 安装SSH客户端
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-client sshpass
+
+      # 步骤4: 配置SSH连接
+      - name: 配置SSH连接
+        run: |
+          # 创建.ssh目录
+          mkdir -p ~/.ssh
+          
+          # 配置SSH已知主机，避免首次连接确认
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          
+          # 设置SSH密钥权限
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      # 步骤5: 通过SSH部署数据库容器
+      - name: SSH部署数据库容器
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          # SSH连接配置
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          # 执行的部署脚本
+          script: |
+            # 设置错误处理：遇到错误立即退出
+            set -e
+            
+            # 输出部署信息
+            echo "====================================="
+            echo "开始部署数据库容器到 ${DEPLOY_ENV} 环境"
+            echo "====================================="
+            
+            # 创建项目目录（如果不存在）
+            mkdir -p $HOME/$PROJECT_ROOT
+            cd $HOME/$PROJECT_ROOT
+            
+            # 创建或更新docker-compose.yml文件
+            cat > docker-compose.yml << 'EOF'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-csisp}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - ${DB_PORT:-5433}:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - ${REDIS_PORT:-6379}:6379
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+EOF
+            
+            # 创建或更新.env文件
+            cat > .env << 'EOF'
+# 数据库配置
+DB_HOST=localhost
+DB_PORT=5433
+DB_NAME=csisp
+DB_USER=admin
+DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+DATABASE_URL=postgres://admin:${{ secrets.DB_PASSWORD }}@localhost:5433/csisp
+
+# Docker PostgreSQL配置
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
+POSTGRES_DB=csisp
+
+# Redis配置
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_ENABLED=true
+REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD || '' }}
+REDIS_NAMESPACE=csisp
+EOF
+            
+            echo "=== 停止并移除旧容器 ==="
+            # 停止并移除旧容器（如果存在）
+            docker-compose down --remove-orphans || true
+            
+            echo "=== 拉取最新镜像 ==="
+            # 拉取最新的PostgreSQL和Redis镜像
+            docker-compose pull
+            
+            echo "=== 启动新容器 ==="
+            # 启动新容器，强制重建以确保使用最新配置
+            docker-compose up -d --force-recreate
+            
+            echo "=== 等待容器启动完成 ==="
+            # 等待PostgreSQL容器健康检查通过
+            docker-compose wait postgres
+            
+            # 等待Redis容器健康检查通过
+            docker-compose wait redis
+            
+            echo "=== 验证容器状态 ==="
+            # 显示容器状态
+            docker-compose ps
+            
+            # 验证PostgreSQL连接
+            echo "=== 验证PostgreSQL连接 ==="
+            docker-compose exec -T postgres pg_isready -U postgres
+            
+            # 验证Redis连接
+            echo "=== 验证Redis连接 ==="
+            docker-compose exec -T redis redis-cli ping
+            
+            echo "====================================="
+            echo "数据库容器部署完成！"
+            echo "====================================="
+
+      # 步骤6: 部署后验证
+      - name: 部署后验证
+        run: |
+          echo "=== 部署验证完成 ==="
+          echo "部署环境: ${{ env.DEPLOY_ENV }}"
+          echo "部署时间: $(date)"
+          echo "部署成功！"
+
+      # 步骤7: 处理部署失败
+      - name: 处理部署失败
+        if: failure()
+        run: |
+          echo "=== 部署失败！ ==="
+          echo "错误信息: ${{ steps.deploy.outputs.error }}"
+          echo "请检查GitHub Actions日志获取详细错误信息"
+          echo "常见问题排查:
+            1. SSH密钥是否正确配置
+            2. 远程服务器是否可以访问
+            3. Docker是否在远程服务器上正确安装
+            4. 环境变量是否正确设置"
+          exit 1
