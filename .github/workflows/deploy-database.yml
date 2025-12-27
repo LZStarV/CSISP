@@ -110,113 +110,87 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           # 执行的部署脚本
-          script: |
-            # 设置错误处理：遇到错误立即退出
-            set -e
-
-            # 输出部署信息
-            echo "====================================="
-            echo "开始部署数据库容器到 ${DEPLOY_ENV} 环境"
-            echo "====================================="
-
-            # 创建项目目录（如果不存在）
-            mkdir -p $HOME/$PROJECT_ROOT
-            cd $HOME/$PROJECT_ROOT
-
-            # 创建或更新docker-compose.yml文件
+          script: >
+            set -e;
+            echo "=====================================";
+            echo "开始部署数据库容器到 ${DEPLOY_ENV} 环境";
+            echo "=====================================";
+            mkdir -p $HOME/$PROJECT_ROOT;
+            cd $HOME/$PROJECT_ROOT;
             cat > docker-compose.yml << 'EOF'
-services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-csisp}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-    ports:
-      - ${DB_PORT:-5433}:5432
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
+            services:
+              postgres:
+                image: postgres:15
+                environment:
+                  POSTGRES_DB: ${POSTGRES_DB:-csisp}
+                  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+                  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+                ports:
+                  - ${DB_PORT:-5433}:5432
+                volumes:
+                  - postgres_data:/var/lib/postgresql/data
+                healthcheck:
+                  test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
+                restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - ${REDIS_PORT:-6379}:6379
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
+              redis:
+                image: redis:7-alpine
+                ports:
+                  - ${REDIS_PORT:-6379}:6379
+                volumes:
+                  - redis_data:/data
+                healthcheck:
+                  test: ["CMD", "redis-cli", "ping"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
+                restart: unless-stopped
 
-volumes:
-  postgres_data:
-  redis_data:
-EOF
-
-            # 创建或更新.env文件
+            volumes:
+              postgres_data:
+              redis_data:
+            EOF
             cat > .env << 'EOF'
-# 数据库配置
-DB_HOST=localhost
-DB_PORT=5433
-DB_NAME=csisp
-DB_USER=admin
-DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-DATABASE_URL=postgres://admin:${{ secrets.DB_PASSWORD }}@localhost:5433/csisp
+            # 数据库配置
+            DB_HOST=localhost
+            DB_PORT=5433
+            DB_NAME=csisp
+            DB_USER=admin
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DATABASE_URL=postgres://admin:${{ secrets.DB_PASSWORD }}@localhost:5433/csisp
 
-# Docker PostgreSQL配置
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
-POSTGRES_DB=csisp
+            # Docker PostgreSQL配置
+            POSTGRES_USER=postgres
+            POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
+            POSTGRES_DB=csisp
 
-# Redis配置
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_ENABLED=true
-REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD || '' }}
-REDIS_NAMESPACE=csisp
-EOF
-
-            echo "=== 停止并移除旧容器 ==="
-            # 停止并移除旧容器（如果存在）
-            docker-compose down --remove-orphans || true
-
-            echo "=== 拉取最新镜像 ==="
-            # 拉取最新的PostgreSQL和Redis镜像
-            docker-compose pull
-
-            echo "=== 启动新容器 ==="
-            # 启动新容器，强制重建以确保使用最新配置
-            docker-compose up -d --force-recreate
-
-            echo "=== 等待容器启动完成 ==="
-            # 等待PostgreSQL容器健康检查通过
-            docker-compose wait postgres
-
-            # 等待Redis容器健康检查通过
-            docker-compose wait redis
-
-            echo "=== 验证容器状态 ==="
-            # 显示容器状态
-            docker-compose ps
-
-            # 验证PostgreSQL连接
-            echo "=== 验证PostgreSQL连接 ==="
-            docker-compose exec -T postgres pg_isready -U postgres
-
-            # 验证Redis连接
-            echo "=== 验证Redis连接 ==="
-            docker-compose exec -T redis redis-cli ping
-
-            echo "====================================="
-            echo "数据库容器部署完成！"
+            # Redis配置
+            REDIS_HOST=localhost
+            REDIS_PORT=6379
+            REDIS_ENABLED=true
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD || '' }}
+            REDIS_NAMESPACE=csisp
+            EOF
+            echo "=== 停止并移除旧容器 ===";
+            docker-compose down --remove-orphans || true;
+            echo "=== 拉取最新镜像 ===";
+            docker-compose pull;
+            echo "=== 启动新容器 ===";
+            docker-compose up -d --force-recreate;
+            echo "=== 等待容器启动完成 ===";
+            docker-compose wait postgres;
+            docker-compose wait redis;
+            echo "=== 验证容器状态 ===";
+            docker-compose ps;
+            echo "=== 验证PostgreSQL连接 ===";
+            docker-compose exec -T postgres pg_isready -U postgres;
+            echo "=== 验证Redis连接 ===";
+            docker-compose exec -T redis redis-cli ping;
+            echo "=====================================";
+            echo "数据库容器部署完成！";
             echo "====================================="
 
       # 步骤6: 部署后验证
