@@ -1,0 +1,20 @@
+import { migrateStatus, closeSequelize } from '../migration-runner';
+import { loadRootEnv } from '../config/load-env';
+import { getInfraDbLogger } from '../logger';
+
+async function main() {
+  loadRootEnv();
+  const logger = getInfraDbLogger();
+  try {
+    const status = await migrateStatus();
+    logger.info({ executed: status.executed }, 'Executed migrations');
+    logger.info({ pending: status.pending }, 'Pending migrations');
+  } catch (e) {
+    logger.error({ err: e }, 'Failed to get migration status');
+    process.exitCode = 1;
+  } finally {
+    await closeSequelize();
+  }
+}
+
+void main();

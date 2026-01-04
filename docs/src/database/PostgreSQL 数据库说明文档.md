@@ -9,7 +9,7 @@
 - **数据库类型**：PostgreSQL 15
 - **使用场景**：所有结构化业务数据（用户、课程、班级、子课程、时间段、考勤、作业、作业附件、通知等）
 - **连接方式**：通过 Sequelize 由 backend-integrated 与 BFF 间接访问，不允许业务代码直接写 SQL
-- **schema 来源**：`packages/db-workflows/postgres/` 中的迁移与种子（sequelize-cli 配置在该目录下）
+- **schema 来源**：`infra/database/src/migrations/` 中的 TypeScript 迁移（由 @csisp/infra-database 执行）
 
 整体数据流：
 
@@ -36,7 +36,7 @@ frontend-admin / frontend-portal] --> BFF[bff]
 - `DB_USER`：应用连接用户名，例如 `admin` 或 `postgres`
 - `DB_PASSWORD`：应用连接用户密码
 
-在容器初始化阶段（由 `infra/database` / `packages/db-workflows` 使用）还可能涉及：
+在容器初始化阶段（由 `infra/database` 中的脚本使用）还可能涉及：
 
 - `POSTGRES_DB`
 - `POSTGRES_USER`
@@ -44,16 +44,16 @@ frontend-admin / frontend-portal] --> BFF[bff]
 
 ### 2.2 迁移与种子
 
-所有表结构与初始数据不在 backend-integrated 内部重复定义，而是统一由 `packages/db-workflows/postgres` 维护：
+所有表结构与基础种子数据不在 backend-integrated 内部重复定义，而是统一由 `infra/database/src/migrations` 维护，并通过 `@csisp/infra-database` 执行：
 
-- **迁移**：`packages/db-workflows/postgres/migrations/*.cjs`
-- **种子**：`packages/db-workflows/postgres/seeders/*.cjs`
+- **迁移**：`infra/database/src/migrations/*-create-*.ts`
+- **基础种子**：`infra/database/src/migrations/*-seed-base-*.ts`
 
-- 推荐使用方式（在仓库根目录）：
+推荐使用方式（在仓库根目录）：
 
-```
-pnpm -F @csisp/db-workflows run migrate:pg
-pnpm -F @csisp/db-workflows run seed:pg
+```bash
+# 启动数据库基础设施并执行 PostgreSQL 迁移 + 基础种子
+bash infra/database/scripts/init_[os].[ext]
 ```
 
 ### 2.1 内容数据归属说明
@@ -73,7 +73,7 @@ backend-integrated 在运行时只负责：
 
 ### 3.1 ER 概览
 
-> 仅列出主要实体与关系，详细字段以 `packages/db-workflows/postgres/migrations` 中的迁移文件为准。
+> 仅列出主要实体与关系，详细字段以 `infra/database/src/migrations` 中的迁移文件为准。
 
 ```mermaid
 erDiagram
@@ -202,7 +202,7 @@ export class User extends Model {
 
 ### 4.3 索引与性能
 
-索引定义位于 `packages/db-workflows/postgres/migrations` 的迁移中，主要遵循：
+索引定义位于 `infra/database/src/migrations` 的迁移中，主要遵循：
 
 - 常用查询条件字段建立单列索引：
   - 用户：`username`、`email`、`student_id`、`status`
@@ -220,7 +220,7 @@ backend-integrated 中应遵循：
 
 ## 5. 注意事项
 
-1. 所有表的新增/修改必须通过 `packages/db-workflows/postgres` 的迁移完成，不允许直接在生产库修改结构。
+1. 所有表的新增/修改必须通过 `infra/database/src/migrations` 的迁移完成，不允许直接在生产库修改结构。
 2. 当修改字段或添加新表时：
    - 同步更新：
      - 迁移文件

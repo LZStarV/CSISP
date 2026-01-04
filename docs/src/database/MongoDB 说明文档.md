@@ -40,6 +40,13 @@ flowchart LR
 ### 2.2 本地基础设施
 
 - 通过 `infra/database/docker-compose.db.yml` 启动 `mongo` 服务（端口 27017，持久化卷 `mongo_data`，健康检查 `mongosh ping`）
+- 推荐通过 `infra/database/scripts/init_[os].[ext]` 一键启动 Postgres/Redis/Mongo，并使用 `@csisp/infra-database` 完成 PostgreSQL 迁移与基础种子
+- 内容域示例数据与索引可通过以下命令初始化：
+
+```bash
+pnpm -F @csisp/infra-database db:seed:mongo
+```
+
 - Development 环境建议与 Postgres/Redis 一同启动：`postgres + redis + mongo`
 
 ### 2.3 连接初始化（backend-integrated）

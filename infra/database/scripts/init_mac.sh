@@ -71,4 +71,36 @@ docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postg
 docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres psql -U "$POSTGRES_USER" -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" >/dev/null 2>&1 || true
 docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres psql -U "$POSTGRES_USER" -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" >/dev/null 2>&1 || true
 
+log_info "检查数据库是否已初始化"
+HAS_USER_TABLE=$(docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres \
+  psql -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user';" 2>/dev/null || true)
+
+if [ "$HAS_USER_TABLE" = "1" ]; then
+  log_info "检测到数据库已存在 user 表，跳过迁移步骤"
+else
+  log_info "执行数据库迁移（@csisp/infra-database db:migrate）"
+  if command -v pnpm >/dev/null 2>&1; then
+    (cd "$ROOT_DIR" && pnpm -F @csisp/infra-database db:migrate) || {
+      log_error "数据库迁移执行失败，请检查日志"
+      exit 1
+    }
+  else
+    log_error "未检测到 pnpm，请先安装 pnpm 后再重试"
+    exit 1
+  fi
+fi
+
+if [ "${MONGODB_ENABLED:-true}" != "false" ]; then
+  log_info "执行 MongoDB 内容种子（@csisp/infra-database db:seed:mongo）"
+  if command -v pnpm >/dev/null 2>&1; then
+    (cd "$ROOT_DIR" && pnpm -F @csisp/infra-database db:seed:mongo) || {
+      log_error "MongoDB 种子执行失败，请检查日志"
+      exit 1
+    }
+  else
+    log_error "未检测到 pnpm，请先安装 pnpm 后再重试"
+    exit 1
+  fi
+fi
+
 log_success "初始化完成"

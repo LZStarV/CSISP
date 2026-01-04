@@ -50,5 +50,46 @@ docker compose -f "%ROOT_DIR%\infra\database\docker-compose.db.yml" exec -T post
 docker compose -f "%ROOT_DIR%\infra\database\docker-compose.db.yml" exec -T postgres psql -U %POSTGRES_USER% -c "CREATE DATABASE %DB_NAME% OWNER %DB_USER%;" >nul 2>&1
 docker compose -f "%ROOT_DIR%\infra\database\docker-compose.db.yml" exec -T postgres psql -U %POSTGRES_USER% -d %DB_NAME% -c "GRANT ALL ON SCHEMA public TO %DB_USER%;" >nul 2>&1
 
+echo [INFO] 检查数据库是否已初始化
+for /f "usebackq tokens=*" %%r in (`docker compose -f "%ROOT_DIR%\infra\database\docker-compose.db.yml" exec -T postgres psql -U %DB_USER% -d %DB_NAME% -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user';" 2^>nul`) do set "HAS_USER_TABLE=%%r"
+
+if "%HAS_USER_TABLE%"=="1" (
+  echo [INFO] 检测到数据库已存在 user 表，跳过迁移步骤
+) else (
+  echo [INFO] 执行数据库迁移（@csisp/infra-database db:migrate）
+  where pnpm >nul 2>&1
+  if errorlevel 1 (
+    echo [ERROR] 未检测到 pnpm，请先安装 pnpm 后再重试
+    exit /b 1
+  )
+
+  pushd "%ROOT_DIR%"
+  pnpm -F @csisp/infra-database db:migrate
+  if errorlevel 1 (
+    echo [ERROR] 数据库迁移执行失败，请检查日志
+    popd
+    exit /b 1
+  )
+  popd
+)
+
+if /I not "%MONGODB_ENABLED%"=="false" (
+  echo [INFO] 执行 MongoDB 内容种子（@csisp/infra-database db:seed:mongo）
+  where pnpm >nul 2>&1
+  if errorlevel 1 (
+    echo [ERROR] 未检测到 pnpm，请先安装 pnpm 后再重试
+    exit /b 1
+  )
+
+  pushd "%ROOT_DIR%"
+  pnpm -F @csisp/infra-database db:seed:mongo
+  if errorlevel 1 (
+    echo [ERROR] MongoDB 种子执行失败，请检查日志
+    popd
+    exit /b 1
+  )
+  popd
+)
+
 echo [SUCCESS] Initialization completed!
 endlocal

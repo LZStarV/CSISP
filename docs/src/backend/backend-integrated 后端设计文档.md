@@ -46,11 +46,10 @@ CSISP/
 │   └── frontend-portal/      # 门户（学生/教师）前端
 ├── packages/
 │   ├── types/                # @csisp/types 共享业务类型
-│   ├── db-workflows/         # 数据库工作流统一入口（Postgres 迁移/种子、Mongo 种子）
 │   ├── redis/                # @csisp/redis Redis 客户端封装
 │   ├── upstream/             # @csisp/upstream HTTP 上游封装
 │   └── utils/                # @csisp/utils 其他通用工具
-└── infra/database/           # Postgres + Redis docker-compose 与脚本
+└── infra/database/           # Postgres + Redis docker-compose、迁移与脚本（@csisp/infra-database）
 ```
 
 整体调用关系：

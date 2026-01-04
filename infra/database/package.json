@@ -1,0 +1,30 @@
+{
+  "name": "@csisp/infra-database",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "db:migrate": "tsx src/cli/db-migrate.ts",
+    "db:rollback": "tsx src/cli/db-rollback.ts",
+    "db:status": "tsx src/cli/db-status.ts",
+    "db:reset:dev": "tsx src/cli/db-reset-dev.ts",
+    "db:codegen:ts": "tsx src/cli/db-codegen-ts.ts",
+    "db:seed:mongo": "tsx src/cli/db-seed-mongo.ts",
+    "reset": "tsx src/cli/db-reset-dev.ts"
+  },
+  "dependencies": {
+    "@csisp/logger": "workspace:*",
+    "mongodb": "^6.8.0",
+    "dotenv": "^16.4.5",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.35.0",
+    "umzug": "^3.8.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/node": "^20.19.25",
+    "tsx": "^4.0.0",
+    "typescript": "^5.9.3"
+  }
+}
