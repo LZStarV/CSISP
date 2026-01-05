@@ -1,4 +1,6 @@
 import { BelongsToMany, Column, DataType, Model, Table } from 'sequelize-typescript';
+import type RoleRow from '../generated/public/Role';
+import type { RoleInitializer } from '../generated/public/Role';
 import { User } from './user.model';
 import { UserRole } from './user-role.model';
 
@@ -9,7 +11,7 @@ import { UserRole } from './user-role.model';
   createdAt: 'created_at',
   updatedAt: 'updated_at',
 })
-export class Role extends Model {
+export class Role extends Model<RoleRow, RoleInitializer> {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   id!: number;
 

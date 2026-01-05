@@ -8,7 +8,6 @@
     "db:rollback": "tsx src/cli/db-rollback.ts",
     "db:status": "tsx src/cli/db-status.ts",
     "db:reset:dev": "tsx src/cli/db-reset-dev.ts",
-    "db:codegen:ts": "tsx src/cli/db-codegen-ts.ts",
     "db:seed:mongo": "tsx src/cli/db-seed-mongo.ts",
     "reset": "tsx src/cli/db-reset-dev.ts"
   },

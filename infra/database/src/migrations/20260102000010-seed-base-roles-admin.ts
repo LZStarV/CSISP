@@ -1,19 +1,14 @@
 import { QueryTypes } from 'sequelize';
 import bcrypt from 'bcrypt';
 import { getSequelize } from '../sequelize-client';
+import { ADMIN_USER_SEED, BASE_ROLES } from '../seed/base';
 
 export async function up(): Promise<void> {
   const sequelize = getSequelize();
   const queryInterface = sequelize.getQueryInterface();
   const now = new Date();
 
-  const roles = [
-    { name: 'admin', code: 'admin', description: '管理员' },
-    { name: 'student', code: 'student', description: '学生' },
-    { name: 'teacher', code: 'teacher', description: '教师' },
-  ];
-
-  for (const role of roles) {
+  for (const role of BASE_ROLES) {
     const existingRoles = (await sequelize.query('SELECT id FROM role WHERE code = :code LIMIT 1', {
       replacements: { code: role.code },
       type: QueryTypes.SELECT,
@@ -39,7 +34,7 @@ export async function up(): Promise<void> {
   })) as Array<{ id: number }>;
   const adminRoleId = adminRoleRows.length ? adminRoleRows[0].id : null;
 
-  const adminUsername = 'admin';
+  const adminUsername = ADMIN_USER_SEED.username;
   const adminUserRows = (await sequelize.query(
     'SELECT id FROM "user" WHERE username = :username LIMIT 1',
     {
@@ -54,15 +49,15 @@ export async function up(): Promise<void> {
     const hashed = await bcrypt.hash('admin123', 10);
     await queryInterface.bulkInsert('user', [
       {
-        username: adminUsername,
+        username: ADMIN_USER_SEED.username,
         password: hashed,
-        real_name: '系统管理员',
-        student_id: '20232131082',
-        enrollment_year: 2023,
-        major: '计算机科学与技术',
+        real_name: ADMIN_USER_SEED.realName,
+        student_id: ADMIN_USER_SEED.studentId,
+        enrollment_year: ADMIN_USER_SEED.enrollmentYear,
+        major: ADMIN_USER_SEED.major,
         status: 1,
-        email: 'admin@csisp.edu',
-        phone: '13800000000',
+        email: ADMIN_USER_SEED.email,
+        phone: ADMIN_USER_SEED.phone,
         created_at: now,
         updated_at: now,
       },
@@ -103,7 +98,7 @@ export async function up(): Promise<void> {
 export async function down(): Promise<void> {
   const sequelize = getSequelize();
   const queryInterface = sequelize.getQueryInterface();
-  const adminUsername = 'admin';
+  const adminUsername = ADMIN_USER_SEED.username;
 
   const adminUserRows = (await sequelize.query(
     'SELECT id FROM "user" WHERE username = :username LIMIT 1',
@@ -119,5 +114,5 @@ export async function down(): Promise<void> {
     await queryInterface.bulkDelete('user', { username: adminUsername }, {});
   }
 
-  await queryInterface.bulkDelete('role', { code: ['admin', 'student', 'teacher'] }, {});
+  await queryInterface.bulkDelete('role', { code: BASE_ROLES.map(role => role.code) }, {});
 }

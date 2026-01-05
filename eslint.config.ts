@@ -35,6 +35,7 @@ export default [
       'packages/*/build/**',
       'docs/.vitepress/cache/**',
       'docs/.vitepress/dist/**',
+      'apps/backend-integrated/src/infra/postgres/generated/**',
     ],
   },
   {

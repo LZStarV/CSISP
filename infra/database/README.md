@@ -1,12 +1,47 @@
 # @csisp/infra-database
 
-CSISP 项目中的数据库基础设施子包，负责 PostgreSQL 的初始化、迁移和基础种子数据管理，并为后续的多语言类型 Codegen 预留入口。
+CSISP 项目中的数据库基础设施子包，负责数据库的初始化、迁移和基础种子数据管理，并为后续的多语言类型 Codegen 预留入口。
 
 > 核心定位：**DB-first 的数据库生命周期管理**，不承载业务逻辑，不提供 HTTP 服务。
 
 ---
 
-## 1. 目录结构概览
+## 1. 快速使用
+
+在仓库根目录下，通过 pnpm 和脚本完成数据库相关操作：
+
+```bash
+# macOS / Linux / Windows：启动 Postgres/Redis/Mongo，执行 Postgres 迁移 + 基础种子 + Mongo 索引
+bash infra/database/scripts/init_[os].[ext]
+
+# 仅执行 PostgreSQL 迁移（结构 + 基础种子）
+pnpm -F @csisp/infra-database db:migrate
+
+# 查看迁移状态
+pnpm -F @csisp/infra-database db:status
+
+# 回滚最近一条迁移
+pnpm -F @csisp/infra-database db:rollback
+
+# 开发环境重置 PostgreSQL（down to 0 + up）
+pnpm -F @csisp/infra-database db:reset:dev
+
+# 为 MongoDB content 集合创建索引（不插入示例文档）
+pnpm -F @csisp/infra-database db:seed:mongo
+```
+
+说明：
+
+- `init_[os].ext` 会自动：
+  - 启动 `docker-compose.db.yml` 中的 Postgres/Redis/Mongo
+  - 创建应用用户与数据库
+  - 在数据库尚未初始化时执行 `db:migrate`，完成 PostgreSQL 迁移与基础种子
+  - 在 `MONGODB_ENABLED` 未显式设为 `false` 时执行 `db:seed:mongo`，为 Mongo content 集合创建索引
+- 所有 CLI 内部都会通过 `loadRootEnv()` 自动加载根 `.env`，并使用 `@csisp/logger` 输出结构化日志。
+
+---
+
+## 2. 目录结构概览
 
 ```text
 infra/database/
@@ -22,17 +57,14 @@ infra/database/
 │   │   ├── db-rollback.ts      # 回滚最近一条迁移
 │   │   ├── db-status.ts        # 查看已执行/待执行迁移
 │   │   ├── db-reset-dev.ts     # 开发环境重置数据库（down to 0 + up）
-│   │   └── db-codegen-ts.ts    # TS 侧 Codegen 的占位 CLI
-│   ├── codegen/                # 多语言 Codegen 占位目录
-│   │   └── ts/
-│   │      └── db-codegen-ts.ts # 从 schema/db-schema.json 生成 TS 类型的占位实现
+│   │   └── db-seed-mongo.ts    # 初始化 Mongo content 集合索引
 │   ├── config/
 │   │   ├── db-env.ts           # 从 .env 解析 DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD
 │   │   └── load-env.ts         # 从仓库根目录加载 .env（供 CLI 使用）
 │   ├── migrations/             # 所有 PostgreSQL 迁移（DB-first，事实源）
 │   │   └── 2026xxxxxxxxxxxx-*.ts # 示例：时间戳前缀 + 描述（create-/seed-base- 等）
-│   ├── schema/
-│   │   └── db-schema.json      # DB schema 的中立 JSON 快照占位（后续由 introspect 脚本生成）
+│   ├── seed/                   # 基础种子数据定义（角色、管理员账号等内容配置）
+│   │   └── base.ts             # 示例：基础角色列表、管理员账号模板等
 │   ├── logger.ts               # 基于 @csisp/logger 的子包级日志封装
 │   ├── migration-runner.ts     # Umzug + SequelizeStorage 封装（up/down/status）
 │   └── sequelize-client.ts     # 专用于迁移/种子的 Sequelize 实例
@@ -42,7 +74,7 @@ infra/database/
 
 ---
 
-## 2. 职责划分
+## 3. 职责划分
 
 - **infra/database（本子包）**
   - 负责数据库生命周期管理：
@@ -59,7 +91,7 @@ infra/database/
 
 ---
 
-## 3. 迁移与基础种子
+## 4. 迁移与基础种子
 
 ### 3.1 迁移设计
 
@@ -84,52 +116,7 @@ infra/database/
 
 ---
 
-## 4. CLI 命令与使用方式
-
-在项目根目录通过 pnpm 调用（假设已在根 package.json 中配置 script 代理）：
-
-```bash
-# 启动本地数据库服务（Postgres/Redis/Mongo）
-bash infra/database/scripts/init_mac.sh   # macOS
-
-# 执行所有 pending 迁移（结构 + 基础种子）
-pnpm -F @csisp/infra-database db:migrate
-
-# 查看迁移状态
-pnpm -F @csisp/infra-database db:status
-
-# 回滚最近一条迁移
-pnpm -F @csisp/infra-database db:rollback
-
-# （开发环境）重置数据库：清空并重新执行全部迁移
-pnpm -F @csisp/infra-database db:reset:dev
-
-# （预留）运行 TS Codegen，占位实现
-pnpm -F @csisp/infra-database db:codegen:ts
-```
-
-所有 CLI 内部都会：
-
-- 调用 `loadRootEnv()` 自动加载仓库根 `.env`，使用其中的 `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD` 连接数据库；
-- 使用 `@csisp/logger` 输出结构化日志，而不是直接使用 `console.*`。
-
----
-
-## 5. 与 Codegen 的关系
-
-- `src/schema/db-schema.json`：
-  - 预留为 DB schema 的中立 JSON 快照文件
-  - 未来会通过 introspection 脚本从真实 PostgreSQL 中读取表结构并写入该文件
-- `src/codegen/ts/db-codegen-ts.ts`：
-  - TS 侧 Codegen 的占位实现
-  - 当前仅验证读取 `db-schema.json` 的链路，后续会扩展为：
-    - 为 `@csisp/types` 生成 DbXxx 类型
-    - 为 backend-integrated 生成 XxxAttributes/XxxCreationAttributes
-- Java/Go 等其他语言的 Codegen 将在 `src/codegen/java`、`src/codegen/go` 等目录中按需补充。
-
----
-
-## 6. 注意事项
+## 5. 注意事项
 
 - 任何对 PostgreSQL 结构的新增/修改：
   - 必须通过 `infra/database/src/migrations` 提交新的迁移文件
