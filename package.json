@@ -7,12 +7,15 @@
   "scripts": {
     "format": "eslint . --fix && pnpm prettier --write . && stylelint '**/*.{css,scss,vue}' --fix",
     "lint:staged": "lint-staged",
-    "prepare": "husky"
+    "prepare": "husky",
+    "idl:gen:ts": "node scripts/idl/gen-thrift-to-ts.cjs",
+    "idl:build": "pnpm -F @csisp/idl-artifacts build"
   },
   "packageManager": "pnpm@10.22.0",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "infra/*"
   ],
   "lint-staged": {
     "**/*.{js,mjs,cjs,ts,jsx,tsx,vue}": [
@@ -56,5 +59,8 @@
     "overrides": {
       "dotenv": "^16.4.5"
     }
+  },
+  "dependencies": {
+    "@creditkarma/thrift-server-core": "^1.0.4"
   }
 }

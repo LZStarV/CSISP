@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@csisp/idl",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "gen:ts": "bash ./scripts/gen-ts.sh && tsc -p tsconfig.json",
+    "gen:js": "bash ./scripts/gen-js.sh",
+    "gen:all": "bash ./scripts/gen-ts.sh && tsc -p tsconfig.json && bash ./scripts/gen-js.sh"
+  },
+  "files": [
+    "dist",
+    "src/v1"
+  ],
+  "exports": {
+    "./ts/*": {
+      "import": "./dist/ts/*",
+      "types": "./dist/ts/*"
+    },
+    "./js/*": "./dist/js/*",
+    "./thrift/*": "./src/v1/*"
+  },
+  "typesVersions": {
+    "*": {
+      "ts/*": [
+        "dist/ts/*"
+      ]
+    }
+  },
+  "dependencies": {
+    "@creditkarma/thrift-server-core": "^1.0.4"
+  },
+  "devDependencies": {
+    "@creditkarma/thrift-typescript": "^3.7.6"
+  }
+}

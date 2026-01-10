@@ -1,5 +1,4 @@
 import { Injectable, PipeTransform } from '@nestjs/common';
-import type { PaginationParams } from '@csisp/types';
 import { ValidationError } from '../errors/validation.error';
 
 /**
@@ -10,7 +9,7 @@ import { ValidationError } from '../errors/validation.error';
  */
 @Injectable()
 export class PaginationPipe implements PipeTransform {
-  transform(value: any): PaginationParams {
+  transform(value: any): any {
     const query = value ?? {};
     const errors: Record<string, string> = {};
 

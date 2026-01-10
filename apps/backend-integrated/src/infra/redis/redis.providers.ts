@@ -1,5 +1,5 @@
 import type { Provider } from '@nestjs/common';
-import { getClient } from '@csisp/redis';
+import { getClient } from './index';
 
 export const REDIS_CLIENT = 'REDIS_CLIENT';
 
