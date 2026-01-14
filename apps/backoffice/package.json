@@ -1,0 +1,31 @@
+{
+  "name": "@csisp/backoffice",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "kanel",
+    "dev": "next dev",
+    "prestart": "kanel",
+    "start": "next start",
+    "build": "next build",
+    "format": "eslint . --fix && pnpm prettier --write ."
+  },
+  "dependencies": {
+    "next": "^15.0.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zod": "^3.23.8",
+    "pino": "^9.5.0",
+    "pg": "^8.12.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.28",
+    "@types/pg": "^8.6.6",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "typescript": "^5.9.3",
+    "kanel": "^3.16.0"
+  }
+}
