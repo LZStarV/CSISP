@@ -1,0 +1,30 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "idl:gen": {
+      "outputs": ["dist/**", "src/v1/**"],
+      "inputs": ["src/v1/**/*.thrift", "scripts/**", "tsconfig.json", "package.json"]
+    },
+    "db:migrate": {
+      "cache": false
+    },
+    "db:init": {
+      "cache": false,
+      "persistent": false
+    },
+    "db:seed:mongo": {
+      "cache": false
+    },
+    "db:status": {
+      "cache": false
+    }
+  }
+}

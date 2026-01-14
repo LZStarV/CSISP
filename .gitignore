@@ -152,6 +152,8 @@ dump.rdb
 
 # Monorepo specific
 lerna-debug.log
+.turbo
+**/.turbo/
 
 # Package manager specific
 package-lock.json

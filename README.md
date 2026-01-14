@@ -9,6 +9,7 @@
   - 推荐通过 `nvm` 管理 Node.js 版本，保持与项目脚本一致。
 - **pnpm**：作为 monorepo 的包管理器，推荐版本 **10.22.0**（与根 `package.json` 保持一致）。
 - **Docker Desktop**：用于运行 PostgreSQL 15 与 Redis 7 等基础设施服务，无需在宿主机单独安装数据库。
+- **Thrift**：用于生成 IDL 的多语言运行时代码（如 JS, TS 等）。
 
 ## 快速开始
 
@@ -17,7 +18,14 @@
 在首次克隆仓库后，建议根据当前操作系统执行对应的环境检查与配置脚本：
 
 ```bash
-bash init_[os].[ext]
+# Windows
+.\init_windows.bat
+
+# macOS
+bash init_mac.sh
+
+# Linux
+bash init_linux.sh
 ```
 
 ### 克隆仓库前的推荐 Git 配置（尤其是 Windows）
@@ -64,68 +72,20 @@ pnpm -F [sub-application-name] dev
 
 ### 开发依赖数据库的后端子项目
 
-对于 backend-integrated 等需要连接数据库的后端项目，推荐在本地通过 Docker 启动数据库与 Redis 后再启动服务：
+推荐通过统一脚本完成基础设施与类型生成后，再启动后端：
 
 ```bash
-# 启动数据库基础设施并执行 PostgreSQL 迁移 + 基础种子
-bash infra/database/scripts/init_[os].[ext]
+pnpm run dev:infra
 
-# 初始化 Mongo 内容集合与示例数据
-pnpm -F @csisp/db-workflows run seed:mongo
-
-# 启动 backend-integrated
-pnpm -F @csisp/backend-integrated dev
-```
-
-如果数据库初始化脚本执行失败，可以在项目根目录按以下步骤手动完成数据库启动与初始化：
-
-1. 启动 PostgreSQL、Redis 与 Mongo 容器
-2. 检查 PostgreSQL 是否就绪
-3. 在容器内创建应用用户、数据库并授予权限
-
-```bash
-# 1. 启动 PostgreSQL、Redis 与 Mongo 容器（使用 .env 中的环境变量）
-docker compose -f infra/database/docker-compose.db.yml --env-file .env up -d postgres redis mongo
-
-# 2. 检查 PostgreSQL 是否就绪（可多次执行，直到状态为 accepting connections）
-docker compose -f infra/database/docker-compose.db.yml exec -T postgres pg_isready
-
-# 2.1 检查 MongoDB 是否就绪（可选，需已启动 mongo 服务）
-docker compose -f infra/database/docker-compose.db.yml exec -T mongo mongosh --eval "db.runCommand({ ping: 1 })"
-
-# 3. 在容器中创建应用数据库用户（若已存在会提示错误，可忽略）
-docker compose -f infra/database/docker-compose.db.yml exec -T postgres \
-  psql -U "$POSTGRES_USER" -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD' CREATEDB;"
-
-# 4. 创建应用数据库并指定所有者为应用用户（若已存在会提示错误，可忽略）
-docker compose -f infra/database/docker-compose.db.yml exec -T postgres \
-  psql -U "$POSTGRES_USER" -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
-
-# 5. 为应用用户授予 public schema 上的全部权限
-docker compose -f infra/database/docker-compose.db.yml exec -T postgres \
-  psql -U "$POSTGRES_USER" -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;"
-
-# 6. 在宿主机执行 PostgreSQL 迁移 + 基础种子
-pnpm -F @csisp/infra-database db:migrate
-```
-
-### 开发依赖后端的 BFF 子项目
-
-项目中 BFF 子项目依赖于后端项目，因此在开发 BFF 项目时，需要先启动后端项目。
-
-```bash
-# 启动 BFF 项目
-pnpm -F @csisp/bff dev
+pnpm run dev:backend-integrated
 ```
 
 ### 开发前端项目
 
-项目中前端项目依赖于 BFF 项目，因此在开发前端项目时，需要先启动 BFF 项目。
-
 ```bash
-# 启动前端项目
-pnpm -F @csisp/frontend-admin dev
-pnpm -F @csisp/frontend-portal dev
+# 启动前端项目（可按需分别启动）
+pnpm run dev:admin
+pnpm run dev:portal
 ```
 
 ### 代码格式化

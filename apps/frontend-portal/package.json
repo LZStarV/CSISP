@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write . && pnpm exec stylelint 'src/**/*.{css,scss,vue}' --fix"
+    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write . && pnpm exec stylelint 'src/**/*.{css,scss,vue}' --fix",
+    "lint": "eslint ."
   },
   "dependencies": {
     "vue": "^3.5.24",

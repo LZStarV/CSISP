@@ -9,7 +9,14 @@
     "db:status": "tsx src/cli/db-status.ts",
     "db:reset:dev": "tsx src/cli/db-reset-dev.ts",
     "db:seed:mongo": "tsx src/cli/db-seed-mongo.ts",
-    "reset": "tsx src/cli/db-reset-dev.ts"
+    "reset": "tsx src/cli/db-reset-dev.ts",
+    "db:init:mac": "bash scripts/init_mac.sh",
+    "db:init:linux": "bash scripts/init_linux.sh",
+    "db:init:win": "scripts/init_windows.bat",
+    "db:init": "bash scripts/init_mac.sh",
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "format": "pnpm exec prettier --write ."
   },
   "dependencies": {
     "@csisp/logger": "workspace:*",

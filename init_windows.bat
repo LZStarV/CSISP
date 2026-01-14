@@ -64,7 +64,7 @@ if !errorlevel! equ 0 (
 )
 
 echo.
-echo [3/4] Checking Docker Desktop
+echo [3/5] Checking Docker Desktop
 set DOCKER_OK=0
 
 where docker >nul 2>&1
@@ -83,7 +83,23 @@ if !errorlevel! equ 0 (
 )
 
 echo.
-echo [4/4] Checking Git
+echo [4/5] Checking Apache Thrift Compiler
+set THRIFT_OK=0
+
+where thrift >nul 2>&1
+if !errorlevel! equ 0 (
+    for /f "tokens=*" %%i in ('thrift --version') do set "THRIFT_VERSION=%%i"
+    set THRIFT_OK=1
+    echo   [OK] !THRIFT_VERSION!
+) else (
+    echo   [ERROR] Thrift not installed
+    echo   [INFO] Please install Apache Thrift compiler:
+    echo         https://thrift.apache.org/
+    echo         or via package manager like Chocolatey: choco install thrift
+)
+
+echo.
+echo [5/5] Checking Git
 set GIT_OK=0
 
 where git >nul 2>&1
@@ -102,10 +118,10 @@ echo    Environment Check Summary
 echo ================================================
 echo.
 
-set /a TOTAL=!NODE_OK!+!PNPM_OK!+!DOCKER_OK!+!GIT_OK!
+set /a TOTAL=!NODE_OK!+!PNPM_OK!+!DOCKER_OK!+!THRIFT_OK!+!GIT_OK!
 
-if !TOTAL! equ 4 (
-    echo [SUCCESS] All 4 components ready
+if !TOTAL! equ 5 (
+    echo [SUCCESS] All 5 components ready
     echo          Development environment is fully configured
     echo.
     echo ================================================
@@ -130,7 +146,7 @@ if !TOTAL! equ 4 (
     echo    pnpm run -F @csisp/frontend-admin dev
     echo    pnpm run -F @csisp/frontend-portal dev
 ) else (
-    echo [WARNING] Only !TOTAL! of 4 components ready
+    echo [WARNING] Only !TOTAL! of 5 components ready
     echo           Some components need configuration
     echo.
     echo ================================================
@@ -140,6 +156,7 @@ if !TOTAL! equ 4 (
     if !NODE_OK! equ 0 echo    - Node.js v22.x
     if !PNPM_OK! equ 0 echo    - pnpm v!REQUIRED_PNPM_VERSION!
     if !DOCKER_OK! equ 0 echo    - Docker Desktop
+    if !THRIFT_OK! equ 0 echo    - Apache Thrift compiler
     if !GIT_OK! equ 0 echo    - Git
     echo.
     echo Please install the missing components and run this script again.

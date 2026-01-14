@@ -8,8 +8,11 @@
     "format": "eslint . --fix && pnpm prettier --write . && stylelint '**/*.{css,scss,vue}' --fix",
     "lint:staged": "lint-staged",
     "prepare": "husky",
-    "idl:gen:ts": "node scripts/idl/gen-thrift-to-ts.cjs",
-    "idl:build": "pnpm -F @csisp/idl-artifacts build"
+    "dev:infra": "turbo run db:init --filter=@csisp/infra-database && turbo run idl:gen --filter=@csisp/idl",
+    "dev:backend-integrated": "turbo run dev --filter=@csisp/backend-integrated",
+    "dev:admin": "turbo run dev --filter=@csisp/frontend-admin",
+    "dev:portal": "turbo run dev --filter=@csisp/frontend-portal",
+    "build": "turbo build"
   },
   "packageManager": "pnpm@10.22.0",
   "workspaces": [
@@ -52,6 +55,7 @@
     "stylelint-config-recommended-vue": "^1.6.1",
     "stylelint-config-standard": "^39.0.1",
     "stylelint-config-standard-scss": "^16.0.0",
+    "turbo": "^2.7.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4"
   },

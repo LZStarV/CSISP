@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write .",
+    "lint": "eslint .",
     "db:types": "node scripts/run-kanel.cjs"
   },
   "dependencies": {

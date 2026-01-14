@@ -9,7 +9,11 @@
   "scripts": {
     "gen:ts": "bash ./scripts/gen-ts.sh && tsc -p tsconfig.json",
     "gen:js": "bash ./scripts/gen-js.sh",
-    "gen:all": "bash ./scripts/gen-ts.sh && tsc -p tsconfig.json && bash ./scripts/gen-js.sh"
+    "gen:all": "bash ./scripts/gen-ts.sh && tsc -p tsconfig.json && bash ./scripts/gen-js.sh",
+    "idl:gen": "pnpm run gen:all",
+    "build": "pnpm run gen:all",
+    "lint": "eslint .",
+    "format": "pnpm exec prettier --write ."
   },
   "files": [
     "dist",

@@ -14,6 +14,9 @@ GREEN=$'\033[32m'
 YELLOW=$'\033[33m'
 RESET=$'\033[0m'
 
+export LC_ALL="en_US.UTF-8"
+export LANG="en_US.UTF-8"
+
 if [ -f ".nvmrc" ]; then
   REQUIRED_NODE_MAJOR=$(tr -d ' v' < .nvmrc)
 else
@@ -90,7 +93,8 @@ fi
 
 log_info "正在检查 pnpm 环境 (期望版本 $REQUIRED_PNPM_VERSION)"
 if command -v pnpm >/dev/null 2>&1; then
-  PNPM_VERSION=$(pnpm -v 2>/dev/null || echo "")
+  PNPM_VERSION_RAW=$(pnpm -v 2>/dev/null || echo "")
+  PNPM_VERSION=$(printf "%s" "$PNPM_VERSION_RAW" | tr -d '\r\n' | LC_ALL=C tr -cd '0-9.')
   if [[ "$PNPM_VERSION" == "$REQUIRED_PNPM_VERSION"* ]]; then
     PNPM_STATUS="已安装，版本符合要求: $PNPM_VERSION"
     PNPM_OK=1
@@ -138,9 +142,27 @@ if command -v docker >/dev/null 2>&1; then
     DOCKER_OK=1
     log_success "$DOCKER_STATUS"
   else
-    DOCKER_STATUS="检测到 Docker，但服务未就绪，请确保 Docker 已启动"
+    DOCKER_STATUS="检测到 Docker，但服务未就绪，尝试启动并重试检测"
     log_warn "$DOCKER_STATUS"
-    log_info "可以在项目根目录执行: bash infra/database/scripts/init_linux.sh，启动数据库相关容器并等待就绪"
+    # 常见发行版：尝试启动服务
+    if command -v systemctl >/dev/null 2>&1; then
+      sudo systemctl start docker >/dev/null 2>&1 || true
+    elif command -v service >/dev/null 2>&1; then
+      sudo service docker start >/dev/null 2>&1 || true
+    fi
+    for i in {1..15}; do
+      if docker info >/dev/null 2>&1; then
+        DOCKER_STATUS="Docker 服务已就绪"
+        DOCKER_OK=1
+        log_success "$DOCKER_STATUS"
+        break
+      fi
+      sleep 2
+    done
+    if [ "$DOCKER_OK" -ne 1 ]; then
+      log_warn "Docker 服务仍未就绪，请手动启动并确保当前用户有权限运行 docker"
+      log_info "可以在项目根目录执行: bash infra/database/scripts/init_linux.sh，启动数据库相关容器并等待就绪"
+    fi
   fi
 else
   if command -v apt-get >/dev/null 2>&1; then
@@ -169,6 +191,59 @@ else
   fi
 fi
 
+log_info "正在检查 Apache Thrift 编译器"
+THRIFT_STATUS="未检查"
+THRIFT_OK=0
+if command -v thrift >/dev/null 2>&1; then
+  THRIFT_VERSION=$(thrift --version 2>/dev/null || echo "thrift")
+  THRIFT_STATUS="已安装: $THRIFT_VERSION"
+  THRIFT_OK=1
+  log_success "$THRIFT_STATUS"
+else
+  # 按发行版尝试安装
+  if command -v apt-get >/dev/null 2>&1; then
+    log_info "未检测到 thrift，尝试通过 apt-get 安装 (thrift-compiler)"
+    if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y thrift-compiler >/dev/null 2>&1; then
+      if command -v thrift >/dev/null 2>&1; then
+        THRIFT_VERSION=$(thrift --version 2>/dev/null || echo "thrift")
+        THRIFT_STATUS="已安装: $THRIFT_VERSION"
+        THRIFT_OK=1
+        log_success "$THRIFT_STATUS"
+      else
+        THRIFT_STATUS="安装后仍未检测到 thrift，请检查安装日志"
+        log_error "$THRIFT_STATUS"
+      fi
+    else
+      THRIFT_STATUS="通过 apt-get 安装 thrift 失败，请参考发行版文档手动安装"
+      log_error "$THRIFT_STATUS"
+    fi
+  elif command -v dnf >/dev/null 2>&1; then
+    log_info "未检测到 thrift，尝试通过 dnf 安装"
+    if sudo dnf install -y thrift >/dev/null 2>&1; then
+      THRIFT_VERSION=$(thrift --version 2>/dev/null || echo "thrift")
+      THRIFT_STATUS="已安装: $THRIFT_VERSION"
+      THRIFT_OK=1
+      log_success "$THRIFT_STATUS"
+    else
+      THRIFT_STATUS="通过 dnf 安装 thrift 失败，请参考发行版文档手动安装"
+      log_error "$THRIFT_STATUS"
+    fi
+  elif command -v yum >/dev/null 2>&1; then
+    log_info "未检测到 thrift，尝试通过 yum 安装"
+    if sudo yum install -y thrift >/dev/null 2>&1; then
+      THRIFT_VERSION=$(thrift --version 2>/dev/null || echo "thrift")
+      THRIFT_STATUS="已安装: $THRIFT_VERSION"
+      THRIFT_OK=1
+      log_success "$THRIFT_STATUS"
+    else
+      THRIFT_STATUS="通过 yum 安装 thrift 失败，请参考发行版文档手动安装"
+      log_error "$THRIFT_STATUS"
+    fi
+  else
+    THRIFT_STATUS="未检测到常见包管理器，无法自动安装 thrift，请手动安装"
+    log_error "$THRIFT_STATUS"
+  fi
+fi
 log_info "正在检查 Git 环境"
 if command -v git >/dev/null 2>&1; then
   GIT_VERSION=$(git --version 2>/dev/null || echo "git")
@@ -180,11 +255,12 @@ else
   log_error "$GIT_STATUS"
 fi
 
-TOTAL=4
+TOTAL=5
 COMPLETED=0
 if [ "$NODE_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$PNPM_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$DOCKER_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
+if [ "$THRIFT_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$GIT_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 
 printf "\n======== 环境检查结果汇总 [%d / %d] ========\n" "$COMPLETED" "$TOTAL"
