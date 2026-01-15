@@ -1,5 +1,0 @@
-{
-  "openrpc": "1.2.6",
-  "info": { "title": "Backoffice DB", "version": "v1" },
-  "methods": [{ "name": "listModels" }, { "name": "queryTable" }, { "name": "getRecord" }]
-}

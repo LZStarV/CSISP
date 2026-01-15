@@ -1,9 +1,11 @@
 import jwt from 'jsonwebtoken';
+import { getJwtSecret, jwtExpiresIn } from '@/src/server/config/env';
+
 export function sign(payload: Record<string, any>) {
-  const secret = process.env.JWT_SECRET || 'default-secret';
-  return jwt.sign(payload, secret, { expiresIn: '2h' });
+  const secret = getJwtSecret();
+  return jwt.sign(payload, secret, { expiresIn: jwtExpiresIn });
 }
 export function verify(token: string) {
-  const secret = process.env.JWT_SECRET || 'default-secret';
+  const secret = getJwtSecret();
   return jwt.verify(token, secret) as any;
 }

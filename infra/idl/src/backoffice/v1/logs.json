@@ -1,5 +1,0 @@
-{
-  "openrpc": "1.2.6",
-  "info": { "title": "Backoffice Logs", "version": "v1" },
-  "methods": [{ "name": "search" }, { "name": "stream" }]
-}

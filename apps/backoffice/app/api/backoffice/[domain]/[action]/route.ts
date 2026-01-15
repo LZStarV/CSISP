@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { dispatch } from '@/src/rpc/dispatcher';
-import { isMethodValid, jsonrpcSuccess, jsonrpcError } from '@/src/utils/jsonrpc';
+import { dispatch } from '@/src/server/rpc/dispatcher';
+import { isMethodValid, jsonrpcSuccess, jsonrpcError } from '@/src/shared/config/jsonrpc';
 
 // JSON-RPC 统一入口（动态路由）
 // - 路径模式：/api/backoffice/:domain/:action
@@ -10,7 +10,7 @@ import { isMethodValid, jsonrpcSuccess, jsonrpcError } from '@/src/utils/jsonrpc
 //   2) 分发到对应 domain 的 handler
 //   3) 返回统一格式的 JSON-RPC 响应（成功/错误）
 export async function POST(req: Request, context: any) {
-  const { domain, action } = (context?.params ?? {}) as { domain: string; action: string };
+  const { domain, action } = await (context?.params ?? {});
 
   const body = await req.json();
   const method = String(body?.method ?? '');

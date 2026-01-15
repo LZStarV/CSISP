@@ -1,54 +1,74 @@
-# CSISP Thrift IDL v1
+# CSISP Thrift IDL（v1）
 
-## 目的
+## 目标
 
-- 作为内部微服务的统一契约与类型来源（Thrift IDL）。
-- 以 v1 为当前版本目录，后续如有破坏性更新将新增 v2 并保留 v1 并行。
+- 以 Thrift IDL 作为统一的接口契约与类型来源
+- 面向工作区子包消费，生成 Types（TS）与 Node 运行时（JS）产物
+- 版本化目录（当前 v1）；如有破坏性变更，新建 v2 并保留 v1 并行
 
 ## 目录结构
 
-- 源文件（v1）：包含 common.thrift、user.thrift 等领域 IDL 文件。
-- 生成物工作区包：@csisp/idl-artifacts（TypeScript 类型与入口），下设 ts/v1/common 与 ts/v1/user 等领域目录。
+- 源文件：`src/<module>/v1/*.thrift`
+  - backoffice：`auth.thrift`、`user.thrift`、`db.thrift`、`logs.thrift`、`i18n.thrift`、`common.thrift`
+  - backend：课程/作业等领域 IDL
+- 生成脚本：`scripts/config.sh`、`scripts/gen-ts.sh`、`scripts/gen-js.sh`
+- 产物目录（不写入 src）：
+  - TypeScript 源（中间产物）：`.generated/ts/<module>/v1/**`
+  - TypeScript 编译产物（最终）：`dist/ts/<module>/v1/**`
+  - Node 运行时产物（最终）：`dist/js/<module>/v1/**`
 
-## 使用与命令
+## 构建与生成
 
-- 安装依赖（首次或更新后）：
-  - pnpm install
-- 编译生成物包（TypeScript 构建与类型声明产出）：
-  - pnpm -F @csisp/idl-artifacts build
-- 在 sandbox 中进行编译验证（CommonJS）：
-  - pnpm -F @csisp/rpc-sandbox build
-- 示例引用（编译检查）：
+- 一次性生成（TS + JS）：
+  - `pnpm -F @csisp/idl idl:gen`
+- 仅 TS（含 tsc 编译到 dist/ts）：
+  - `pnpm -F @csisp/idl gen:ts`
+- 仅 JS（Thrift 编译到 dist/js）：
+  - `pnpm -F @csisp/idl gen:js`
+- 可选环境变量（脚本由 `config.sh` 读取）：
+  - `IDL_VERSION`（默认 v1）
+  - `IDL_SOURCE_DIR`（指定单模块源目录）
+  - `TS_OUT_DIR` / `JS_OUT_DIR`（覆盖输出目录）
 
-```ts
-import { common, user } from '@csisp/idl-artifacts';
+## 在应用中使用（apps/backoffice）
 
-const u: user.User = {
-  id: 'u1',
-  name: 'Alice',
-  email: 'alice@example.com',
-  status: common.Status.Active,
-  createdAt: Date.now(),
-};
-```
+- 安装与依赖（工作区内已声明依赖）：
+  - backoffice `package.json`：`"@csisp/idl": "workspace:*"`
+- 类型导入（推荐）：
+  - `import type { IUser, QueryTableResponse } from '@csisp/idl/backoffice'`
+- 运行时导入（如需 Thrift JS 客户端/服务桩）：
+  - `import { DB } from '@csisp/idl/js/backoffice/v1/DB'`
+- 示例（服务端处理器返回结构对齐）：
+  - 用户详情：
+    - `const user: IUser = { id: 1, username: 'alice', status: 1 }`
+  - 数据库只读分页：
+    - `const page: QueryTableResponse = { items, page, size, total }`
 
-## 扩展与演进
+## 约定与命名
 
-- 新增领域：在 v1 下增加对应 .thrift 文件（如 course.thrift、homework.thrift 等）。
-- 兼容性约定：
-  - 新增字段使用 optional，避免破坏已发布结构。
-  - 不重排已存在字段的 ID；如需删除/重命名，采用新增版本目录（例如 v2）。
-- 当前状态：
-  - 暂未接入自动生成器，@csisp/idl-artifacts 的 TS 类型源为 IDL 等价映射的手写版本，用于“编译级验证”。
-  - 待生成器接入后，将用自动化脚本从 v1 同步生成 TS 类型与客户端/服务端桩代码，并替换手写源。
+- Thrift 命名空间（backoffice 模块）：
+  - `namespace js auth|user|db|logs|i18n|common`
+- 字段 ID 稳定不可重排；新增字段尽量使用 `optional`
+- 别名与导出：
+  - 包 `exports` 提供聚合入口路径（如 `@csisp/idl/backoffice`）用于类型导入
+  - JS 运行时通过 `@csisp/idl/js/<module>/v1/*` 引入
 
-## 生成器与工具（后续接入）
+## 演进与版本化
 
-- Thrift 编译器安装（macOS）：
-  - brew install thrift
-- 计划的 TypeScript 生成脚本（示例占位，生成器接入后生效）：
-  - pnpm idl:gen:ts
-  - pnpm -F @csisp/idl-artifacts build
-- 传输与协议（服务实现阶段采用）：
-  - Transport：TFramedTransport（分帧传输，识别消息边界，跨语言更稳）。
-  - Protocol：TCompactProtocol（紧凑二进制编码，性能与体积优）。
+- 新增领域：在相应 `src/<module>/v1` 下增加 `.thrift`
+- 破坏性变更：复制到 `v2` 并平滑迁移上下游引用
+- 生成脚本将自动扫描固定模块 `backoffice`、`backend`
+
+## 常见问题
+
+- 生成结果写到了 src？
+  - 已修正为仅写入 `.generated`（中间）与 `dist`（最终），不会写入 `src`
+- 类型找不到？
+  - 确认已执行 `pnpm -F @csisp/idl idl:gen`
+  - 确认应用已依赖 `@csisp/idl`（workspace）
+  - 使用聚合入口 `@csisp/idl/backoffice` 进行类型导入
+
+## 传输与协议（后续服务实现参考）
+
+- Transport：TFramedTransport
+- Protocol：TCompactProtocol
