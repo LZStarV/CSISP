@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "kanel",
     "dev": "next dev",
-    "prestart": "kanel",
     "start": "next start",
     "build": "next build",
+    "db:types": "tsx scripts/run-kanel.ts",
     "format": "eslint . --fix && pnpm prettier --write ."
   },
   "dependencies": {
+    "@csisp/utils": "workspace:*",
     "@csisp/idl": "workspace:*",
     "next": "^15.0.3",
     "react": "^18.2.0",
@@ -25,6 +25,7 @@
     "dayjs": "^1.11.13"
   },
   "devDependencies": {
+    "tsx": "^4.21.0",
     "@types/node": "^20.11.28",
     "@types/pg": "^8.6.6",
     "@types/react": "^18.2.66",

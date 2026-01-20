@@ -11,6 +11,7 @@
     "db:types": "tsx scripts/run-kanel.ts"
   },
   "dependencies": {
+    "@csisp/utils": "workspace:*",
     "redis": "^4.6.7",
     "pino": "^9.3.0",
     "pino-pretty": "^11.2.2",

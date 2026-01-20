@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@csisp/logger": "workspace:*",
+    "@csisp/utils": "workspace:*",
     "mongodb": "^6.8.0",
     "dotenv": "^16.4.5",
     "pg": "^8.11.3",

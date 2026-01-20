@@ -1,7 +1,9 @@
 import type { QueryInterface } from 'sequelize';
 import { DataTypes } from 'sequelize';
 import { getSequelize } from '../sequelize-client';
+import { loadRootEnv } from '@csisp/utils';
 
+loadRootEnv();
 export async function up(): Promise<void> {
   const sequelize = getSequelize();
   const queryInterface: QueryInterface = sequelize.getQueryInterface();

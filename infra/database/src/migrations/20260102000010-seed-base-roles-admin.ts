@@ -2,7 +2,9 @@ import { QueryTypes } from 'sequelize';
 import bcrypt from 'bcrypt';
 import { getSequelize } from '../sequelize-client';
 import { ADMIN_USER_SEED, BASE_ROLES } from '../seed/base';
+import { loadRootEnv } from '@csisp/utils';
 
+loadRootEnv();
 export async function up(): Promise<void> {
   const sequelize = getSequelize();
   const queryInterface = sequelize.getQueryInterface();

@@ -1,14 +1,25 @@
 {
   "name": "@csisp/utils",
   "version": "1.0.0",
-  "type": "module",
-  "main": "./src/index.ts",
+  "type": "commonjs",
+  "main": "./dist/index.js",
   "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc"
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@csisp/types": "workspace:*"
+    "@csisp/types": "workspace:*",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {}
 }

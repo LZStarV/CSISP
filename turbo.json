@@ -25,6 +25,16 @@
     },
     "db:status": {
       "cache": false
+    },
+    "db:types": {
+      "cache": false,
+      "persistent": false,
+      "outputs": [
+        "src/infra/postgres/generated/**",
+        "src/db-types/generated/**",
+        "src/db/generated/**"
+      ],
+      "inputs": ["scripts/**", "package.json", "tsconfig.json"]
     }
   }
 }

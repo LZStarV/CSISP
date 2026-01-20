@@ -1,6 +1,5 @@
 import 'reflect-metadata';
-import dotenv from 'dotenv';
-import path from 'path';
+import { loadRootEnv } from '@csisp/utils';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
@@ -10,10 +9,7 @@ import { RateLimitInterceptor } from './common/interceptors/rate-limit.intercept
 import { corsOptions } from './config/cors.config';
 import { connect as connectRedis } from './infra/redis';
 
-// 优先根目录 .env
-const rootDir = path.resolve(__dirname, '../../..');
-dotenv.config({ path: path.resolve(rootDir, '.env'), override: false });
-dotenv.config({ path: path.resolve(rootDir, 'apps/backend-integrated/.env'), override: false });
+loadRootEnv();
 
 async function bootstrap() {
   if (process.env.REDIS_ENABLED === 'true') {

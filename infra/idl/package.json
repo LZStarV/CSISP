@@ -9,7 +9,8 @@
   "scripts": {
     "gen:ts": "bash ./scripts/gen-ts.sh && tsc -p tsconfig.json",
     "gen:js": "bash ./scripts/gen-js.sh",
-    "build": "pnpm gen:ts && pnpm gen:js"
+    "idl:gen": "pnpm gen:ts && pnpm gen:js",
+    "build": "pnpm idl:gen"
   },
   "files": [
     "dist",

@@ -1,27 +1,22 @@
 import pino, { type LoggerOptions } from 'pino';
 import fs from 'fs';
 import path from 'path';
+import { findRepoRoot } from '@csisp/utils';
 
 const runtimeEnv = process.env.NODE_ENV || 'development';
 
-function findRepoRoot(startDir: string): string {
-  let dir = startDir;
-  while (true) {
-    const workspace = path.join(dir, 'pnpm-workspace.yaml');
-    const git = path.join(dir, '.git');
-    if (fs.existsSync(workspace) || fs.existsSync(git)) return dir;
-    const parent = path.dirname(dir);
-    if (parent === dir) return startDir;
-    dir = parent;
-  }
-}
-
+/**
+ * 递归创建目录，存在则忽略错误。
+ */
 function ensureDir(d: string) {
   try {
     fs.mkdirSync(d, { recursive: true });
   } catch {}
 }
 
+/**
+ * 清理过期日志文件（形如 YYYY-MM-DD.log），根据保留天数删除历史文件。
+ */
 function cleanupOldLogs(dir: string, retentionDays: number) {
   try {
     const files = fs.readdirSync(dir);
@@ -43,7 +38,15 @@ function cleanupOldLogs(dir: string, retentionDays: number) {
   } catch {}
 }
 
-function buildLoggerOptions(service: string): LoggerOptions {
+/**
+ * 构建 pino 的基础配置。
+ * 说明：
+ * - 非开发环境：仅设置 level
+ * - 开发环境：当启用 pretty 且禁用文件输出时，使用 pino-pretty 进行美化输出
+ * 注意：
+ * - 该函数不依赖 service 名称，因此不需要传入 service 参数
+ */
+function buildLoggerOptions(): LoggerOptions {
   const level = process.env.LOG_LEVEL || 'info';
   if (runtimeEnv !== 'development') return { level };
 
@@ -62,6 +65,12 @@ function buildLoggerOptions(service: string): LoggerOptions {
   return { level };
 }
 
+/**
+ * 在开发环境下构建多路输出：
+ * - 控制台美化（pino-pretty）
+ * - 文件输出（按 env/service/日期 划分），并进行日志留存清理
+ * 生产环境下不启用多路输出，避免额外 IO
+ */
 function buildMultistream(service: string): any | undefined {
   if (runtimeEnv !== 'development') return undefined;
   const level = process.env.LOG_LEVEL || 'info';
@@ -104,8 +113,12 @@ function buildMultistream(service: string): any | undefined {
   return (pino as unknown as { multistream: (s: any[]) => any }).multistream(streams);
 }
 
+/**
+ * 创建带服务标识与环境信息的 logger。
+ * - 在开发环境下可能带多路输出；生产环境下为单路输出
+ */
 export function createLogger(service: string) {
-  const opts = buildLoggerOptions(service);
+  const opts = buildLoggerOptions();
   const multi = buildMultistream(service);
   const logger = multi ? pino(opts, multi) : pino(opts);
   return logger.child({ service, env: runtimeEnv });
@@ -113,10 +126,18 @@ export function createLogger(service: string) {
 
 const baseLogger = createLogger('backend-integrated');
 
+/**
+ * 获取后端基础 logger（service 固定为 backend-integrated）
+ */
 export function getBackendBaseLogger() {
   return baseLogger;
 }
 
+/**
+ * 获取带上下文与 traceId 的派生 logger
+ * - context：业务上下文（例如模块/功能名）
+ * - traceId：链路追踪 ID（来自请求头）
+ */
 export function getBackendLogger(context?: string, traceId?: string) {
   let logger = baseLogger;
   if (context) {

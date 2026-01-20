@@ -11,6 +11,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@csisp/utils": "workspace:*",
     "@csisp/logger": "workspace:*",
     "@csisp/redis": "workspace:*",
     "@csisp/upstream": "workspace:*",

@@ -2,7 +2,7 @@ import { Umzug } from 'umzug';
 import type { QueryInterface } from 'sequelize';
 import { getSequelize, closeSequelize } from '../sequelize-client';
 import { getInfraDbLogger } from '../logger';
-import { loadRootEnv } from '../config/load-env';
+import { loadRootEnv } from '@csisp/utils';
 
 function createUmzug(): Umzug<QueryInterface> {
   const sequelize = getSequelize();

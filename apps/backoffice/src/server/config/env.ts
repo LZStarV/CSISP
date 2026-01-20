@@ -1,3 +1,6 @@
+import { loadRootEnv } from '@csisp/utils';
+
+loadRootEnv();
 export function getJwtSecret(): string {
   return process.env.JWT_SECRET || 'default-secret';
 }

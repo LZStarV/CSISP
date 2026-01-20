@@ -1,17 +1,20 @@
 export type JSONRPCVersion = '2.0';
 
+// JSON-RPC 请求体
 export interface RPCRequest<Params = unknown> {
   jsonrpc: JSONRPCVersion;
   id: string | number | null;
   params?: Params;
 }
 
+// JSON-RPC 错误响应体
 export interface RPCError {
   code: number;
   message: string;
   data?: unknown;
 }
 
+// JSON-RPC 成功响应体
 export interface RPCResponse<Result = unknown> {
   jsonrpc: JSONRPCVersion;
   id: string | number | null;
@@ -19,12 +22,19 @@ export interface RPCResponse<Result = unknown> {
   error?: RPCError;
 }
 
+// JSON-RPC 错误码
 export const RPCErrorCode = {
+  // 解析错误
   ParseError: -32700,
+  // 请求错误
   InvalidRequest: -32600,
+  // 方法不存在
   MethodNotFound: -32601,
+  // 参数错误
   InvalidParams: -32602,
+  // 内部错误
   InternalError: -32603,
+  // 服务器错误
   ServerError: -32000,
 } as const;
 
