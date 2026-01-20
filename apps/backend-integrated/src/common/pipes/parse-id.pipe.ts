@@ -1,5 +1,6 @@
 import { Injectable, PipeTransform } from '@nestjs/common';
-import { ValidationError } from '../errors/validation.error';
+import { RpcError } from '../rpc/rpc-error';
+import { RPCErrorCode } from '../rpc/jsonrpc';
 
 /**
  * 路径参数 ID 解析管道
@@ -15,7 +16,9 @@ export class ParseIdPipe implements PipeTransform {
     const id = typeof value === 'string' ? Number(value) : value;
 
     if (!Number.isInteger(id) || id <= 0) {
-      throw new ValidationError({ [this.paramName]: `${this.paramName} 必须是大于0的数字` });
+      throw new RpcError(null, RPCErrorCode.InvalidParams, 'Invalid params', {
+        [this.paramName]: `${this.paramName} 必须是大于0的数字`,
+      });
     }
 
     return id;

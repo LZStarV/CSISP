@@ -5,14 +5,10 @@
  * 验证通过后将 { userId, username, roles } 注入到 req.user，
  * 失败时抛出 401，统一由 HttpExceptionFilter 格式化。
  */
-import {
-  CanActivate,
-  ExecutionContext,
-  HttpException,
-  HttpStatus,
-  Injectable,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import jwt from 'jsonwebtoken';
+import { RpcError } from '../rpc/rpc-error';
+import { RPCErrorCode } from '../rpc/jsonrpc';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -23,7 +19,7 @@ export class JwtAuthGuard implements CanActivate {
     const authHeader: string | undefined =
       req.headers['authorization'] ?? req.headers['Authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new HttpException({ code: 401, message: '未登录' }, HttpStatus.UNAUTHORIZED);
+      throw new RpcError(null, RPCErrorCode.ServerError, 'Unauthorized');
     }
 
     const token = authHeader.slice(7);
@@ -39,7 +35,7 @@ export class JwtAuthGuard implements CanActivate {
 
       return true;
     } catch {
-      throw new HttpException({ code: 401, message: '登录已过期或无效' }, HttpStatus.UNAUTHORIZED);
+      throw new RpcError(null, RPCErrorCode.ServerError, 'Unauthorized');
     }
   }
 }

@@ -1,36 +1,18 @@
-import { Controller, Get } from '@nestjs/common';
-import { InjectConnection } from '@nestjs/mongoose';
-import type { Connection } from 'mongoose';
+import { Body, Controller, Post, UseFilters } from '@nestjs/common';
+import { HealthService } from './health.service';
+import type { RPCRequest, RPCResponse } from '../../common/rpc/jsonrpc';
+import { ok } from '../../common/rpc/jsonrpc';
+import { RpcRequestPipe } from '../../common/rpc/rpc-request.pipe';
+import { RpcExceptionFilter } from '../../common/rpc/rpc-exception.filter';
 
-/**
- * 健康检查控制器
- *
- * 提供 /api/health 端点，用于 BFF 和监控系统探活，
- * 是 backend-integrated 最小可运行版本的一部分。
- */
 @Controller('health')
+@UseFilters(RpcExceptionFilter)
 export class HealthController {
-  constructor(@InjectConnection() private readonly mongoConn: Connection) {}
+  constructor(private readonly service: HealthService) {}
 
-  @Get()
-  getHealth() {
-    return {
-      status: 'ok',
-      service: 'backend-integrated',
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  @Get('db/mongo')
-  async getMongoHealth() {
-    try {
-      const start = Date.now();
-      await this.mongoConn.db?.command({ ping: 1 });
-      const latency = Date.now() - start;
-      const readyState = this.mongoConn.readyState;
-      return { code: 200, message: 'Mongo 连接正常', latency, readyState };
-    } catch (e) {
-      return { code: 503, message: 'Mongo 连接失败' };
-    }
+  @Post('ping')
+  ping(@Body(new RpcRequestPipe()) req: RPCRequest): RPCResponse<{ ok: boolean; ts: number }> {
+    const result = this.service.ping();
+    return ok(req.id, result);
   }
 }

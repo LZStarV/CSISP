@@ -16,6 +16,10 @@ RESET=$'\033[0m'
 
 export LC_ALL="en_US.UTF-8"
 export LANG="en_US.UTF-8"
+export HOMEBREW_NO_AUTO_UPDATE=1
+export HOMEBREW_NO_INSTALL_CLEANUP=1
+export HOMEBREW_NO_ENV_HINTS=1
+export NONINTERACTIVE=1
 
 if [ -f ".nvmrc" ]; then
   REQUIRED_NODE_MAJOR=$(tr -d ' v' < .nvmrc)
@@ -166,7 +170,7 @@ if command -v docker >/dev/null 2>&1; then
 else
   if command -v brew >/dev/null 2>&1; then
     log_info "未检测到 Docker，尝试通过 Homebrew 安装 Docker Desktop"
-    if brew install --cask docker >/dev/null 2>&1; then
+    if brew install --cask docker; then
       DOCKER_STATUS="已通过 Homebrew 安装 Docker Desktop，请手动启动 Docker 应用"
       log_success "$DOCKER_STATUS"
     else
@@ -188,7 +192,10 @@ if command -v thrift >/dev/null 2>&1; then
 else
   if command -v brew >/dev/null 2>&1; then
     log_info "未检测到 thrift，尝试通过 Homebrew 安装"
-    if brew install thrift >/dev/null 2>&1; then
+    if ! xcode-select -p >/dev/null 2>&1; then
+      log_warn "未检测到 Xcode Command Line Tools，Homebrew 可能触发安装并阻塞，请确认已安装后重试"
+    fi
+    if brew install thrift; then
       if command -v thrift >/dev/null 2>&1; then
         THRIFT_VERSION=$(thrift --version 2>/dev/null || echo "thrift")
         THRIFT_STATUS="已安装: $THRIFT_VERSION"
@@ -233,10 +240,9 @@ if [ "$COMPLETED" -eq "$TOTAL" ]; then
   printf "\n%s所有必需环境组件已就绪，可以继续进行项目开发。%s\n" "$GREEN" "$RESET"
   printf "\n推荐的后续操作：\n"
   printf "1) 安装依赖:\n   pnpm i\n"
-  printf "2) 启动数据库基础设施:\n   bash infra/database/scripts/init_mac.sh\n"
-  printf "3) 初始化数据库结构与种子数据:\n   pnpm -F @csisp/db-schema run migrate\n   pnpm -F @csisp/db-schema run seed\n"
-printf "4) 启动 BFF 与 backend-integrated:\n   pnpm -F @csisp/bff dev\n   pnpm -F @csisp/backend-integrated dev\n"
-  printf "5) 启动前端项目:\n   pnpm -F @csisp/frontend-admin dev\n   pnpm -F @csisp/frontend-portal dev\n"
+  printf "2) 启动基础设施与生成 IDL:\n   pnpm run dev:infra\n"
+  printf "3) 启动后端集成服务:\n   pnpm run dev:backend-integrated\n"
+  printf "4) 启动前端项目（管理端与门户）:\n   pnpm run dev:admin\n   pnpm run dev:portal\n"
 else
   printf "\n%s未完成的环境组件及建议操作：%s\n" "$RED" "$RESET"
   if [ "$NODE_OK" -ne 1 ]; then

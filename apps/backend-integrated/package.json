@@ -2,14 +2,13 @@
   "name": "@csisp/backend-integrated",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
-    "dev": "nodemon --exec tsx src/main.ts",
-    "build": "tsc -p tsconfig.json",
+    "dev": "nest start --watch",
+    "build": "nest build",
     "start": "node dist/main.js",
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write .",
-    "lint": "eslint .",
-    "db:types": "node scripts/run-kanel.cjs"
+    "db:types": "tsx scripts/run-kanel.ts"
   },
   "dependencies": {
     "redis": "^4.6.7",
@@ -32,6 +31,7 @@
     "sequelize-typescript": "^2.1.6"
   },
   "devDependencies": {
+    "@nestjs/cli": "^10.4.0",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^20.19.25",
     "@types/pg": "^8.16.0",

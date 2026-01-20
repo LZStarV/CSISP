@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { HealthModule } from '@modules/health/health.module';
-import { SequelizePostgresModule } from '@infra/postgres/sequelize.module';
+import { SequelizePostgresModule } from './infra/postgres/sequelize.module';
+import { DomainModules } from './modules';
 import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
@@ -9,7 +9,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017', {
       dbName: process.env.MONGODB_DB || 'csisp',
     }),
-    HealthModule,
+    ...DomainModules,
   ],
 })
 export class AppModule {}

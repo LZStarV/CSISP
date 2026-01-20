@@ -1,19 +1,8 @@
-/**
- * 角色守卫
- *
- * 配合 @Roles 装饰器使用，从元数据中读取所需角色，
- * 再与 req.user.roles 比较，未满足时抛出 403。
- */
-import {
-  CanActivate,
-  ExecutionContext,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
+import { RpcError } from '../rpc/rpc-error';
+import { RPCErrorCode } from '../rpc/jsonrpc';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -36,7 +25,7 @@ export class RolesGuard implements CanActivate {
 
     const hasRole = requiredRoles.some(role => roles.includes(role));
     if (!hasRole) {
-      throw new HttpException({ code: 403, message: '权限不足' }, HttpStatus.FORBIDDEN);
+      throw new RpcError(null, RPCErrorCode.ServerError, 'Forbidden', { requiredRoles, roles });
     }
 
     return true;
