@@ -2,7 +2,7 @@ import { loadRootEnv } from '@csisp/utils';
 loadRootEnv();
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
-import { connect as connectRedis } from '@csisp/redis';
+import { connect as connectRedis } from '@infra/redis';
 import router from '@router';
 import legacyProxy from '@middleware/legacyProxy';
 import {
@@ -28,6 +28,13 @@ app.use(rateLimitMiddleware());
 app.use(router.routes());
 app.use(legacyProxy());
 app.use(router.allowedMethods());
+app.use(async (ctx, next) => {
+  await next();
+  if (ctx.body === undefined && (!ctx.status || ctx.status === 404)) {
+    ctx.status = 404;
+    ctx.body = { code: 404, message: 'Not Found', path: ctx.path, method: ctx.method };
+  }
+});
 const PORT = Number(process.env.BFF_PORT ?? 4000);
 app.listen(PORT, () => {
   process.stdout.write(`BFF server is running on port ${PORT}\n`);

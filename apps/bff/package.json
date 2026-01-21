@@ -5,23 +5,27 @@
   "private": true,
   "scripts": {
     "dev": "nodemon --exec tsx app.ts",
+    "dev:portal": "BFF_ENABLED_SUBPROJECTS=portal pnpm run dev",
+    "dev:admin": "BFF_ENABLED_SUBPROJECTS=admin pnpm run dev",
     "build": "esbuild app.ts --bundle --platform=node --outfile=dist/app.js",
     "start": "node dist/app.js",
+    "start:portal": "BFF_ENABLED_SUBPROJECTS=portal pnpm run start",
+    "start:admin": "BFF_ENABLED_SUBPROJECTS=admin pnpm run start",
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write .",
     "lint": "eslint ."
   },
   "dependencies": {
     "@csisp/utils": "workspace:*",
-    "@csisp/logger": "workspace:*",
-    "@csisp/redis": "workspace:*",
-    "@csisp/upstream": "workspace:*",
     "@csisp/types": "workspace:^1.0.0",
     "koa": "^3.1.1",
     "@koa/router": "^14.0.0",
     "koa-bodyparser": "^4.4.1",
     "undici": "^6.19.8",
     "zod": "^3.23.8",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "pino": "^9.3.2",
+    "pino-pretty": "^11.2.2",
+    "redis": "^4.6.10"
   },
   "devDependencies": {
     "esbuild": "^0.19.0",

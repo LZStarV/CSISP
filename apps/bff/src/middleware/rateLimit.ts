@@ -20,7 +20,7 @@ export default function rateLimit(options: RateLimitOptions = {}) {
   const {
     windowMs = 60000,
     max = 100,
-    keyGenerator = (ctx: Context) => ctx.ip,
+    keyGenerator = (ctx: Context) => `${ctx.ip}:${ctx.path}`,
     excludePaths = ['/health'],
     message = 'Too Many Requests',
   } = options;

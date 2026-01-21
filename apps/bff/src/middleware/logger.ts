@@ -20,7 +20,7 @@ export default function logger(options: LoggerOptions = {}) {
     const log = getRequestLogger(ctx);
 
     const payload: Record<string, unknown> = {
-      context: 'http',
+      context: ctx.path.startsWith('/api/bff') ? 'rpc' : 'http',
       method: ctx.method,
       path: ctx.path,
       status: ctx.status,
@@ -32,6 +32,6 @@ export default function logger(options: LoggerOptions = {}) {
       payload.responsePreview = JSON.stringify(ctx.body).slice(0, 500);
     }
 
-    log.info(payload, 'HTTP request');
+    log.info(payload, 'Request');
   };
 }

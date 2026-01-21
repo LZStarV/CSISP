@@ -170,10 +170,7 @@ importers:
 
   apps/bff:
     specifiers:
-      '@csisp/logger': workspace:*
-      '@csisp/redis': workspace:*
       '@csisp/types': workspace:^1.0.0
-      '@csisp/upstream': workspace:*
       '@csisp/utils': workspace:*
       '@koa/router': ^14.0.0
       '@types/koa': ^3.0.1
@@ -183,19 +180,22 @@ importers:
       koa: ^3.1.1
       koa-bodyparser: ^4.4.1
       nodemon: ^3.0.0
+      pino: ^9.3.2
+      pino-pretty: ^11.2.2
+      redis: ^4.6.10
       tsx: ^4.0.0
       undici: ^6.19.8
       zod: ^3.23.8
     dependencies:
-      '@csisp/logger': link:../../packages/logger
-      '@csisp/redis': link:../../packages/redis
       '@csisp/types': link:../../packages/types
-      '@csisp/upstream': link:../../packages/upstream
       '@csisp/utils': link:../../packages/utils
       '@koa/router': 14.0.0
       dotenv: 16.6.1
       koa: 3.1.1
       koa-bodyparser: 4.4.1
+      pino: 9.14.0
+      pino-pretty: 11.3.0
+      redis: 4.7.1
       undici: 6.23.0
       zod: 3.25.76
     devDependencies:
@@ -279,7 +279,6 @@ importers:
 
   infra/database:
     specifiers:
-      '@csisp/logger': workspace:*
       '@csisp/utils': workspace:*
       '@types/bcrypt': ^6.0.0
       '@types/node': ^20.19.25
@@ -287,17 +286,20 @@ importers:
       mongodb: ^6.8.0
       pg: ^8.11.3
       pg-hstore: ^2.3.4
+      pino: ^9.3.2
+      pino-pretty: ^11.2.2
       sequelize: ^6.35.0
       tsx: ^4.0.0
       typescript: ^5.9.3
       umzug: ^3.8.0
     dependencies:
-      '@csisp/logger': link:../../packages/logger
       '@csisp/utils': link:../../packages/utils
       dotenv: 16.6.1
       mongodb: 6.21.0
       pg: 8.17.1
       pg-hstore: 2.3.4
+      pino: 9.14.0
+      pino-pretty: 11.3.0
       sequelize: 6.37.7_pg-hstore@2.3.4+pg@8.17.1
       umzug: 3.8.2_@types+node@20.19.30
     devDependencies:
@@ -315,14 +317,6 @@ importers:
     devDependencies:
       '@creditkarma/thrift-typescript': 3.7.6
 
-  packages/logger:
-    specifiers:
-      pino: ^9.3.2
-      pino-pretty: ^11.2.2
-    dependencies:
-      pino: 9.14.0
-      pino-pretty: 11.3.0
-
   packages/redis:
     specifiers:
       redis: ^4.6.10
@@ -331,12 +325,6 @@ importers:
 
   packages/types:
     specifiers: {}
-
-  packages/upstream:
-    specifiers:
-      undici: ^6.19.8
-    dependencies:
-      undici: 6.23.0
 
   packages/utils:
     specifiers:

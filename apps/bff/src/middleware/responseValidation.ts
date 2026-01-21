@@ -26,6 +26,8 @@ export function validateBffResponse(schema: ZodSchema) {
 
     // 未设置响应体时不做任何处理
     if (ctx.body === undefined) return;
+    // JSON-RPC 响应不做此校验
+    if ((ctx.body as any)?.jsonrpc === '2.0') return;
     // 已经是错误响应（4xx/5xx）时跳过校验，交由错误处理中间件统一处理
     if (ctx.status && ctx.status >= 400) return;
 

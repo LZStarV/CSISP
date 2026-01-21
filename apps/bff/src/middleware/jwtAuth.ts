@@ -20,11 +20,19 @@ export default function jwtAuth(options: JwtAuthOptions = {}) {
   const {
     required = true,
     roles = [],
-    excludePaths = ['/api/users/login', '/api/users/register'],
+    excludePaths = [
+      '/api/bff/health',
+      '/api/bff/admin/openrpc.json',
+      '/api/bff/portal/openrpc.json',
+      '/api/bff/auth/login',
+      '/api/bff/auth/register',
+    ],
   } = options;
 
   return async (ctx: Context, next: Next) => {
     if (excludePaths.length && excludePaths.includes(ctx.path)) return next();
+    const isRpcPath = /^\/api\/bff\/[^/]+\/[^/]+\/[^/]+$/.test(ctx.path);
+    if (!isRpcPath) return next();
 
     const authHeader = ctx.get('Authorization');
     if (!authHeader) {

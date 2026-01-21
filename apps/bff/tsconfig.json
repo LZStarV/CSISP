@@ -14,14 +14,10 @@
       "@router": ["src/router"],
       "@middleware": ["src/middleware"],
       "@middleware/*": ["src/middleware/*"],
-      "@controllers/*": ["src/controllers/*"],
-      "@services/*": ["src/services/*"],
       "@infra": ["src/infra"],
       "@infra/*": ["src/infra/*"],
-      "@schemas/*": ["src/schemas/*"],
-      "@validation": ["src/validation"],
-      "@validation/*": ["src/validation/*"],
-      "@utils/*": ["src/utils/*"]
+      "@utils/*": ["src/utils/*"],
+      "@module/*": ["src/modules/*"]
     }
   },
   "include": ["app.ts", "src"]
