@@ -1,4 +1,5 @@
 import { getBaseLogger } from './logger';
+import { request } from 'undici';
 
 export type BffHttpClient = ReturnType<typeof createHttpClient>;
 
@@ -21,7 +22,6 @@ export function createBffHttpClient(
   });
 }
 
-import { request } from 'undici';
 // 轻量日志接口，满足 info 输出即可
 type UpstreamLogger = {
   info: (obj: Record<string, unknown>, msg?: string) => void;

@@ -2,6 +2,7 @@ import type { Context } from 'koa';
 import { z } from 'zod';
 import { DomainModules } from '../modules';
 
+// 转换 zod schema 为 openrpc 类型描述
 function schemaToJson(schema?: z.ZodTypeAny): any {
   if (!schema) return undefined;
   const def: any = (schema as any)._def;
@@ -17,6 +18,7 @@ function schemaToJson(schema?: z.ZodTypeAny): any {
   return { typeName: def?.typeName ?? 'unknown' };
 }
 
+// 为指定子项目构建 OpenRPC 文档
 function buildDocFor(subProject: string) {
   const mod = DomainModules.find(m => m.subProject === subProject);
   const methods = mod ? Object.keys(mod.schemas || {}) : [];

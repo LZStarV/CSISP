@@ -3,6 +3,9 @@ import cors from './cors';
 import logger from './logger';
 import jwtAuth from './jwtAuth';
 import rateLimit from './rateLimit';
+import trace from './trace';
+import type Koa from 'koa';
+import bodyParser from 'koa-bodyparser';
 
 // BFF 统一中间件装配入口
 //
@@ -18,3 +21,15 @@ export const corsMiddleware = () => cors({});
 export const loggerMiddleware = () => logger({});
 export const jwtAuthMiddleware = () => jwtAuth();
 export const rateLimitMiddleware = () => rateLimit({});
+export const traceMiddleware = () => trace();
+
+// 装配 BFF 中间件
+export function setupMiddlewares(app: Koa) {
+  app.use(errorMiddleware());
+  app.use(corsMiddleware());
+  app.use(loggerMiddleware());
+  app.use(traceMiddleware());
+  app.use(bodyParser());
+  app.use(jwtAuthMiddleware());
+  app.use(rateLimitMiddleware());
+}

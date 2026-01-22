@@ -11,13 +11,13 @@
     "types": ["node", "koa", "koa-bodyparser"],
     "baseUrl": "./",
     "paths": {
-      "@router": ["src/router"],
       "@middleware": ["src/middleware"],
       "@middleware/*": ["src/middleware/*"],
-      "@infra": ["src/infra"],
       "@infra/*": ["src/infra/*"],
       "@utils/*": ["src/utils/*"],
-      "@module/*": ["src/modules/*"]
+      "@modules": ["src/modules"],
+      "@modules/*": ["src/modules/*"],
+      "@rpc/*": ["src/rpc/*"]
     }
   },
   "include": ["app.ts", "src"]
