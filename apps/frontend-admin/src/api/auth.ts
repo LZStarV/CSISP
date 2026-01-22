@@ -1,4 +1,3 @@
-import { request } from './request';
 import type {
   LoginParams,
   LoginResponse,
@@ -8,6 +7,8 @@ import type {
   PaginationResponse,
   ApiResponse,
 } from '@csisp/types';
+
+import { request } from './request';
 
 export const authApi = {
   // 用户登录

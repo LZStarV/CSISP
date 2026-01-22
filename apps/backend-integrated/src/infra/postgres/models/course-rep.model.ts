@@ -1,4 +1,5 @@
 import { Column, DataType, Model, Table } from 'sequelize-typescript';
+
 import type CourseRepRow from '../generated/public/CourseRep';
 import type { CourseRepInitializer } from '../generated/public/CourseRep';
 

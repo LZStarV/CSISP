@@ -1,4 +1,11 @@
-import { Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  ForeignKey,
+  Model,
+  Table,
+} from 'sequelize-typescript';
+
 import { Course } from './course.model';
 import { Teacher } from './teacher.model';
 
@@ -11,10 +18,20 @@ import { Teacher } from './teacher.model';
 })
 export class CourseTeacher extends Model {
   @ForeignKey(() => Course)
-  @Column({ type: DataType.INTEGER, allowNull: false, primaryKey: true, field: 'course_id' })
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    primaryKey: true,
+    field: 'course_id',
+  })
   courseId!: number;
 
   @ForeignKey(() => Teacher)
-  @Column({ type: DataType.INTEGER, allowNull: false, primaryKey: true, field: 'teacher_id' })
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    primaryKey: true,
+    field: 'teacher_id',
+  })
   teacherId!: number;
 }

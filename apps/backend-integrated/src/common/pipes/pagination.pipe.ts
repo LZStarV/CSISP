@@ -1,6 +1,7 @@
 import { Injectable, PipeTransform } from '@nestjs/common';
-import { RpcError } from '../rpc/rpc-error';
+
 import { RPCErrorCode } from '../rpc/jsonrpc';
+import { RpcError } from '../rpc/rpc-error';
 
 /**
  * 分页参数解析与校验管道
@@ -39,7 +40,12 @@ export class PaginationPipe implements PipeTransform {
     }
 
     if (Object.keys(errors).length > 0) {
-      throw new RpcError(null, RPCErrorCode.InvalidParams, 'Invalid params', errors);
+      throw new RpcError(
+        null,
+        RPCErrorCode.InvalidParams,
+        'Invalid params',
+        errors
+      );
     }
 
     return { page: query.page, size: query.size };

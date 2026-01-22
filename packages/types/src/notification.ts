@@ -23,11 +23,17 @@ export interface Notification extends NotificationBase {
 }
 
 // 创建通知时的输入类型
-export type CreateNotificationInput = Omit<Notification, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateNotificationInput = Omit<
+  Notification,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 
 // 更新通知时的输入类型
 export type UpdateNotificationInput = Partial<
-  Omit<Notification, 'id' | 'targetUserId' | 'senderId' | 'createdAt' | 'updatedAt'>
+  Omit<
+    Notification,
+    'id' | 'targetUserId' | 'senderId' | 'createdAt' | 'updatedAt'
+  >
 >;
 
 /**

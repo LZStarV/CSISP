@@ -31,8 +31,9 @@
 </template>
 
 <script setup lang="ts" generic="T extends Record<string, any>">
-import { computed, type PropType } from 'vue';
 import { NDataTable } from 'naive-ui';
+import { computed, type PropType } from 'vue';
+
 import type { TableColumn, PaginationConfig } from '@/types';
 
 const props = defineProps({
@@ -175,7 +176,8 @@ const paginationConfig = computed(() => {
 });
 
 const resolvedRowKey = computed<(row: T) => string | number>(() => {
-  if (typeof props.rowKey === 'function') return props.rowKey as (row: T) => string | number;
+  if (typeof props.rowKey === 'function')
+    return props.rowKey as (row: T) => string | number;
   const key = props.rowKey as string;
   return (row: T) => row[key as keyof T] as unknown as string | number;
 });
@@ -184,7 +186,9 @@ const resolvedRowKey = computed<(row: T) => string | number>(() => {
 const handleSelectionChange = (keys: (string | number)[]) => {
   const selectedRows = props.data.filter((row: T) => {
     const rowKey =
-      typeof props.rowKey === 'function' ? props.rowKey(row) : row[props.rowKey as keyof T];
+      typeof props.rowKey === 'function'
+        ? props.rowKey(row)
+        : row[props.rowKey as keyof T];
     return keys.includes(rowKey as string | number);
   });
 

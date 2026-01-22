@@ -20,7 +20,9 @@ function buildUrl(opts: RedisOptions): string {
 }
 
 // 幂等连接：首次创建并连接，后续复用同一实例
-export async function connect(options: RedisOptions = {}): Promise<RedisClientType> {
+export async function connect(
+  options: RedisOptions = {}
+): Promise<RedisClientType> {
   if (client) return client;
   ns = options.namespace ?? process.env.REDIS_NAMESPACE ?? 'csisp';
   const url = buildUrl(options);
@@ -43,7 +45,11 @@ function k(key: string): string {
 }
 
 // 写入键（可选 TTL，单位秒）
-export async function set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+export async function set(
+  key: string,
+  value: string,
+  ttlSeconds?: number
+): Promise<void> {
   const c = getClient();
   if (ttlSeconds && ttlSeconds > 0) {
     await c.set(k(key), value, { EX: ttlSeconds });
@@ -77,7 +83,10 @@ export async function ttl(key: string): Promise<number> {
 }
 
 // 发布消息到命名空间下的频道
-export async function publish(channel: string, message: string): Promise<number> {
+export async function publish(
+  channel: string,
+  message: string
+): Promise<number> {
   const c = getClient();
   return c.publish(`${ns}:${channel}`, message);
 }

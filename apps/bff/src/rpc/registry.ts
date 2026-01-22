@@ -14,7 +14,10 @@ export function register(subProject: string, method: string, handler: Handler) {
   sub.set(method, handler);
 }
 
-export function registerBulk(subProject: string, handlers: Record<string, Handler>) {
+export function registerBulk(
+  subProject: string,
+  handlers: Record<string, Handler>
+) {
   const sub = ensureSubproject(subProject);
   for (const [method, handler] of Object.entries(handlers)) {
     sub.set(method, handler);
@@ -26,7 +29,12 @@ export function get(subProject: string, method: string): Handler | undefined {
   return sub?.get(method);
 }
 
-export async function call(subProject: string, method: string, ctx: Context, params: any) {
+export async function call(
+  subProject: string,
+  method: string,
+  ctx: Context,
+  params: any
+) {
   const h = get(subProject, method);
   if (!h) throw new Error(`Method not found: ${subProject}/${method}`);
   return h(ctx, params);

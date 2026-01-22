@@ -29,7 +29,11 @@ export class RateLimitInterceptor implements NestInterceptor {
   private readonly max: number;
   private readonly excludePaths: string[];
 
-  constructor(windowMs = 60_000, max = 100, excludePaths: string[] = ['/api/health']) {
+  constructor(
+    windowMs = 60_000,
+    max = 100,
+    excludePaths: string[] = ['/api/health']
+  ) {
     this.windowMs = windowMs;
     this.max = max;
     this.excludePaths = excludePaths;
@@ -59,7 +63,10 @@ export class RateLimitInterceptor implements NestInterceptor {
       const retryAfter = Math.ceil((record.resetTime - now) / 1000);
       res.setHeader('X-RateLimit-Limit', this.max.toString());
       res.setHeader('X-RateLimit-Remaining', '0');
-      res.setHeader('X-RateLimit-Reset', new Date(record.resetTime).toISOString());
+      res.setHeader(
+        'X-RateLimit-Reset',
+        new Date(record.resetTime).toISOString()
+      );
 
       throw new HttpException(
         {
@@ -74,8 +81,14 @@ export class RateLimitInterceptor implements NestInterceptor {
     record.count += 1;
 
     res.setHeader('X-RateLimit-Limit', this.max.toString());
-    res.setHeader('X-RateLimit-Remaining', (this.max - record.count).toString());
-    res.setHeader('X-RateLimit-Reset', new Date(record.resetTime).toISOString());
+    res.setHeader(
+      'X-RateLimit-Remaining',
+      (this.max - record.count).toString()
+    );
+    res.setHeader(
+      'X-RateLimit-Reset',
+      new Date(record.resetTime).toISOString()
+    );
 
     return next.handle().pipe(tap(() => {}));
   }

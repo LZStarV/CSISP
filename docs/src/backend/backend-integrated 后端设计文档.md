@@ -216,7 +216,16 @@ Redis 客户端统一由 `packages/redis` 提供，backend-integrated 通过 `@i
 
 ```ts
 // apps/backend-integrated/src/infra/redis/index.ts
-export { connect, get, set, del, ttl, publish, subscribe, healthCheck } from '@csisp/redis';
+export {
+  connect,
+  get,
+  set,
+  del,
+  ttl,
+  publish,
+  subscribe,
+  healthCheck,
+} from '@csisp/redis';
 ```
 
 使用约定：

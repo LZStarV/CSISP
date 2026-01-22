@@ -8,7 +8,12 @@ export class SubCourse extends Model {
   @Column({ type: DataType.INTEGER, allowNull: false, field: 'course_id' })
   courseId!: number;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, unique: true, field: 'sub_course_code' })
+  @Column({
+    type: DataType.STRING(50),
+    allowNull: false,
+    unique: true,
+    field: 'sub_course_code',
+  })
   subCourseCode!: string;
 
   @Column({ type: DataType.INTEGER, allowNull: false, field: 'teacher_id' })

@@ -1,9 +1,9 @@
 import { loadRootEnv } from '@csisp/utils';
-import Koa from 'koa';
 import { connect as connectRedis } from '@infra/redis';
-import router from '@modules';
-import legacyProxy from '@middleware/legacyProxy';
 import { setupMiddlewares } from '@middleware';
+import legacyProxy from '@middleware/legacyProxy';
+import router from '@modules';
+import Koa from 'koa';
 
 loadRootEnv();
 

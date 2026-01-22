@@ -1,5 +1,5 @@
-import type { Context, Next } from 'koa';
 import { getRequestLogger } from '@infra/logger';
+import type { Context, Next } from 'koa';
 
 // 访问日志中间件
 //

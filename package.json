@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "format": "eslint . --fix && pnpm prettier --write . && stylelint '**/*.{css,scss,vue}' --fix",
+    "format": "pnpm prettier --write . && eslint . --fix && stylelint '**/*.{css,scss,vue}' --fix",
     "lint:staged": "lint-staged",
     "prepare": "husky",
     "dev:infra": "turbo run db:init --filter=@csisp/infra-database && turbo run idl:gen --filter=@csisp/idl",
@@ -43,6 +43,7 @@
     "@typescript-eslint/parser": "^8.46.4",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-vue": "^10.5.1",
     "globals": "^15.15.0",

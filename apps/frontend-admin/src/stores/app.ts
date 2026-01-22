@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+
 import type { AppState } from '@/types';
 
 export const useAppStore = defineStore('app', () => {

@@ -1,3 +1,6 @@
-export async function demoTestService(): Promise<{ ok: boolean; project: string }> {
+export async function demoTestService(): Promise<{
+  ok: boolean;
+  project: string;
+}> {
   return { ok: true, project: 'admin' };
 }

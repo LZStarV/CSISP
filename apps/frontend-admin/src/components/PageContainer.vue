@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import { NCard, NBreadcrumb, NBreadcrumbItem } from 'naive-ui';
+
 import type { BreadcrumbItem } from '@/types';
 
 interface Props {

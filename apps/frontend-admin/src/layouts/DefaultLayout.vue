@@ -41,7 +41,11 @@
           </n-button>
 
           <!-- 用户信息 -->
-          <n-dropdown trigger="click" :options="userMenuOptions" @select="handleUserMenuSelect">
+          <n-dropdown
+            trigger="click"
+            :options="userMenuOptions"
+            @select="handleUserMenuSelect"
+          >
             <n-space align="center" style="cursor: pointer">
               <n-avatar :size="32" :src="userAvatar">
                 {{ currentUser?.realName?.charAt(0) || 'U' }}
@@ -88,25 +92,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import {
-  NLayout,
-  NLayoutHeader,
-  NLayoutSider,
-  NLayoutContent,
-  NMenu,
-  NButton,
-  NIcon,
-  NBadge,
-  NSpace,
-  NDropdown,
-  NAvatar,
-  useDialog,
-  useMessage,
-  type MenuOption,
-  type DropdownOption,
-} from 'naive-ui';
 import {
   MenuOutline,
   NotificationsOutline,
@@ -127,6 +112,26 @@ import {
   LogOutOutline,
   PersonOutline,
 } from '@vicons/ionicons5';
+import {
+  NLayout,
+  NLayoutHeader,
+  NLayoutSider,
+  NLayoutContent,
+  NMenu,
+  NButton,
+  NIcon,
+  NBadge,
+  NSpace,
+  NDropdown,
+  NAvatar,
+  useDialog,
+  useMessage,
+  type MenuOption,
+  type DropdownOption,
+} from 'naive-ui';
+import { ref, computed, h, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+
 import { useUserStore, useAppStore } from '@/stores';
 import type { MenuItem } from '@/types';
 
@@ -238,7 +243,10 @@ const menuOptions = computed<MenuOption[]>(() => {
         key: item.key,
         icon:
           item.icon && iconMap[item.icon as keyof typeof iconMap]
-            ? () => h(NIcon, null, { default: () => h(iconMap[item.icon as keyof typeof iconMap]) })
+            ? () =>
+                h(NIcon, null, {
+                  default: () => h(iconMap[item.icon as keyof typeof iconMap]),
+                })
             : undefined,
       };
 

@@ -47,7 +47,11 @@ export function getClient(): RedisClientType {
 export async function get(key: string): Promise<string | null> {
   /* ... */
 }
-export async function set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+export async function set(
+  key: string,
+  value: string,
+  ttlSeconds?: number
+): Promise<void> {
   /* ... */
 }
 export async function del(key: string | string[]): Promise<void> {

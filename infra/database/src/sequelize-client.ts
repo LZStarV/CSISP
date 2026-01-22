@@ -1,4 +1,5 @@
 import { Sequelize } from 'sequelize';
+
 import { getDbConfig } from './config/db-env';
 
 let sequelizeInstance: Sequelize | null = null;

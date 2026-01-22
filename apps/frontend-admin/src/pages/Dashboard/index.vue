@@ -1,5 +1,9 @@
 <template>
-  <PageContainer title="仪表盘" description="系统概览与数据统计" :breadcrumbs="breadcrumbs">
+  <PageContainer
+    title="仪表盘"
+    description="系统概览与数据统计"
+    :breadcrumbs="breadcrumbs"
+  >
     <template #actions>
       <n-space>
         <n-button @click="fetchDashboardData">
@@ -66,9 +70,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
+import * as echarts from 'echarts';
 import { useMessage } from 'naive-ui';
-import { PageContainer } from '@/components';
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
+
+import {
+  defaultStatsCards,
+  buildUserGrowthOption,
+  buildCourseDistributionOption,
+} from './config';
+import { getActivityType, formatActivityTime } from './utils';
+
 import { dashboardApi } from '@/api';
 import type {
   DashboardStats,
@@ -76,9 +88,7 @@ import type {
   CourseDistributionData,
   RecentActivity,
 } from '@/api/dashboard';
-import * as echarts from 'echarts';
-import { defaultStatsCards, buildUserGrowthOption, buildCourseDistributionOption } from './config';
-import { getActivityType, formatActivityTime } from './utils';
+import { PageContainer } from '@/components';
 
 // 状态管理
 const message = useMessage();
@@ -132,8 +142,10 @@ const fetchDashboardData = async () => {
       // 统计数据
       Object.assign(statsData, data.stats);
       if (statsCards.value[0]) statsCards.value[0].value = data.stats.userCount;
-      if (statsCards.value[1]) statsCards.value[1].value = data.stats.courseCount;
-      if (statsCards.value[2]) statsCards.value[2].value = data.stats.attendanceRate;
+      if (statsCards.value[1])
+        statsCards.value[1].value = data.stats.courseCount;
+      if (statsCards.value[2])
+        statsCards.value[2].value = data.stats.attendanceRate;
 
       // 用户增长
       userGrowthData.value = data.userGrowth || [];
@@ -164,7 +176,8 @@ const updateUserGrowthChart = () => {
 
 // 更新课程分布图表
 const updateCourseDistributionChart = () => {
-  if (!courseDistributionChartInstance || !courseDistributionData.value.length) return;
+  if (!courseDistributionChartInstance || !courseDistributionData.value.length)
+    return;
 
   const option = buildCourseDistributionOption(courseDistributionData.value);
   courseDistributionChartInstance.setOption(option);
@@ -176,7 +189,9 @@ onMounted(() => {
     userGrowthChartInstance = echarts.init(userGrowthChart.value);
   }
   if (courseDistributionChart.value) {
-    courseDistributionChartInstance = echarts.init(courseDistributionChart.value);
+    courseDistributionChartInstance = echarts.init(
+      courseDistributionChart.value
+    );
   }
 
   fetchDashboardData();

@@ -1,5 +1,9 @@
 <template>
-  <PageContainer title="通知管理" description="发布和管理系统通知公告" :breadcrumbs="breadcrumbs">
+  <PageContainer
+    title="通知管理"
+    description="发布和管理系统通知公告"
+    :breadcrumbs="breadcrumbs"
+  >
     <template #actions>
       <n-button type="primary" @click="handleCreate">
         <template #icon>
@@ -57,12 +61,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, h } from 'vue';
+import {
+  RefreshOutline,
+  AddOutline,
+  TrashOutline,
+  DownloadOutline,
+} from '@vicons/ionicons5';
 import { useMessage, useDialog } from 'naive-ui';
-import { RefreshOutline, AddOutline, TrashOutline, DownloadOutline } from '@vicons/ionicons5';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
+import { ref, reactive, computed, onMounted, h } from 'vue';
+
 import { BaseTable, BaseSearch, PageContainer } from '@/components';
 import type { TableColumn, SearchField } from '@/types';
-import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 // 状态管理
 const message = useMessage();
@@ -169,7 +179,11 @@ const columns: TableColumn[] = [
         4: { label: '考试通知', type: 'error' },
       };
       const type = typeMap[value as keyof typeof typeMap];
-      return h(NTag, { type: type.type as any, size: 'small' }, { default: () => type.label });
+      return h(
+        NTag,
+        { type: type.type as any, size: 'small' },
+        { default: () => type.label }
+      );
     },
   },
   {
@@ -218,7 +232,11 @@ const columns: TableColumn[] = [
         2: { label: '已撤回', type: 'warning' },
       };
       const status = statusMap[value as keyof typeof statusMap];
-      return h(NTag, { type: status.type as any, size: 'small' }, { default: () => status.label });
+      return h(
+        NTag,
+        { type: status.type as any, size: 'small' },
+        { default: () => status.label }
+      );
     },
   },
   {
@@ -282,7 +300,10 @@ const columns: TableColumn[] = [
 ];
 
 // 面包屑
-const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '通知管理' }]);
+const breadcrumbs = computed(() => [
+  { label: '首页', path: '/' },
+  { label: '通知管理' },
+]);
 
 const pagination = computed(() => ({
   current: 1,

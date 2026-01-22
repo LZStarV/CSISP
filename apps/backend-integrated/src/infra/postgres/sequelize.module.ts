@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
-import { SequelizeModule, type SequelizeModuleOptions } from '@nestjs/sequelize';
+import {
+  SequelizeModule,
+  type SequelizeModuleOptions,
+} from '@nestjs/sequelize';
+
 import { POSTGRES_MODELS } from './models';
 
 @Module({

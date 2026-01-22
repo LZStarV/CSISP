@@ -1,5 +1,5 @@
-import type { Context, Next } from 'koa';
 import jwt from 'jsonwebtoken';
+import type { Context, Next } from 'koa';
 
 // JWT 鉴权中间件
 //
@@ -56,8 +56,13 @@ export default function jwtAuth(options: JwtAuthOptions = {}) {
     try {
       const decoded: any = jwt.verify(token, secret || 'default-secret');
       (ctx.state as any).userId = decoded.userId;
-      (ctx.state as any).user = { id: decoded.userId, username: decoded.username };
-      (ctx.state as any).roles = Array.isArray(decoded.roles) ? decoded.roles : [];
+      (ctx.state as any).user = {
+        id: decoded.userId,
+        username: decoded.username,
+      };
+      (ctx.state as any).roles = Array.isArray(decoded.roles)
+        ? decoded.roles
+        : [];
 
       if (roles.length) {
         const hasRole = roles.some(r => (ctx.state as any).roles.includes(r));

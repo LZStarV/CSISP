@@ -5,9 +5,15 @@
  * 输出包含方法、路径、状态码和耗时的日志，
  * 替代旧 backend 中 logger/accessLogger 的核心行为。
  */
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
 import type { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+
 import { getBackendLogger } from '../../infra/logger';
 
 @Injectable()
@@ -19,13 +25,18 @@ export class LoggingInterceptor implements NestInterceptor {
 
     const method: string = req.method;
     const url: string = req.url;
-    const userAgent: string | undefined = req.get?.('user-agent') ?? req.headers['user-agent'];
+    const userAgent: string | undefined =
+      req.get?.('user-agent') ?? req.headers['user-agent'];
     const ip: string | undefined = req.ip ?? req.connection?.remoteAddress;
     const traceId: string | undefined =
-      req.headers?.['x-trace-id'] ?? req.headers?.['X-Trace-Id'] ?? req.headers?.['x-traceid'];
+      req.headers?.['x-trace-id'] ??
+      req.headers?.['X-Trace-Id'] ??
+      req.headers?.['x-traceid'];
     const logger = getBackendLogger('http', traceId);
     const contentType: string | undefined = req.headers['content-type'];
-    const isJson = typeof contentType === 'string' && contentType.includes('application/json');
+    const isJson =
+      typeof contentType === 'string' &&
+      contentType.includes('application/json');
     let rpcMethod: string | undefined;
     const pathOnly = (url ?? '').split('?')[0];
     const parts = pathOnly.replace(/^\/+/, '').split('/');

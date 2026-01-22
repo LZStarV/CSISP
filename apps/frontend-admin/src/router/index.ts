@@ -1,5 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import type { RouteRecordRaw, RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
+import type {
+  RouteRecordRaw,
+  RouteLocationNormalized,
+  NavigationGuardNext,
+} from 'vue-router';
+
 import { useUserStore } from '@/stores';
 
 const routes: RouteRecordRaw[] = [
@@ -102,7 +107,8 @@ const routes: RouteRecordRaw[] = [
           {
             path: 'permissions',
             name: 'PermissionManagement',
-            component: () => import('@/pages/course/PermissionManagement/index.vue'),
+            component: () =>
+              import('@/pages/course/PermissionManagement/index.vue'),
             meta: {
               title: '权限管理',
               icon: 'lock-closed',
@@ -181,7 +187,8 @@ router.beforeEach(
 
     const requiredPermission = to.meta?.permission as string | undefined;
     const enforcePermissions =
-      Array.isArray(userStore.state.permissions) && userStore.state.permissions.length > 0;
+      Array.isArray(userStore.state.permissions) &&
+      userStore.state.permissions.length > 0;
     if (requiredPermission && enforcePermissions) {
       const roles = userStore.state.roles || [];
       const permissions = userStore.state.permissions || [];
@@ -196,7 +203,8 @@ router.beforeEach(
             .filter(Boolean)
         : [];
       const isAdmin =
-        roleNames.includes('admin') || userStore.state.currentUser?.username === 'admin';
+        roleNames.includes('admin') ||
+        userStore.state.currentUser?.username === 'admin';
       const hasPermission = permissionCodes.includes(requiredPermission);
       if (!isAdmin && !hasPermission) {
         next({ path: '/dashboard' });

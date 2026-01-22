@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
+
 import { dispatch } from '@/src/server/rpc/dispatcher';
-import { isMethodValid, jsonrpcSuccess, jsonrpcError } from '@/src/shared/config/jsonrpc';
+import {
+  isMethodValid,
+  jsonrpcSuccess,
+  jsonrpcError,
+} from '@/src/shared/config/jsonrpc';
 
 // JSON-RPC 统一入口（动态路由）
 // - 路径模式：/api/backoffice/:domain/:action
@@ -18,11 +23,18 @@ export async function POST(req: Request, context: any) {
   const id = body?.id ?? null;
 
   if (!isMethodValid(action, method)) {
-    return NextResponse.json(jsonrpcError(id, 400, 'Invalid method'), { status: 400 });
+    return NextResponse.json(jsonrpcError(id, 400, 'Invalid method'), {
+      status: 400,
+    });
   }
 
   try {
-    const result = await dispatch(domain, action, rpcParams, req.headers as Headers);
+    const result = await dispatch(
+      domain,
+      action,
+      rpcParams,
+      req.headers as Headers
+    );
     return NextResponse.json(jsonrpcSuccess(id, result), { status: 200 });
   } catch (e: any) {
     const message = e?.message || 'Internal Error';

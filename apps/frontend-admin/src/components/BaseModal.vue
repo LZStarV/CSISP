@@ -37,8 +37,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
 import { NModal } from 'naive-ui';
+import { ref, watch } from 'vue';
 
 interface Props {
   show: boolean;

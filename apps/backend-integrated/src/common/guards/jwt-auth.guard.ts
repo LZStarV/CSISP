@@ -1,7 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import jwt from 'jsonwebtoken';
-import { RpcError } from '../rpc/rpc-error';
+
 import { RPCErrorCode } from '../rpc/jsonrpc';
+import { RpcError } from '../rpc/rpc-error';
 
 /**
  * JWT 鉴权守卫

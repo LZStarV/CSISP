@@ -1,4 +1,7 @@
-import type { IUser as User, IUserInfo as UserInfo } from '@csisp/idl/backoffice';
+import type {
+  IUser as User,
+  IUserInfo as UserInfo,
+} from '@csisp/idl/backoffice';
 // 按 id 或用户名获取用户详情
 export async function getUser(params: any): Promise<User> {
   // 读取标识符，至少提供 id 或 username 之一

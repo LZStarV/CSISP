@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { UserState, User } from '@/types';
+
 import { authApi, userApi } from '@/api';
+import type { UserState, User } from '@/types';
 
 export const useUserStore = defineStore('user', () => {
   const state = ref<UserState>({
@@ -110,7 +111,10 @@ export const useUserStore = defineStore('user', () => {
       const response = await userApi.updateUser(id, userData);
       const index = state.value.users.findIndex(u => u.id === id);
       if (index !== -1 && response.data) {
-        const mapped = mapUser({ ...state.value.users[index], ...response.data } as any);
+        const mapped = mapUser({
+          ...state.value.users[index],
+          ...response.data,
+        } as any);
         state.value.users[index] = mapped;
       }
       return response.data;

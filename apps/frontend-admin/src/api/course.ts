@@ -1,4 +1,3 @@
-import { request } from './request';
 import type {
   Course,
   Class,
@@ -8,9 +7,13 @@ import type {
   ApiResponse,
 } from '@csisp/types';
 
+import { request } from './request';
+
 export const courseApi = {
   // 课程管理
-  getCourses: (params?: any): Promise<ApiResponse<PaginationResponse<Course>>> => {
+  getCourses: (
+    params?: any
+  ): Promise<ApiResponse<PaginationResponse<Course>>> => {
     return request.get('/courses', { params });
   },
 
@@ -22,7 +25,10 @@ export const courseApi = {
     return request.post('/courses', data);
   },
 
-  updateCourse: (id: number, data: Partial<Course>): Promise<ApiResponse<Course>> => {
+  updateCourse: (
+    id: number,
+    data: Partial<Course>
+  ): Promise<ApiResponse<Course>> => {
     return request.put(`/courses/${id}`, data);
   },
 
@@ -31,7 +37,9 @@ export const courseApi = {
   },
 
   // 班级管理
-  getClasses: (params?: any): Promise<ApiResponse<PaginationResponse<Class>>> => {
+  getClasses: (
+    params?: any
+  ): Promise<ApiResponse<PaginationResponse<Class>>> => {
     return request.get('/classes', { params });
   },
 
@@ -43,7 +51,10 @@ export const courseApi = {
     return request.post('/classes', data);
   },
 
-  updateClass: (id: number, data: Partial<Class>): Promise<ApiResponse<Class>> => {
+  updateClass: (
+    id: number,
+    data: Partial<Class>
+  ): Promise<ApiResponse<Class>> => {
     return request.put(`/classes/${id}`, data);
   },
 
@@ -52,7 +63,9 @@ export const courseApi = {
   },
 
   // 教师管理
-  getTeachers: (params?: any): Promise<ApiResponse<PaginationResponse<Teacher>>> => {
+  getTeachers: (
+    params?: any
+  ): Promise<ApiResponse<PaginationResponse<Teacher>>> => {
     return request.get('/teachers', { params });
   },
 
@@ -64,7 +77,10 @@ export const courseApi = {
     return request.post('/teachers', data);
   },
 
-  updateTeacher: (id: number, data: Partial<Teacher>): Promise<ApiResponse<Teacher>> => {
+  updateTeacher: (
+    id: number,
+    data: Partial<Teacher>
+  ): Promise<ApiResponse<Teacher>> => {
     return request.put(`/teachers/${id}`, data);
   },
 
@@ -73,7 +89,9 @@ export const courseApi = {
   },
 
   // 时间段管理
-  getTimeSlots: (params?: any): Promise<ApiResponse<PaginationResponse<TimeSlot>>> => {
+  getTimeSlots: (
+    params?: any
+  ): Promise<ApiResponse<PaginationResponse<TimeSlot>>> => {
     return request.get('/time-slots', { params });
   },
 
@@ -81,7 +99,10 @@ export const courseApi = {
     return request.post('/time-slots', data);
   },
 
-  updateTimeSlot: (id: number, data: Partial<TimeSlot>): Promise<ApiResponse<TimeSlot>> => {
+  updateTimeSlot: (
+    id: number,
+    data: Partial<TimeSlot>
+  ): Promise<ApiResponse<TimeSlot>> => {
     return request.put(`/time-slots/${id}`, data);
   },
 

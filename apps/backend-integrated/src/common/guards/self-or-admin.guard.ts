@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { RpcError } from '../rpc/rpc-error';
+
 import { RPCErrorCode } from '../rpc/jsonrpc';
+import { RpcError } from '../rpc/rpc-error';
 
 @Injectable()
 export class SelfOrAdminGuard implements CanActivate {
@@ -14,8 +15,10 @@ export class SelfOrAdminGuard implements CanActivate {
     const userId: number | undefined = user?.userId;
     const roles: string[] = user?.roles ?? [];
 
-    const paramValue = req.body?.params?.[this.paramName] ?? req.params?.[this.paramName];
-    const targetId = typeof paramValue === 'string' ? Number(paramValue) : paramValue;
+    const paramValue =
+      req.body?.params?.[this.paramName] ?? req.params?.[this.paramName];
+    const targetId =
+      typeof paramValue === 'string' ? Number(paramValue) : paramValue;
 
     if (!userId) {
       throw new RpcError(null, RPCErrorCode.ServerError, 'Unauthorized');

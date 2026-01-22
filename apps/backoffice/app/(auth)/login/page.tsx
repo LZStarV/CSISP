@@ -7,7 +7,10 @@ export default function LoginPage() {
   };
   return (
     <Card bordered>
-      <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>
+      <Typography.Title
+        level={3}
+        style={{ textAlign: 'center', marginBottom: 24 }}
+      >
         登录
       </Typography.Title>
       <Form form={form} layout='vertical' onFinish={onFinish}>
@@ -18,7 +21,11 @@ export default function LoginPage() {
         >
           <Input placeholder='请输入用户名' />
         </Form.Item>
-        <Form.Item name='password' label='密码' rules={[{ required: true, message: '请输入密码' }]}>
+        <Form.Item
+          name='password'
+          label='密码'
+          rules={[{ required: true, message: '请输入密码' }]}
+        >
           <Input.Password placeholder='请输入密码' />
         </Form.Item>
         <Form.Item>

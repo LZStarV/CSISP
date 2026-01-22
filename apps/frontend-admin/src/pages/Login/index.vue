@@ -15,7 +15,11 @@
         @submit.prevent="handleLogin"
       >
         <n-form-item path="username">
-          <n-input v-model:value="loginForm.username" placeholder="请输入用户名" clearable>
+          <n-input
+            v-model:value="loginForm.username"
+            placeholder="请输入用户名"
+            clearable
+          >
             <template #prefix>
               <n-icon><person-outline /></n-icon>
             </template>
@@ -58,8 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
-import { useRouter } from 'vue-router';
+import { PersonOutline, LockClosedOutline } from '@vicons/ionicons5';
 import {
   NForm,
   NFormItem,
@@ -70,7 +73,9 @@ import {
   type FormInst,
   type FormRules,
 } from 'naive-ui';
-import { PersonOutline, LockClosedOutline } from '@vicons/ionicons5';
+import { ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
+
 import { useUserStore } from '@/stores';
 
 // 路由

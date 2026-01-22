@@ -61,12 +61,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, h } from 'vue';
+import {
+  RefreshOutline,
+  AddOutline,
+  TrashOutline,
+  DownloadOutline,
+} from '@vicons/ionicons5';
 import { useMessage, useDialog } from 'naive-ui';
-import { RefreshOutline, AddOutline, TrashOutline, DownloadOutline } from '@vicons/ionicons5';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
+import { ref, reactive, computed, onMounted, h } from 'vue';
+
 import { BaseTable, BaseSearch, PageContainer } from '@/components';
 import type { TableColumn, SearchField } from '@/types';
-import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 // 状态管理
 const message = useMessage();
@@ -277,7 +283,10 @@ const columns: TableColumn[] = [
 ];
 
 // 面包屑
-const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '作业管理' }]);
+const breadcrumbs = computed(() => [
+  { label: '首页', path: '/' },
+  { label: '作业管理' },
+]);
 
 const pagination = computed(() => ({
   current: 1,

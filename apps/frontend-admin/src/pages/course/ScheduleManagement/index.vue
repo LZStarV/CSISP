@@ -39,13 +39,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, h } from 'vue';
-import { useMessage } from 'naive-ui';
 import { AddOutline } from '@vicons/ionicons5';
+import { useMessage } from 'naive-ui';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
+import { ref, reactive, computed, onMounted, h } from 'vue';
+
 import { BaseTable, BaseModal, BaseForm } from '@/components';
 import { useCourseStore } from '@/stores';
 import type { TimeSlot, TableColumn, FormField } from '@/types';
-import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 interface Props {
   courseId?: number;
@@ -136,11 +137,17 @@ const formRules = {
   weekday: [{ required: true, type: 'number', message: '请选择星期' }],
   startTime: [
     { required: true, message: '请输入开始时间' },
-    { pattern: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, message: '请输入有效的时间格式，如: 08:00' },
+    {
+      pattern: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+      message: '请输入有效的时间格式，如: 08:00',
+    },
   ],
   endTime: [
     { required: true, message: '请输入结束时间' },
-    { pattern: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, message: '请输入有效的时间格式，如: 09:40' },
+    {
+      pattern: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+      message: '请输入有效的时间格式，如: 09:40',
+    },
   ],
   location: [{ required: true, message: '请输入上课地点' }],
 };
@@ -157,7 +164,16 @@ const columns: TableColumn<TimeSlot>[] = [
     title: '星期',
     width: 100,
     render: (value: number) => {
-      const weekdays = ['', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+      const weekdays = [
+        '',
+        '星期一',
+        '星期二',
+        '星期三',
+        '星期四',
+        '星期五',
+        '星期六',
+        '星期日',
+      ];
       return weekdays[value] || '';
     },
   },
@@ -182,8 +198,16 @@ const columns: TableColumn<TimeSlot>[] = [
     width: 80,
     render: (value: number) => {
       return value === 1
-        ? h(NTag, { type: 'success' as any, size: 'small' }, { default: () => '启用' })
-        : h(NTag, { type: 'error' as any, size: 'small' }, { default: () => '禁用' });
+        ? h(
+            NTag,
+            { type: 'success' as any, size: 'small' },
+            { default: () => '启用' }
+          )
+        : h(
+            NTag,
+            { type: 'error' as any, size: 'small' },
+            { default: () => '禁用' }
+          );
     },
   },
   {

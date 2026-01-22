@@ -36,7 +36,9 @@
         <n-card>
           <div class="stat-item">
             <div class="stat-label">实到人数</div>
-            <div class="stat-value text-success">{{ attendanceStats.present }}</div>
+            <div class="stat-value text-success">
+              {{ attendanceStats.present }}
+            </div>
           </div>
         </n-card>
       </n-grid-item>
@@ -44,7 +46,9 @@
         <n-card>
           <div class="stat-item">
             <div class="stat-label">出勤率</div>
-            <div class="stat-value text-warning">{{ attendanceStats.rate }}%</div>
+            <div class="stat-value text-warning">
+              {{ attendanceStats.rate }}%
+            </div>
           </div>
         </n-card>
       </n-grid-item>
@@ -72,7 +76,10 @@
             </template>
             批量缺勤
           </n-button>
-          <n-button :disabled="selectedRowKeys.length === 0" @click="handleExport">
+          <n-button
+            :disabled="selectedRowKeys.length === 0"
+            @click="handleExport"
+          >
             <template #icon>
               <n-icon><download-outline /></n-icon>
             </template>
@@ -95,17 +102,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, h } from 'vue';
-import { useMessage } from 'naive-ui';
 import {
   CheckmarkCircleOutline,
   CloseCircleOutline,
   DownloadOutline,
   RefreshOutline,
 } from '@vicons/ionicons5';
+import { useMessage } from 'naive-ui';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
+import { ref, reactive, computed, onMounted, h } from 'vue';
+
 import { BaseTable, BaseSearch, PageContainer } from '@/components';
 import type { TableColumn, SearchField } from '@/types';
-import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 // 状态管理
 const message = useMessage();
@@ -253,7 +261,11 @@ const columns: TableColumn[] = [
         3: { label: '迟到', type: 'info' as const },
       };
       const status = statusMap[value as keyof typeof statusMap];
-      return h(NTag, { type: status.type, size: 'small' }, { default: () => status.label });
+      return h(
+        NTag,
+        { type: status.type, size: 'small' },
+        { default: () => status.label }
+      );
     },
   },
   {
@@ -315,7 +327,10 @@ const columns: TableColumn[] = [
 ];
 
 // 面包屑
-const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '考勤管理' }]);
+const breadcrumbs = computed(() => [
+  { label: '首页', path: '/' },
+  { label: '考勤管理' },
+]);
 
 const pagination = computed(() => ({
   current: 1,

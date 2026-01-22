@@ -1,8 +1,13 @@
 'use client';
+import {
+  UserOutlined,
+  FileSearchOutlined,
+  DatabaseOutlined,
+} from '@ant-design/icons';
 import { Layout, Menu } from 'antd';
 import Link from 'next/link';
+
 import { NAV_ITEMS } from '@/src/client/config/navigation';
-import { UserOutlined, FileSearchOutlined, DatabaseOutlined } from '@ant-design/icons';
 const ICONS: Record<string, React.ReactNode> = {
   UserOutlined: <UserOutlined />,
   FileSearchOutlined: <FileSearchOutlined />,

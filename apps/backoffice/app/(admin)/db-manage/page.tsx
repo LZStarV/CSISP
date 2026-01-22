@@ -1,8 +1,18 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import { Layout, List, Table, Space, Select, InputNumber, Typography, Divider } from 'antd';
-import { rpcCall } from '@/src/client/utils/rpc-client';
 import type { QueryTableResponse } from '@csisp/idl/backoffice';
+import {
+  Layout,
+  List,
+  Table,
+  Space,
+  Select,
+  InputNumber,
+  Typography,
+  Divider,
+} from 'antd';
+import { useEffect, useMemo, useState } from 'react';
+
+import { rpcCall } from '@/src/client/utils/rpc-client';
 
 type ListModelsResult = { models: string[] };
 
@@ -73,7 +83,10 @@ export default function DbPage() {
                   setCurrent(t);
                   setPage(1);
                 }}
-                style={{ cursor: 'pointer', fontWeight: t === current ? 600 : 400 }}
+                style={{
+                  cursor: 'pointer',
+                  fontWeight: t === current ? 600 : 400,
+                }}
               >
                 {t}
               </List.Item>
@@ -100,9 +113,18 @@ export default function DbPage() {
               onChange={v => setOrderDir(v as 'asc' | 'desc')}
             />
             <span>分页</span>
-            <InputNumber min={1} value={page} onChange={v => setPage(Number(v) || 1)} />
+            <InputNumber
+              min={1}
+              value={page}
+              onChange={v => setPage(Number(v) || 1)}
+            />
             <span>每页</span>
-            <InputNumber min={1} max={100} value={size} onChange={v => setSize(Number(v) || 20)} />
+            <InputNumber
+              min={1}
+              max={100}
+              value={size}
+              onChange={v => setSize(Number(v) || 20)}
+            />
           </Space>
           <Divider />
           <Table

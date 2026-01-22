@@ -26,7 +26,12 @@ export class Class extends Model {
   @Column({ type: DataType.INTEGER, allowNull: false, field: 'academic_year' })
   academicYear!: number;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 50, field: 'max_students' })
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 50,
+    field: 'max_students',
+  })
   maxStudents!: number;
 
   @Column({ type: DataType.INTEGER, defaultValue: 1 })

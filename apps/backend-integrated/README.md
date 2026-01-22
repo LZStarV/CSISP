@@ -54,7 +54,11 @@ pnpm -C apps/backend-integrated run db:types
 - 错误响应（统一 200 状态，error 包含 code/message/data）：
 
 ```json
-{ "jsonrpc": "2.0", "id": 1, "error": { "code": -32600, "message": "Invalid JSON-RPC request" } }
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": { "code": -32600, "message": "Invalid JSON-RPC request" }
+}
 ```
 
 - 协议层校验：

@@ -45,7 +45,10 @@
             </template>
             批量删除
           </n-button>
-          <n-button :disabled="selectedRowKeys.length === 0" @click="handleBatchExport">
+          <n-button
+            :disabled="selectedRowKeys.length === 0"
+            @click="handleBatchExport"
+          >
             <template #icon>
               <n-icon><download-outline /></n-icon>
             </template>
@@ -85,13 +88,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, h } from 'vue';
+import {
+  AddOutline,
+  TrashOutline,
+  DownloadOutline,
+  RefreshOutline,
+} from '@vicons/ionicons5';
 import { useMessage, useDialog } from 'naive-ui';
-import { AddOutline, TrashOutline, DownloadOutline, RefreshOutline } from '@vicons/ionicons5';
-import { BaseTable, BaseSearch, BaseModal, BaseForm, PageContainer } from '@/components';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
+import { ref, reactive, computed, onMounted, h } from 'vue';
+
+import {
+  BaseTable,
+  BaseSearch,
+  BaseModal,
+  BaseForm,
+  PageContainer,
+} from '@/components';
 import { useUserStore } from '@/stores';
 import type { User, TableColumn, SearchField, FormField } from '@/types';
-import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 // 状态管理
 const userStore = useUserStore();
@@ -344,7 +359,13 @@ const formRules = {
   ],
   major: [{ required: true, message: '请输入专业' }],
   enrollmentYear: [
-    { required: true, type: 'number', min: 2000, max: 3000, message: '请输入有效的入学年份' },
+    {
+      required: true,
+      type: 'number',
+      min: 2000,
+      max: 3000,
+      message: '请输入有效的入学年份',
+    },
   ],
 };
 
@@ -353,7 +374,10 @@ const modalTitle = computed(() => {
   return modalType.value === 'create' ? '新增用户' : '编辑用户';
 });
 
-const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '用户管理' }]);
+const breadcrumbs = computed(() => [
+  { label: '首页', path: '/' },
+  { label: '用户管理' },
+]);
 
 // 分页状态（根据后端返回控制）
 const currentPage = ref(1);

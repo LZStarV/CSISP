@@ -1,5 +1,9 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import type { ApiResponse } from '@csisp/types';
+import axios, {
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+} from 'axios';
 
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
@@ -53,7 +57,10 @@ apiClient.interceptors.response.use(
 
 // API请求工具函数
 export const request = {
-  get: <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
+  get: <T = any>(
+    url: string,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T>> => {
     return apiClient.get(url, config).then(response => response.data);
   },
 
@@ -65,11 +72,18 @@ export const request = {
     return apiClient.post(url, data, config).then(response => response.data);
   },
 
-  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
+  put: <T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T>> => {
     return apiClient.put(url, data, config).then(response => response.data);
   },
 
-  delete: <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
+  delete: <T = any>(
+    url: string,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T>> => {
     return apiClient.delete(url, config).then(response => response.data);
   },
 };

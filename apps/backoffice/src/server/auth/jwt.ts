@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+
 import { getJwtSecret, jwtExpiresIn } from '@/src/server/config/env';
 
 export function sign(payload: Record<string, any>) {

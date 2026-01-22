@@ -39,7 +39,10 @@ export const RPCErrorCode = {
 } as const;
 
 // 生成 JSON-RPC 成功响应
-export function ok<Result>(id: RPCResponse['id'], result: Result): RPCResponse<Result> {
+export function ok<Result>(
+  id: RPCResponse['id'],
+  result: Result
+): RPCResponse<Result> {
   return { jsonrpc: '2.0', id, result };
 }
 // 生成 JSON-RPC 错误响应

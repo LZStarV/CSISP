@@ -39,13 +39,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, h } from 'vue';
-import { useMessage } from 'naive-ui';
 import { AddOutline } from '@vicons/ionicons5';
+import { useMessage } from 'naive-ui';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
+import { ref, reactive, computed, onMounted, h } from 'vue';
+
 import { BaseTable, BaseModal, BaseForm } from '@/components';
 import { useCourseStore } from '@/stores';
 import type { Class, TableColumn, FormField } from '@/types';
-import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 interface Props {
   courseId?: number;
@@ -141,10 +142,22 @@ const formRules = {
   teacherId: [{ required: true, type: 'number', message: '请选择授课教师' }],
   semester: [{ required: true, type: 'number', message: '请选择学期' }],
   academicYear: [
-    { required: true, type: 'number', min: 2000, max: 3000, message: '请输入有效的学年' },
+    {
+      required: true,
+      type: 'number',
+      min: 2000,
+      max: 3000,
+      message: '请输入有效的学年',
+    },
   ],
   maxStudents: [
-    { required: true, type: 'number', min: 1, max: 200, message: '最大学生数应在1-200之间' },
+    {
+      required: true,
+      type: 'number',
+      min: 1,
+      max: 200,
+      message: '最大学生数应在1-200之间',
+    },
   ],
 };
 
@@ -196,8 +209,16 @@ const columns: TableColumn<Class>[] = [
     width: 80,
     render: (value: number) => {
       return value === 1
-        ? h(NTag, { type: 'success' as any, size: 'small' }, { default: () => '启用' })
-        : h(NTag, { type: 'error' as any, size: 'small' }, { default: () => '禁用' });
+        ? h(
+            NTag,
+            { type: 'success' as any, size: 'small' },
+            { default: () => '启用' }
+          )
+        : h(
+            NTag,
+            { type: 'error' as any, size: 'small' },
+            { default: () => '禁用' }
+          );
     },
   },
   {

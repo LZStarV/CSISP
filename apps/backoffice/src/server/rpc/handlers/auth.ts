@@ -14,7 +14,8 @@ export async function me(_: any, headers: Headers) {
   // 从请求头提取 Bearer Token 并校验
   const auth = headers.get('authorization') || '';
   const parts = auth.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') throw new Error('Unauthorized');
+  if (parts.length !== 2 || parts[0] !== 'Bearer')
+    throw new Error('Unauthorized');
   const decoded = verify(parts[1]);
   // 返回当前用户的基础信息（用户名与角色）
   return { user: { username: decoded.username, roles: decoded.roles } };

@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { demoTest, PortalDemoTestParams, PortalDemoTestResult } from './demo.controller';
+
+import {
+  demoTest,
+  PortalDemoTestParams,
+  PortalDemoTestResult,
+} from './demo.controller';
 
 export const PortalModule = {
   subProject: 'portal',

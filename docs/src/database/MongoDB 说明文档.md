@@ -54,7 +54,9 @@ pnpm -F @csisp/infra-database db:seed:mongo
 - 在 `AppModule` 中使用：
 
 ```ts
-MongooseModule.forRoot(process.env.MONGODB_URI, { dbName: process.env.MONGODB_DB });
+MongooseModule.forRoot(process.env.MONGODB_URI, {
+  dbName: process.env.MONGODB_DB,
+});
 ```
 
 - 在内容模块中注入模型：

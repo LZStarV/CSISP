@@ -28,7 +28,15 @@ export type CreateUserInput = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
 
 // 更新用户时的输入类型（不含自动生成的字段和不可更新字段）
 export type UpdateUserInput = Partial<
-  Omit<User, 'id' | 'username' | 'studentId' | 'enrollmentYear' | 'createdAt' | 'updatedAt'>
+  Omit<
+    User,
+    | 'id'
+    | 'username'
+    | 'studentId'
+    | 'enrollmentYear'
+    | 'createdAt'
+    | 'updatedAt'
+  >
 >;
 
 /**
@@ -91,7 +99,10 @@ export type CreateCourseRepInput = Omit<
 
 // 更新课代表时的输入类型
 export type UpdateCourseRepInput = Partial<
-  Omit<CourseRep, 'id' | 'userId' | 'classId' | 'appointmentDate' | 'createdAt' | 'updatedAt'>
+  Omit<
+    CourseRep,
+    'id' | 'userId' | 'classId' | 'appointmentDate' | 'createdAt' | 'updatedAt'
+  >
 >;
 
 /**
@@ -108,7 +119,10 @@ export interface Permission {
 }
 
 // 创建权限时的输入类型
-export type CreatePermissionInput = Omit<Permission, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreatePermissionInput = Omit<
+  Permission,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 
 // 更新权限时的输入类型
 export type UpdatePermissionInput = Partial<

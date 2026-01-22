@@ -36,7 +36,11 @@ export default function rateLimit(options: RateLimitOptions = {}) {
     }
     if (rec.count >= max) {
       ctx.status = 429;
-      ctx.body = { code: 429, message, retryAfter: Math.ceil((rec.resetTime - now) / 1000) };
+      ctx.body = {
+        code: 429,
+        message,
+        retryAfter: Math.ceil((rec.resetTime - now) / 1000),
+      };
       return;
     }
     rec.count++;

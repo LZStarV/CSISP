@@ -1,4 +1,3 @@
-import { request } from './request';
 import type {
   Notification,
   PaginationResponse,
@@ -6,9 +5,13 @@ import type {
   CreateNotificationInput,
 } from '@csisp/types';
 
+import { request } from './request';
+
 export const notificationApi = {
   // 通知管理
-  getNotifications: (params?: any): Promise<ApiResponse<PaginationResponse<Notification>>> => {
+  getNotifications: (
+    params?: any
+  ): Promise<ApiResponse<PaginationResponse<Notification>>> => {
     return request.get('/notifications', { params });
   },
 
@@ -16,7 +19,9 @@ export const notificationApi = {
     return request.get(`/notifications/${id}`);
   },
 
-  createNotification: (data: CreateNotificationInput): Promise<ApiResponse<Notification>> => {
+  createNotification: (
+    data: CreateNotificationInput
+  ): Promise<ApiResponse<Notification>> => {
     return request.post('/notifications', data);
   },
 

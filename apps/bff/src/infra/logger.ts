@@ -8,11 +8,12 @@
 //   - LOG_TO_FILE（默认 true）
 //   - LOG_DIR（默认 log，相对仓库根）
 //   - LOG_RETENTION_DAYS（默认 7，仅 development）
-import type { Context } from 'koa';
-import pino, { type LoggerOptions } from 'pino';
 import fs from 'fs';
 import path from 'path';
+
 import { findRepoRoot } from '@csisp/utils';
+import type { Context } from 'koa';
+import pino, { type LoggerOptions } from 'pino';
 
 const runtimeEnv = process.env.NODE_ENV || 'development';
 
@@ -58,7 +59,11 @@ function buildLoggerOptions(service: string): LoggerOptions {
       level,
       transport: {
         target: 'pino-pretty',
-        options: { colorize: true, translateTime: 'SYS:standard', singleLine: true },
+        options: {
+          colorize: true,
+          translateTime: 'SYS:standard',
+          singleLine: true,
+        },
       },
     };
   }
@@ -79,7 +84,11 @@ function buildMultistream(service: string): any | undefined {
       level,
       stream: pino.transport({
         target: 'pino-pretty',
-        options: { colorize: true, translateTime: 'SYS:standard', singleLine: true },
+        options: {
+          colorize: true,
+          translateTime: 'SYS:standard',
+          singleLine: true,
+        },
       }) as any,
     });
   }
@@ -101,12 +110,19 @@ function buildMultistream(service: string): any | undefined {
 
     streams.push({
       level,
-      stream: pino.destination({ dest: filePath, mkdir: true, append: true, sync: false }),
+      stream: pino.destination({
+        dest: filePath,
+        mkdir: true,
+        append: true,
+        sync: false,
+      }),
     });
   }
 
   if (streams.length === 0) return undefined;
-  return (pino as unknown as { multistream: (s: any[]) => any }).multistream(streams);
+  return (pino as unknown as { multistream: (s: any[]) => any }).multistream(
+    streams
+  );
 }
 
 // 创建服务级 logger，附带 service 与 env 字段

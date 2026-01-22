@@ -1,7 +1,9 @@
-import path from 'path';
 import { spawnSync } from 'child_process';
-import { loadRootEnv } from '@csisp/utils';
+import path from 'path';
 import { fileURLToPath } from 'url';
+
+import { loadRootEnv } from '@csisp/utils';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -19,8 +21,12 @@ const connectionString =
   `postgres://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
 
 const kanelBin = path.resolve(__dirname, '..', 'node_modules', '.bin', 'kanel');
-const result = spawnSync(kanelBin, ['-d', connectionString, '-o', 'src/db/generated'], {
-  stdio: 'inherit',
-});
+const result = spawnSync(
+  kanelBin,
+  ['-d', connectionString, '-o', 'src/db/generated'],
+  {
+    stdio: 'inherit',
+  }
+);
 
 process.exitCode = result.status ?? 0;

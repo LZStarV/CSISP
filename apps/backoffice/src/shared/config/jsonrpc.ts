@@ -10,7 +10,12 @@ export function jsonrpcSuccess(id: JsonRpcId, result: unknown) {
 }
 
 // JSON-RPC 错误响应
-export function jsonrpcError(id: JsonRpcId, code: number, message: string, data?: unknown) {
+export function jsonrpcError(
+  id: JsonRpcId,
+  code: number,
+  message: string,
+  data?: unknown
+) {
   const err: Record<string, unknown> = { code, message };
   if (data !== undefined) err.data = data;
   return {

@@ -1,9 +1,11 @@
-import { AdminModules } from './admin';
-import { PortalModules } from './portal';
 import Router from '@koa/router';
+
 import { handlePost } from '../rpc/dispatcher';
 import { handleOpenRPCAdmin, handleOpenRPCPortal } from '../rpc/openrpc';
 import { registerBulk } from '../rpc/registry';
+
+import { AdminModules } from './admin';
+import { PortalModules } from './portal';
 
 export const DomainModules = [...AdminModules, ...PortalModules];
 
@@ -27,7 +29,12 @@ router.use(async (ctx, next) => {
   await next();
   if (ctx.body === undefined && (!ctx.status || ctx.status === 404)) {
     ctx.status = 404;
-    ctx.body = { code: 404, message: 'Not Found', path: ctx.path, method: ctx.method };
+    ctx.body = {
+      code: 404,
+      message: 'Not Found',
+      path: ctx.path,
+      method: ctx.method,
+    };
   }
 });
 

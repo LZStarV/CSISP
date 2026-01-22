@@ -1,7 +1,8 @@
-import { Umzug, SequelizeStorage } from 'umzug';
 import type { QueryInterface } from 'sequelize';
-import { getSequelize, closeSequelize } from './sequelize-client';
+import { Umzug, SequelizeStorage } from 'umzug';
+
 import { getInfraDbLogger } from './logger';
+import { getSequelize, closeSequelize } from './sequelize-client';
 
 function createUmzug(): Umzug<QueryInterface> {
   const sequelize = getSequelize();

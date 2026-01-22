@@ -1,6 +1,8 @@
-import path from 'path';
 import { spawnSync } from 'child_process';
+import path from 'path';
+
 import { loadRootEnv } from '@csisp/utils';
+
 import { createLogger } from '../src/infra/logger';
 
 loadRootEnv();
@@ -20,9 +22,13 @@ const connectionString =
 
 // 执行 kanel 生成类型到 src/infra/postgres/generated
 const kanelBin = path.resolve(__dirname, '..', 'node_modules', '.bin', 'kanel');
-const result = spawnSync(kanelBin, ['-d', connectionString, '-o', 'src/infra/postgres/generated'], {
-  stdio: 'inherit',
-});
+const result = spawnSync(
+  kanelBin,
+  ['-d', connectionString, '-o', 'src/infra/postgres/generated'],
+  {
+    stdio: 'inherit',
+  }
+);
 
 // 统一错误输出到本地 logger，并用 exitCode 表示结果
 if (result.error) {

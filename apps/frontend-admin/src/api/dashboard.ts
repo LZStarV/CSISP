@@ -1,5 +1,6 @@
-import { request } from './request';
 import type { ApiResponse } from '@csisp/types';
+
+import { request } from './request';
 
 // 仪表盘统计信息
 export interface DashboardStats {
@@ -61,6 +62,8 @@ export const dashboardApi = {
     days: number = 30,
     limit: number = 10
   ): Promise<ApiResponse<AdminOverviewResponse>> => {
-    return request.get('/admin/dashboard/overview', { params: { days, limit } });
+    return request.get('/admin/dashboard/overview', {
+      params: { days, limit },
+    });
   },
 };

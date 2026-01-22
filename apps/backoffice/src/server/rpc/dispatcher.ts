@@ -1,7 +1,13 @@
 import { registry } from './registry';
+
 import { Domain, I18N_ACTION_ALIAS } from '@/src/server/config/rpc';
 
-export async function dispatch(domain: string, action: string, params: unknown, headers: Headers) {
+export async function dispatch(
+  domain: string,
+  action: string,
+  params: unknown,
+  headers: Headers
+) {
   const d = registry[domain];
   if (!d) throw new Error('Unknown domain');
   let resolvedAction = action;

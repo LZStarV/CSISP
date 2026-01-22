@@ -1,8 +1,9 @@
-import { Umzug } from 'umzug';
-import type { QueryInterface } from 'sequelize';
-import { getSequelize, closeSequelize } from '../sequelize-client';
-import { getInfraDbLogger } from '../logger';
 import { loadRootEnv } from '@csisp/utils';
+import type { QueryInterface } from 'sequelize';
+import { Umzug } from 'umzug';
+
+import { getInfraDbLogger } from '../logger';
+import { getSequelize, closeSequelize } from '../sequelize-client';
 
 function createUmzug(): Umzug<QueryInterface> {
   const sequelize = getSequelize();

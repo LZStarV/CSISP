@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { CourseState, Course, Class, Teacher, TimeSlot } from '@/types';
+
 import { courseApi } from '@/api';
+import type { CourseState, Course, Class, Teacher, TimeSlot } from '@/types';
 
 export const useCourseStore = defineStore('course', () => {
   const state = ref<CourseState>({
@@ -48,7 +49,10 @@ export const useCourseStore = defineStore('course', () => {
       const response = await courseApi.updateCourse(id, courseData);
       const index = state.value.courses.findIndex(c => c.id === id);
       if (index !== -1 && response.data) {
-        const mapped = mapCourse({ ...state.value.courses[index], ...response.data } as any);
+        const mapped = mapCourse({
+          ...state.value.courses[index],
+          ...response.data,
+        } as any);
         state.value.courses[index] = mapped;
       }
       return response.data;
@@ -109,7 +113,10 @@ export const useCourseStore = defineStore('course', () => {
       const response = await courseApi.updateClass(id, classData);
       const index = state.value.classes.findIndex(c => c.id === id);
       if (index !== -1 && response.data) {
-        state.value.classes[index] = { ...state.value.classes[index], ...response.data };
+        state.value.classes[index] = {
+          ...state.value.classes[index],
+          ...response.data,
+        };
       }
       return response.data;
     } catch (error) {
@@ -169,7 +176,10 @@ export const useCourseStore = defineStore('course', () => {
       const response = await courseApi.updateTeacher(id, teacherData);
       const index = state.value.teachers.findIndex(t => t.id === id);
       if (index !== -1 && response.data) {
-        state.value.teachers[index] = { ...state.value.teachers[index], ...response.data };
+        state.value.teachers[index] = {
+          ...state.value.teachers[index],
+          ...response.data,
+        };
       }
       return response.data;
     } catch (error) {
@@ -223,13 +233,19 @@ export const useCourseStore = defineStore('course', () => {
     }
   };
 
-  const updateTimeSlot = async (id: number, timeSlotData: Partial<TimeSlot>) => {
+  const updateTimeSlot = async (
+    id: number,
+    timeSlotData: Partial<TimeSlot>
+  ) => {
     state.value.loading = true;
     try {
       const response = await courseApi.updateTimeSlot(id, timeSlotData);
       const index = state.value.timeSlots.findIndex(t => t.id === id);
       if (index !== -1 && response.data) {
-        state.value.timeSlots[index] = { ...state.value.timeSlots[index], ...response.data };
+        state.value.timeSlots[index] = {
+          ...state.value.timeSlots[index],
+          ...response.data,
+        };
       }
       return response.data;
     } catch (error) {

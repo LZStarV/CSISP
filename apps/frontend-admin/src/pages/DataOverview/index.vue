@@ -46,9 +46,15 @@
               <div class="card-info">
                 <div class="card-number">{{ formatNumber(card.value) }}</div>
                 <div class="card-label">{{ card.label }}</div>
-                <div v-if="card.trend" class="card-trend" :class="card.trend > 0 ? 'up' : 'down'">
+                <div
+                  v-if="card.trend"
+                  class="card-trend"
+                  :class="card.trend > 0 ? 'up' : 'down'"
+                >
                   <n-icon size="12">
-                    <component :is="card.trend > 0 ? ArrowUpOutline : ArrowDownOutline" />
+                    <component
+                      :is="card.trend > 0 ? ArrowUpOutline : ArrowDownOutline"
+                    />
                   </n-icon>
                   {{ Math.abs(card.trend) }}%
                 </div>
@@ -133,8 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, h, markRaw } from 'vue';
-import { useMessage } from 'naive-ui';
+import type { User, Course, AttendanceRecord, Homework } from '@csisp/types';
 import {
   PeopleOutline,
   BookOutline,
@@ -146,10 +151,18 @@ import {
   ArrowUpOutline,
   ArrowDownOutline,
 } from '@vicons/ionicons5';
-import { PageContainer } from '@/components';
-import { dashboardApi, userApi, courseApi, attendanceApi, homeworkApi } from '@/api';
+import { useMessage } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
-import type { User, Course, AttendanceRecord, Homework } from '@csisp/types';
+import { ref, reactive, onMounted, h, markRaw } from 'vue';
+
+import {
+  dashboardApi,
+  userApi,
+  courseApi,
+  attendanceApi,
+  homeworkApi,
+} from '@/api';
+import { PageContainer } from '@/components';
 
 // 状态管理
 const message = useMessage();
@@ -251,7 +264,10 @@ const userColumns: DataTableColumns<User> = [
         course_rep: { text: '课代表', type: 'warning' },
         student_cadre: { text: '学生干部', type: 'success' },
       };
-      const role = roleMap[row.role as keyof typeof roleMap] || { text: '未知', type: 'default' };
+      const role = roleMap[row.role as keyof typeof roleMap] || {
+        text: '未知',
+        type: 'default',
+      };
       return h('n-tag', { type: role.type as any }, role.text);
     },
   },
@@ -371,7 +387,8 @@ const attendanceColumns: DataTableColumns<any> = [
     title: '打卡时间',
     key: 'createdAt',
     width: 180,
-    render: (row: any) => (row.createdAt ? new Date(row.createdAt).toLocaleString('zh-CN') : '-'),
+    render: (row: any) =>
+      row.createdAt ? new Date(row.createdAt).toLocaleString('zh-CN') : '-',
   },
   {
     title: '备注',
@@ -516,19 +533,24 @@ const fetchOverviewData = async () => {
     error.value = null;
 
     // 并行获取概览数据
-    const [statsResponse, usersResponse, coursesResponse] = await Promise.allSettled([
-      dashboardApi.getDashboardStats(),
-      userApi.getUsers({ page: 1, pageSize: 1 }),
-      courseApi.getCourses({ page: 1, pageSize: 1 }),
-    ]);
+    const [statsResponse, usersResponse, coursesResponse] =
+      await Promise.allSettled([
+        dashboardApi.getDashboardStats(),
+        userApi.getUsers({ page: 1, pageSize: 1 }),
+        courseApi.getCourses({ page: 1, pageSize: 1 }),
+      ]);
 
     // 更新概览卡片
     if (statsResponse.status === 'fulfilled' && statsResponse.value.data) {
       const stats = statsResponse.value.data;
-      if (overviewCards.value[0]) overviewCards.value[0].value = stats.userCount;
-      if (overviewCards.value[1]) overviewCards.value[1].value = stats.courseCount;
-      if (overviewCards.value[2]) overviewCards.value[2].value = stats.classCount;
-      if (overviewCards.value[3]) overviewCards.value[3].value = stats.attendanceRate;
+      if (overviewCards.value[0])
+        overviewCards.value[0].value = stats.userCount;
+      if (overviewCards.value[1])
+        overviewCards.value[1].value = stats.courseCount;
+      if (overviewCards.value[2])
+        overviewCards.value[2].value = stats.classCount;
+      if (overviewCards.value[3])
+        overviewCards.value[3].value = stats.attendanceRate;
     }
 
     // 获取详细数据
@@ -562,10 +584,12 @@ const fetchDetailedData = async () => {
 
     // 获取课程选项（用于考勤查询）
     const allCoursesResponse = await courseApi.getCourses({ pageSize: 100 });
-    courseOptions.value = (allCoursesResponse.data?.data || []).map((course: any) => ({
-      label: course.courseName,
-      value: course.id,
-    }));
+    courseOptions.value = (allCoursesResponse.data?.data || []).map(
+      (course: any) => ({
+        label: course.courseName,
+        value: course.id,
+      })
+    );
 
     // 获取考勤数据
     await fetchAttendanceData();

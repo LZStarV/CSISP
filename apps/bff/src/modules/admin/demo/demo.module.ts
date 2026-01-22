@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { demoTest, AdminDemoTestParams, AdminDemoTestResult } from './demo.controller';
+
+import {
+  demoTest,
+  AdminDemoTestParams,
+  AdminDemoTestResult,
+} from './demo.controller';
 
 export const AdminModule = {
   subProject: 'admin',

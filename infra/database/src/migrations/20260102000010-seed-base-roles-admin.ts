@@ -11,10 +11,13 @@ export async function up(): Promise<void> {
   const now = new Date();
 
   for (const role of BASE_ROLES) {
-    const existingRoles = (await sequelize.query('SELECT id FROM role WHERE code = :code LIMIT 1', {
-      replacements: { code: role.code },
-      type: QueryTypes.SELECT,
-    })) as Array<{ id: number }>;
+    const existingRoles = (await sequelize.query(
+      'SELECT id FROM role WHERE code = :code LIMIT 1',
+      {
+        replacements: { code: role.code },
+        type: QueryTypes.SELECT,
+      }
+    )) as Array<{ id: number }>;
 
     if (!existingRoles.length) {
       await queryInterface.bulkInsert('role', [
@@ -30,10 +33,13 @@ export async function up(): Promise<void> {
     }
   }
 
-  const adminRoleRows = (await sequelize.query('SELECT id FROM role WHERE code = :code LIMIT 1', {
-    replacements: { code: 'admin' },
-    type: QueryTypes.SELECT,
-  })) as Array<{ id: number }>;
+  const adminRoleRows = (await sequelize.query(
+    'SELECT id FROM role WHERE code = :code LIMIT 1',
+    {
+      replacements: { code: 'admin' },
+      type: QueryTypes.SELECT,
+    }
+  )) as Array<{ id: number }>;
   const adminRoleId = adminRoleRows.length ? adminRoleRows[0].id : null;
 
   const adminUsername = ADMIN_USER_SEED.username;
@@ -116,5 +122,9 @@ export async function down(): Promise<void> {
     await queryInterface.bulkDelete('user', { username: adminUsername }, {});
   }
 
-  await queryInterface.bulkDelete('role', { code: BASE_ROLES.map(role => role.code) }, {});
+  await queryInterface.bulkDelete(
+    'role',
+    { code: BASE_ROLES.map(role => role.code) },
+    {}
+  );
 }

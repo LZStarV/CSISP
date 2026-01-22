@@ -30,7 +30,15 @@ export type CreateCourseInput = Omit<Course, 'id' | 'createdAt' | 'updatedAt'>;
 
 // 更新课程时的输入类型
 export type UpdateCourseInput = Partial<
-  Omit<Course, 'id' | 'courseCode' | 'semester' | 'academicYear' | 'createdAt' | 'updatedAt'>
+  Omit<
+    Course,
+    | 'id'
+    | 'courseCode'
+    | 'semester'
+    | 'academicYear'
+    | 'createdAt'
+    | 'updatedAt'
+  >
 >;
 
 /**
@@ -51,7 +59,10 @@ export interface Teacher {
 }
 
 // 创建教师时的输入类型
-export type CreateTeacherInput = Omit<Teacher, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateTeacherInput = Omit<
+  Teacher,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 
 // 更新教师时的输入类型
 export type UpdateTeacherInput = Partial<
@@ -82,7 +93,10 @@ export interface TimeSlot {
 }
 
 // 创建时间段时的输入类型
-export type CreateTimeSlotInput = Omit<TimeSlot, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateTimeSlotInput = Omit<
+  TimeSlot,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 
 // 更新时间段时的输入类型
 export type UpdateTimeSlotInput = Partial<
@@ -104,11 +118,17 @@ export interface SubCourse {
 }
 
 // 创建子课程时的输入类型
-export type CreateSubCourseInput = Omit<SubCourse, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateSubCourseInput = Omit<
+  SubCourse,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 
 // 更新子课程时的输入类型
 export type UpdateSubCourseInput = Partial<
-  Omit<SubCourse, 'id' | 'courseId' | 'subCourseCode' | 'createdAt' | 'updatedAt'>
+  Omit<
+    SubCourse,
+    'id' | 'courseId' | 'subCourseCode' | 'createdAt' | 'updatedAt'
+  >
 >;
 
 /**
@@ -134,7 +154,13 @@ export type CreateClassInput = Omit<Class, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateClassInput = Partial<
   Omit<
     Class,
-    'id' | 'courseId' | 'teacherId' | 'semester' | 'academicYear' | 'createdAt' | 'updatedAt'
+    | 'id'
+    | 'courseId'
+    | 'teacherId'
+    | 'semester'
+    | 'academicYear'
+    | 'createdAt'
+    | 'updatedAt'
   >
 >;
 

@@ -22,7 +22,10 @@ export interface Homework extends HomeworkBase {
 }
 
 // 创建作业时的输入类型
-export type CreateHomeworkInput = Omit<Homework, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateHomeworkInput = Omit<
+  Homework,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 
 // 更新作业时的输入类型
 export type UpdateHomeworkInput = Partial<
@@ -51,7 +54,10 @@ export interface HomeworkSubmission extends HomeworkSubmissionBase {
 }
 
 // 创建作业提交时的输入类型
-export type CreateHomeworkSubmissionInput = Omit<HomeworkSubmission, 'id' | 'updatedAt'>;
+export type CreateHomeworkSubmissionInput = Omit<
+  HomeworkSubmission,
+  'id' | 'updatedAt'
+>;
 
 // 更新作业提交时的输入类型
 export type UpdateHomeworkSubmissionInput = Partial<

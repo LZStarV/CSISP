@@ -1,5 +1,10 @@
 export type RPCID = string | number | null;
-export type RPCRequest = { jsonrpc: '2.0'; id: RPCID; method: string; params?: unknown };
+export type RPCRequest = {
+  jsonrpc: '2.0';
+  id: RPCID;
+  method: string;
+  params?: unknown;
+};
 export type RPCSuccess = { jsonrpc: '2.0'; id: RPCID; result: unknown };
 export type RPCErrorObject = { code: number; message: string; data?: unknown };
 export type RPCFailure = { jsonrpc: '2.0'; id: RPCID; error: RPCErrorObject };
@@ -19,7 +24,12 @@ export function ok(id: RPCID, result: unknown): RPCSuccess {
   return { jsonrpc: '2.0', id, result };
 }
 
-export function err(id: RPCID, code: number, message: string, data?: unknown): RPCFailure {
+export function err(
+  id: RPCID,
+  code: number,
+  message: string,
+  data?: unknown
+): RPCFailure {
   return { jsonrpc: '2.0', id, error: { code, message, data } };
 }
 

@@ -39,13 +39,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, h } from 'vue';
-import { useMessage } from 'naive-ui';
 import { AddOutline } from '@vicons/ionicons5';
+import { useMessage } from 'naive-ui';
+import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
+import { ref, reactive, computed, onMounted, h } from 'vue';
+
 import { BaseTable, BaseModal, BaseForm } from '@/components';
 import { useCourseStore } from '@/stores';
 import type { Teacher, TableColumn, FormField } from '@/types';
-import { NTag, NSpace, NButton, NPopconfirm } from 'naive-ui';
 
 interface Props {
   courseId?: number;
@@ -201,8 +202,16 @@ const columns: TableColumn<Teacher>[] = [
     width: 80,
     render: (value: number) => {
       return value === 1
-        ? h(NTag, { type: 'success' as any, size: 'small' }, { default: () => '启用' })
-        : h(NTag, { type: 'error' as any, size: 'small' }, { default: () => '禁用' });
+        ? h(
+            NTag,
+            { type: 'success' as any, size: 'small' },
+            { default: () => '启用' }
+          )
+        : h(
+            NTag,
+            { type: 'error' as any, size: 'small' },
+            { default: () => '禁用' }
+          );
     },
   },
   {

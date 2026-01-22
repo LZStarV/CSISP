@@ -19,7 +19,8 @@ export default function legacyProxy() {
     const requestPath = ctx.path;
     if (!requestPath.startsWith('/api/bff')) return;
     const backendBaseUrl = process.env.BACKEND_INTEGRATED_URL;
-    if (!backendBaseUrl) ctx.throw(500, 'BACKEND_INTEGRATED_URL is not configured');
+    if (!backendBaseUrl)
+      ctx.throw(500, 'BACKEND_INTEGRATED_URL is not configured');
     const forwardHeaders: Record<string, string> = {};
     // 透传鉴权与链路追踪头
     const authorization = ctx.get('Authorization');
@@ -40,14 +41,16 @@ export default function legacyProxy() {
       basePath.endsWith('/api') && requestPath.startsWith('/api/bff')
         ? requestPath.slice('/api/bff'.length) || '/'
         : requestPath;
-    const urlPath = (basePath && basePath !== '/' ? basePath : '') + normalizedRequestPath;
+    const urlPath =
+      (basePath && basePath !== '/' ? basePath : '') + normalizedRequestPath;
     const forwardUrl = `${base.origin}${ctx.querystring ? `${urlPath}?${ctx.querystring}` : urlPath}`;
     const body = (ctx.request as any).body;
     const method = ctx.method.toUpperCase();
     const init: any = { method, headers: forwardHeaders };
     // 非 GET/DELETE 且存在请求体时，补充 JSON 类型并序列化
     if (method !== 'GET' && method !== 'DELETE' && body) {
-      if (!forwardHeaders['Content-Type']) forwardHeaders['Content-Type'] = 'application/json';
+      if (!forwardHeaders['Content-Type'])
+        forwardHeaders['Content-Type'] = 'application/json';
       init.body = JSON.stringify(body);
     }
     // 发起后端请求

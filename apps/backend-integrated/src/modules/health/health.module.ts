@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+
+import { RpcExceptionFilter } from '../../common/rpc/rpc-exception.filter';
+
 import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
-import { RpcExceptionFilter } from '../../common/rpc/rpc-exception.filter';
 
 @Module({
   controllers: [HealthController],

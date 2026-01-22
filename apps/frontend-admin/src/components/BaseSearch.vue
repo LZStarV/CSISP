@@ -1,7 +1,17 @@
 <template>
   <div class="base-search">
-    <n-form ref="formRef" :model="model" inline label-placement="left" :show-feedback="false">
-      <n-form-item v-for="field in fields" :key="field.key" :label="field.label">
+    <n-form
+      ref="formRef"
+      :model="model"
+      inline
+      label-placement="left"
+      :show-feedback="false"
+    >
+      <n-form-item
+        v-for="field in fields"
+        :key="field.key"
+        :label="field.label"
+      >
         <!-- 输入框 -->
         <n-input
           v-if="field.type === 'input'"
@@ -62,9 +72,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { NForm, NFormItem, NInput, NSelect, NDatePicker, NButton, NSpace, NIcon } from 'naive-ui';
 import { SearchOutline } from '@vicons/ionicons5';
+import {
+  NForm,
+  NFormItem,
+  NInput,
+  NSelect,
+  NDatePicker,
+  NButton,
+  NSpace,
+  NIcon,
+} from 'naive-ui';
+import { ref } from 'vue';
+
 import type { SearchField } from '@/types';
 
 interface Props {

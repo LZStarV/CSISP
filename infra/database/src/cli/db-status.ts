@@ -1,6 +1,7 @@
-import { migrateStatus, closeSequelize } from '../migration-runner';
 import { loadRootEnv } from '@csisp/utils';
+
 import { getInfraDbLogger } from '../logger';
+import { migrateStatus, closeSequelize } from '../migration-runner';
 
 async function main() {
   loadRootEnv();

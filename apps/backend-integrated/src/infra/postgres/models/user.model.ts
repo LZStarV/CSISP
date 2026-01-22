@@ -1,4 +1,11 @@
-import { BelongsToMany, Column, DataType, Model, Table } from 'sequelize-typescript';
+import {
+  BelongsToMany,
+  Column,
+  DataType,
+  Model,
+  Table,
+} from 'sequelize-typescript';
+
 import { Role } from './role.model';
 import { UserRole } from './user-role.model';
 
@@ -23,10 +30,19 @@ export class User extends Model {
   @Column({ type: DataType.STRING(255), allowNull: false })
   password!: string;
 
-  @Column({ type: DataType.STRING(11), allowNull: false, unique: true, field: 'student_id' })
+  @Column({
+    type: DataType.STRING(11),
+    allowNull: false,
+    unique: true,
+    field: 'student_id',
+  })
   studentId!: string;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, field: 'enrollment_year' })
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    field: 'enrollment_year',
+  })
   enrollmentYear!: number;
 
   @Column({ type: DataType.STRING(100), allowNull: false })

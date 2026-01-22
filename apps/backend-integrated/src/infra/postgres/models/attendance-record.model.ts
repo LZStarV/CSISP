@@ -20,7 +20,11 @@ export class AttendanceRecord extends Model {
   @Column({ type: DataType.DATE, allowNull: false, field: 'checkin_time' })
   checkinTime!: Date;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, defaultValue: 'present' })
+  @Column({
+    type: DataType.STRING(50),
+    allowNull: false,
+    defaultValue: 'present',
+  })
   status!: string;
 
   @Column({ type: DataType.STRING(50), allowNull: true, field: 'ip_address' })

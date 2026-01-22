@@ -1,4 +1,3 @@
-import { request } from './request';
 import type {
   AttendanceTask,
   AttendanceRecord,
@@ -15,9 +14,13 @@ import type {
   ApiResponse,
 } from '@csisp/types';
 
+import { request } from './request';
+
 export const attendanceApi = {
   // 考勤任务管理
-  getAttendanceTasks: (params?: any): Promise<ApiResponse<PaginationResponse<AttendanceTask>>> => {
+  getAttendanceTasks: (
+    params?: any
+  ): Promise<ApiResponse<PaginationResponse<AttendanceTask>>> => {
     return request.get('/attendance/tasks', { params });
   },
 
@@ -25,7 +28,9 @@ export const attendanceApi = {
     return request.get(`/attendance/tasks/${id}`);
   },
 
-  createAttendanceTask: (data: CreateAttendanceTaskInput): Promise<ApiResponse<AttendanceTask>> => {
+  createAttendanceTask: (
+    data: CreateAttendanceTaskInput
+  ): Promise<ApiResponse<AttendanceTask>> => {
     return request.post('/attendance/tasks', data);
   },
 
@@ -82,7 +87,10 @@ export const attendanceApi = {
   },
 
   // 批量操作
-  batchCheckIn: (data: { taskId: number; studentIds: number[] }): Promise<ApiResponse<void>> => {
+  batchCheckIn: (data: {
+    taskId: number;
+    studentIds: number[];
+  }): Promise<ApiResponse<void>> => {
     return request.post('/attendance/batch-checkin', data);
   },
 

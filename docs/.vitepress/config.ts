@@ -12,8 +12,14 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: '首页', link: '/' },
-      { text: '系统架构与分层设计', link: '/src/architecture/总体架构设计文档' },
-      { text: '实现细节与技术选型', link: '/src/architecture/技术架构设计文档' },
+      {
+        text: '系统架构与分层设计',
+        link: '/src/architecture/总体架构设计文档',
+      },
+      {
+        text: '实现细节与技术选型',
+        link: '/src/architecture/技术架构设计文档',
+      },
     ],
 
     // 全局侧边栏：按模块罗列所有文档，任何页面都能看到完整索引
@@ -21,8 +27,14 @@ export default defineConfig({
       {
         text: '架构设计',
         items: [
-          { text: '总体架构设计文档', link: '/src/architecture/总体架构设计文档' },
-          { text: '技术架构设计文档', link: '/src/architecture/技术架构设计文档' },
+          {
+            text: '总体架构设计文档',
+            link: '/src/architecture/总体架构设计文档',
+          },
+          {
+            text: '技术架构设计文档',
+            link: '/src/architecture/技术架构设计文档',
+          },
         ],
       },
       {

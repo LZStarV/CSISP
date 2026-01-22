@@ -1,6 +1,7 @@
-import { migrateDownOne, closeSequelize } from '../migration-runner';
 import { loadRootEnv } from '@csisp/utils';
+
 import { getInfraDbLogger } from '../logger';
+import { migrateDownOne, closeSequelize } from '../migration-runner';
 
 async function main() {
   loadRootEnv();

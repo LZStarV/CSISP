@@ -1,11 +1,12 @@
-import error from './error';
-import cors from './cors';
-import logger from './logger';
-import jwtAuth from './jwtAuth';
-import rateLimit from './rateLimit';
-import trace from './trace';
 import type Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
+
+import cors from './cors';
+import error from './error';
+import jwtAuth from './jwtAuth';
+import logger from './logger';
+import rateLimit from './rateLimit';
+import trace from './trace';
 
 // BFF 统一中间件装配入口
 //
@@ -16,7 +17,10 @@ import bodyParser from 'koa-bodyparser';
 // - jwtAuthMiddleware：JWT 鉴权
 // - rateLimitMiddleware：滑窗限流
 export const errorMiddleware = () =>
-  error({ showDetailsInDev: process.env.NODE_ENV === 'development', logErrors: true });
+  error({
+    showDetailsInDev: process.env.NODE_ENV === 'development',
+    logErrors: true,
+  });
 export const corsMiddleware = () => cors({});
 export const loggerMiddleware = () => logger({});
 export const jwtAuthMiddleware = () => jwtAuth();

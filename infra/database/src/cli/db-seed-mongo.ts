@@ -1,5 +1,6 @@
-import { MongoClient } from 'mongodb';
 import { loadRootEnv } from '@csisp/utils';
+import { MongoClient } from 'mongodb';
+
 import { getInfraDbLogger } from '../logger';
 
 async function main() {

@@ -1,5 +1,5 @@
-import type { Context, Next } from 'koa';
 import { getRequestLogger } from '@infra/logger';
+import type { Context, Next } from 'koa';
 
 // 全局错误处理中间件
 //
@@ -31,7 +31,8 @@ export default function error(options: ErrorOptions = {}) {
           'Unhandled error in BFF'
         );
       }
-      ctx.status = err.status || (ctx.status && ctx.status >= 400 ? ctx.status : 500);
+      ctx.status =
+        err.status || (ctx.status && ctx.status >= 400 ? ctx.status : 500);
       const body: Record<string, unknown> = {
         code: ctx.status,
         message: err.message || 'Internal Error',

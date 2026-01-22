@@ -9,7 +9,12 @@
     :show-feedback="showFeedback"
     :show-label="showLabel"
   >
-    <n-form-item v-for="field in fields" :key="field.key" :label="field.label" :path="field.key">
+    <n-form-item
+      v-for="field in fields"
+      :key="field.key"
+      :label="field.label"
+      :path="field.key"
+    >
       <!-- 输入框 -->
       <n-input
         v-if="field.type === 'input'"
@@ -94,7 +99,9 @@
         <component
           :is="field.render"
           :model-value="model[field.key]"
-          @update:model-value="(value: any) => handleFieldChange(field.key, value)"
+          @update:model-value="
+            (value: any) => handleFieldChange(field.key, value)
+          "
           :field="field"
           :model="model"
         />
@@ -104,8 +111,17 @@
 </template>
 
 <script setup lang="ts">
+import {
+  NForm,
+  NFormItem,
+  NInput,
+  NInputNumber,
+  NSelect,
+  NDatePicker,
+  NSwitch,
+} from 'naive-ui';
 import { ref, type PropType } from 'vue';
-import { NForm, NFormItem, NInput, NInputNumber, NSelect, NDatePicker, NSwitch } from 'naive-ui';
+
 import type { FormField } from '@/types';
 
 const props = defineProps({

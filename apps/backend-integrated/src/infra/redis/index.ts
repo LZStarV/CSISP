@@ -18,7 +18,9 @@ function buildUrl(opts: RedisOptions): string {
   return `redis://${host}:${port}/${db}`;
 }
 
-export async function connect(options: RedisOptions = {}): Promise<RedisClientType> {
+export async function connect(
+  options: RedisOptions = {}
+): Promise<RedisClientType> {
   if (client) return client;
   ns = options.namespace ?? process.env.REDIS_NAMESPACE ?? 'csisp';
   const url = buildUrl(options);
@@ -38,7 +40,11 @@ function k(key: string): string {
   return `${ns}:${key}`;
 }
 
-export async function set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+export async function set(
+  key: string,
+  value: string,
+  ttlSeconds?: number
+): Promise<void> {
   const c = getClient();
   if (ttlSeconds && ttlSeconds > 0) {
     await c.set(k(key), value, { EX: ttlSeconds });
@@ -67,7 +73,10 @@ export async function ttl(key: string): Promise<number> {
   return c.ttl(k(key));
 }
 
-export async function publish(channel: string, message: string): Promise<number> {
+export async function publish(
+  channel: string,
+  message: string
+): Promise<number> {
   const c = getClient();
   return c.publish(`${ns}:${channel}`, message);
 }

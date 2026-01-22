@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+
 import { getDatabaseUrl, isDatabaseConfigured } from '@/src/server/config/env';
 let pool: Pool | null = null;
 export function getPool() {

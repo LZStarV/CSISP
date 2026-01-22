@@ -5,7 +5,12 @@ export interface ContentDocument extends Document {
   type: 'announcement' | 'homework';
   title: string;
   richBody: string;
-  attachments: Array<{ name: string; path: string; size?: number; type?: string }>;
+  attachments: Array<{
+    name: string;
+    path: string;
+    size?: number;
+    type?: string;
+  }>;
   authorId: number; // 作者（发布者）ID：引用 PostgreSQL 的 user.id
   scope: { courseId?: number; classId?: number }; // 归属范围：课程/班级（用于筛选与权限校验）
   status: string;
@@ -37,7 +42,10 @@ export const ContentSchema = new Schema<ContentDocument>(
     },
     status: { type: String, required: true, default: 'published' }, // 状态：published/archived 等（保留扩展）
   },
-  { timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }, collection: 'content' }
+  {
+    timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
+    collection: 'content',
+  }
 );
 
 // 索引：提升常用列表与筛选性能

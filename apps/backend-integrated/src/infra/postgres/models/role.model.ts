@@ -1,8 +1,16 @@
-import { BelongsToMany, Column, DataType, Model, Table } from 'sequelize-typescript';
+import {
+  BelongsToMany,
+  Column,
+  DataType,
+  Model,
+  Table,
+} from 'sequelize-typescript';
+
 import type RoleRow from '../generated/public/Role';
 import type { RoleInitializer } from '../generated/public/Role';
-import { User } from './user.model';
+
 import { UserRole } from './user-role.model';
+import { User } from './user.model';
 
 @Table({
   tableName: 'role',

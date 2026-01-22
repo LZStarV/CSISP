@@ -40,9 +40,12 @@ export default function cors(options: CorsOptions = {}) {
       allowed = true;
     }
     if (credentials) ctx.set('Access-Control-Allow-Credentials', 'true');
-    if (allowMethods.length) ctx.set('Access-Control-Allow-Methods', allowMethods.join(', '));
-    if (allowHeaders.length) ctx.set('Access-Control-Allow-Headers', allowHeaders.join(', '));
-    if (exposeHeaders.length) ctx.set('Access-Control-Expose-Headers', exposeHeaders.join(', '));
+    if (allowMethods.length)
+      ctx.set('Access-Control-Allow-Methods', allowMethods.join(', '));
+    if (allowHeaders.length)
+      ctx.set('Access-Control-Allow-Headers', allowHeaders.join(', '));
+    if (exposeHeaders.length)
+      ctx.set('Access-Control-Expose-Headers', exposeHeaders.join(', '));
     if (maxAge) ctx.set('Access-Control-Max-Age', String(maxAge));
     if (ctx.method === 'OPTIONS') {
       ctx.status = 204;

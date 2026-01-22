@@ -95,13 +95,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, h } from 'vue';
+import {
+  RefreshOutline,
+  AddOutline,
+  TrashOutline,
+  DownloadOutline,
+} from '@vicons/ionicons5';
 import { useMessage, useDialog } from 'naive-ui';
-import { RefreshOutline, AddOutline, TrashOutline, DownloadOutline } from '@vicons/ionicons5';
-import { BaseTable, BaseSearch, BaseModal, BaseForm, PageContainer } from '@/components';
+import { NSpace, NButton, NPopconfirm, NTag } from 'naive-ui';
+import { ref, reactive, computed, onMounted, h } from 'vue';
+
+import {
+  BaseTable,
+  BaseSearch,
+  BaseModal,
+  BaseForm,
+  PageContainer,
+} from '@/components';
 import { useCourseStore } from '@/stores';
 import type { Course, TableColumn, SearchField, FormField } from '@/types';
-import { NSpace, NButton, NPopconfirm, NTag } from 'naive-ui';
 
 // 子组件 - 临时注释掉缺失的组件
 // const TeacherManagement = () => import('./components/TeacherManagement.vue');
@@ -210,7 +222,8 @@ const columns: TableColumn<Course>[] = [
     key: 'availableMajors',
     title: '适用专业',
     width: 200,
-    render: (value: string[]) => (Array.isArray(value) && value.length ? value.join(', ') : '-'),
+    render: (value: string[]) =>
+      Array.isArray(value) && value.length ? value.join(', ') : '-',
   },
   {
     key: 'status',
@@ -218,8 +231,16 @@ const columns: TableColumn<Course>[] = [
     width: 80,
     render: (value: number) => {
       return value === 1
-        ? h(NTag, { type: 'success' as any, size: 'small' }, { default: () => '启用' })
-        : h(NTag, { type: 'error' as any, size: 'small' }, { default: () => '禁用' });
+        ? h(
+            NTag,
+            { type: 'success' as any, size: 'small' },
+            { default: () => '启用' }
+          )
+        : h(
+            NTag,
+            { type: 'error' as any, size: 'small' },
+            { default: () => '禁用' }
+          );
     },
   },
   {
@@ -370,9 +391,22 @@ const basicFormRules = {
   ],
   semester: [{ required: true, type: 'number', message: '请选择学期' }],
   academicYear: [
-    { required: true, type: 'number', min: 2000, max: 3000, message: '请输入有效的学年' },
+    {
+      required: true,
+      type: 'number',
+      min: 2000,
+      max: 3000,
+      message: '请输入有效的学年',
+    },
   ],
-  availableMajors: [{ required: true, type: 'array', min: 1, message: '请至少选择一个适用专业' }],
+  availableMajors: [
+    {
+      required: true,
+      type: 'array',
+      min: 1,
+      message: '请至少选择一个适用专业',
+    },
+  ],
 };
 
 // 计算属性
@@ -380,7 +414,10 @@ const modalTitle = computed(() => {
   return modalType.value === 'create' ? '新增课程' : '编辑课程';
 });
 
-const breadcrumbs = computed(() => [{ label: '首页', path: '/' }, { label: '课程管理' }]);
+const breadcrumbs = computed(() => [
+  { label: '首页', path: '/' },
+  { label: '课程管理' },
+]);
 
 // 分页状态
 const currentPage = ref(1);

@@ -4,7 +4,12 @@ import type { Status, Timestamp } from './base';
 /**
  * 考勤状态枚举
  */
-export type AttendanceStatus = 'normal' | 'late' | 'absent' | 'leave' | 'not_checked';
+export type AttendanceStatus =
+  | 'normal'
+  | 'late'
+  | 'absent'
+  | 'leave'
+  | 'not_checked';
 
 /**
  * 考勤状态常量
@@ -44,7 +49,10 @@ export interface AttendanceTask extends AttendanceTaskBase {
 }
 
 // 创建考勤任务时的输入类型
-export type CreateAttendanceTaskInput = Omit<AttendanceTask, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateAttendanceTaskInput = Omit<
+  AttendanceTask,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 
 // 更新考勤任务时的输入类型
 export type UpdateAttendanceTaskInput = Partial<
@@ -71,11 +79,17 @@ export interface AttendanceRecord extends AttendanceRecordBase {
 }
 
 // 创建考勤记录时的输入类型
-export type CreateAttendanceRecordInput = Omit<AttendanceRecord, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateAttendanceRecordInput = Omit<
+  AttendanceRecord,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 
 // 更新考勤记录时的输入类型
 export type UpdateAttendanceRecordInput = Partial<
-  Omit<AttendanceRecord, 'id' | 'attendanceTaskId' | 'userId' | 'createdAt' | 'updatedAt'>
+  Omit<
+    AttendanceRecord,
+    'id' | 'attendanceTaskId' | 'userId' | 'createdAt' | 'updatedAt'
+  >
 >;
 
 /**

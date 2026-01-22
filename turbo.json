@@ -11,7 +11,12 @@
     },
     "idl:gen": {
       "outputs": ["dist/**", "src/v1/**"],
-      "inputs": ["src/v1/**/*.thrift", "scripts/**", "tsconfig.json", "package.json"]
+      "inputs": [
+        "src/v1/**/*.thrift",
+        "scripts/**",
+        "tsconfig.json",
+        "package.json"
+      ]
     },
     "db:migrate": {
       "cache": false

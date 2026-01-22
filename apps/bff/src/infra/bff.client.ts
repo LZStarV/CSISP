@@ -1,5 +1,6 @@
-import { getBaseLogger } from './logger';
 import { request } from 'undici';
+
+import { getBaseLogger } from './logger';
 
 export type BffHttpClient = ReturnType<typeof createHttpClient>;
 
@@ -41,7 +42,11 @@ function createHttpClient(opts: Opts) {
   // - 使用 undici.request 发送请求
   // - 非 2xx 视为错误并抛出
   // - 输出统一的 upstream 日志（含 method/url/status/duration/traceId）
-  async function run(method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, init?: any) {
+  async function run(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    url: string,
+    init?: any
+  ) {
     const start = Date.now();
     const res = await request(base + url, {
       method,
@@ -49,7 +54,9 @@ function createHttpClient(opts: Opts) {
       body: init?.body,
     });
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Object.assign(new Error('Upstream Error'), { code: res.statusCode });
+      throw Object.assign(new Error('Upstream Error'), {
+        code: res.statusCode,
+      });
     }
     const dur = Date.now() - start;
     const traceId = opts.headers?.['X-Trace-Id'];
@@ -71,8 +78,10 @@ function createHttpClient(opts: Opts) {
 
   return {
     get: (url: string) => run('GET', url),
-    post: (url: string, body?: any) => run('POST', url, { body: body && JSON.stringify(body) }),
-    put: (url: string, body?: any) => run('PUT', url, { body: body && JSON.stringify(body) }),
+    post: (url: string, body?: any) =>
+      run('POST', url, { body: body && JSON.stringify(body) }),
+    put: (url: string, body?: any) =>
+      run('PUT', url, { body: body && JSON.stringify(body) }),
     del: (url: string) => run('DELETE', url),
     // 从 Response 中解析 JSON
     json: async (p: Promise<any>) => (await p).body.json(),

@@ -1,7 +1,12 @@
+import {
+  PeopleOutline,
+  BookOutline,
+  CheckmarkCircleOutline,
+} from '@vicons/ionicons5';
+import type { EChartsOption } from 'echarts';
 import type { Component } from 'vue';
 import { markRaw } from 'vue';
-import { PeopleOutline, BookOutline, CheckmarkCircleOutline } from '@vicons/ionicons5';
-import type { EChartsOption } from 'echarts';
+
 import type { UserGrowthData, CourseDistributionData } from '@/api/dashboard';
 
 export interface StatsCardConfig {
@@ -32,7 +37,9 @@ export const defaultStatsCards: StatsCardConfig[] = [
   },
 ];
 
-export const buildUserGrowthOption = (data: UserGrowthData[]): EChartsOption => {
+export const buildUserGrowthOption = (
+  data: UserGrowthData[]
+): EChartsOption => {
   const xAxisData = data.map(item => item.date);
   const seriesData = data.map(item => item.count);
 
@@ -71,7 +78,9 @@ export const buildUserGrowthOption = (data: UserGrowthData[]): EChartsOption => 
   };
 };
 
-export const buildCourseDistributionOption = (data: CourseDistributionData[]): EChartsOption => {
+export const buildCourseDistributionOption = (
+  data: CourseDistributionData[]
+): EChartsOption => {
   return {
     tooltip: {
       trigger: 'item',
