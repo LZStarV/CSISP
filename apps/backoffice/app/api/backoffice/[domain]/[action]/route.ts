@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 
+import { wrapError } from '@/src/server/middleware/errorWrapper';
+import { withAuth } from '@/src/server/middleware/jwtAuth';
+import { logRpc } from '@/src/server/middleware/logger';
+import { limit } from '@/src/server/middleware/rateLimit';
+import { withTraceId } from '@/src/server/middleware/trace';
 import { dispatch } from '@/src/server/rpc/dispatcher';
 import {
   isMethodValid,
-  jsonrpcSuccess,
-  jsonrpcError,
-} from '@/src/shared/config/jsonrpc';
+  success,
+  invalidRequest,
+} from '@/src/shared/config/jsonrpc/helpers';
 
 // JSON-RPC 统一入口（动态路由）
 // - 路径模式：/api/backoffice/:domain/:action
@@ -23,21 +28,37 @@ export async function POST(req: Request, context: any) {
   const id = body?.id ?? null;
 
   if (!isMethodValid(action, method)) {
-    return NextResponse.json(jsonrpcError(id, 400, 'Invalid method'), {
-      status: 400,
+    return NextResponse.json(invalidRequest(id, 'Invalid method'), {
+      status: 200,
     });
   }
 
   try {
-    const result = await dispatch(
-      domain,
-      action,
-      rpcParams,
-      req.headers as Headers
-    );
-    return NextResponse.json(jsonrpcSuccess(id, result), { status: 200 });
+    const ctx: Record<string, any> = {
+      headers: req.headers,
+      ip: 'local',
+      path: `/api/backoffice/${domain}/${action}`,
+    };
+    withTraceId(ctx);
+    withAuth(ctx);
+    await limit({ ip: ctx.ip, path: ctx.path });
+    const start = Date.now();
+    const result = await dispatch(domain, action, rpcParams, ctx);
+    const logger = logRpc(ctx, { domain, action, id });
+    logger.info({ status: 200, duration: Date.now() - start }, 'RPC success');
+    return NextResponse.json(success(id, result), { status: 200 });
   } catch (e: any) {
-    const message = e?.message || 'Internal Error';
-    return NextResponse.json(jsonrpcError(id, 500, message), { status: 500 });
+    const resp = wrapError(id, e);
+    const ctx: Record<string, any> = {
+      headers: req.headers,
+      ip: 'local',
+      path: `/api/backoffice/${domain}/${action}`,
+    };
+    const logger = logRpc(ctx, { domain, action, id });
+    logger.info(
+      { status: 200, error: e?.message || 'Internal error' },
+      'RPC error'
+    );
+    return NextResponse.json(resp, { status: 200 });
   }
 }

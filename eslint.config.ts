@@ -39,7 +39,7 @@ export default [
       'docs/.vitepress/dist/**',
       'apps/backend-integrated/src/infra/postgres/generated/**',
       '**/.generated/**',
-      'apps/backoffice/src/db/generated/**',
+      'apps/backoffice/src/infra/postgres/generated/**',
     ],
   },
   {

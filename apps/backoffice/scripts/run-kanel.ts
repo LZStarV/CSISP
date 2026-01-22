@@ -23,7 +23,7 @@ const connectionString =
 const kanelBin = path.resolve(__dirname, '..', 'node_modules', '.bin', 'kanel');
 const result = spawnSync(
   kanelBin,
-  ['-d', connectionString, '-o', 'src/db/generated'],
+  ['-d', connectionString, '-o', 'src/infra/postgres/generated'],
   {
     stdio: 'inherit',
   }

@@ -1,15 +1,11 @@
-import * as auth from './handlers/auth';
-import * as db from './handlers/db';
-import * as i18n from './handlers/i18n';
-import * as logs from './handlers/logs';
-import * as user from './handlers/user';
+import { modules } from '@/src/server/modules';
+export type Handler = (
+  params: unknown,
+  ctx: Record<string, any>
+) => Promise<unknown>;
 
-export type Handler = (params: unknown, headers: Headers) => Promise<unknown>;
+export const registry: Record<string, Record<string, Handler>> = {};
 
-export const registry: Record<string, Record<string, Handler>> = {
-  auth,
-  user,
-  db,
-  logs,
-  i18n,
-};
+for (const m of modules) {
+  registry[m.domain] = m.handlers as any;
+}
