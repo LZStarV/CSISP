@@ -1,4 +1,5 @@
 import 'antd/dist/reset.css';
+import '@/src/client/ui/style/globals.scss';
 
 export default function RootLayout({
   children,

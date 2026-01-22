@@ -7,9 +7,9 @@ import { limit } from '@/src/server/middleware/rateLimit';
 import { withTraceId } from '@/src/server/middleware/trace';
 import { dispatch } from '@/src/server/rpc/dispatcher';
 import {
-  isMethodValid,
   success,
-  invalidRequest,
+  mapRpcToHttpStatus,
+  setRpcHeaders,
 } from '@/src/shared/config/jsonrpc/helpers';
 
 // JSON-RPC 统一入口（动态路由）
@@ -23,15 +23,8 @@ export async function POST(req: Request, context: any) {
   const { domain, action } = await (context?.params ?? {});
 
   const body = await req.json();
-  const method = String(body?.method ?? '');
   const rpcParams = body?.params ?? {};
   const id = body?.id ?? null;
-
-  if (!isMethodValid(action, method)) {
-    return NextResponse.json(invalidRequest(id, 'Invalid method'), {
-      status: 200,
-    });
-  }
 
   try {
     const ctx: Record<string, any> = {
@@ -44,9 +37,29 @@ export async function POST(req: Request, context: any) {
     await limit({ ip: ctx.ip, path: ctx.path });
     const start = Date.now();
     const result = await dispatch(domain, action, rpcParams, ctx);
-    const logger = logRpc(ctx, { domain, action, id });
+    const logger = logRpc(ctx, {
+      domain,
+      action,
+      id,
+      userId: ctx.state?.user?.id,
+      roles: ctx.state?.user?.roles,
+    });
+    const body = success(id, result);
+    const res = NextResponse.json(body, { status: 200 });
+    if (domain === 'auth' && action === 'login' && (result as any)?.token) {
+      const token = (result as any).token as string;
+      const secure = process.env.NODE_ENV === 'production';
+      res.cookies.set('token', token, {
+        httpOnly: true,
+        secure,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 2 * 60 * 60, // 2 hours
+      });
+    }
+    setRpcHeaders(res, 0, 'OK', ctx.state?.traceId);
     logger.info({ status: 200, duration: Date.now() - start }, 'RPC success');
-    return NextResponse.json(success(id, result), { status: 200 });
+    return res;
   } catch (e: any) {
     const resp = wrapError(id, e);
     const ctx: Record<string, any> = {
@@ -54,11 +67,23 @@ export async function POST(req: Request, context: any) {
       ip: 'local',
       path: `/api/backoffice/${domain}/${action}`,
     };
-    const logger = logRpc(ctx, { domain, action, id });
-    logger.info(
-      { status: 200, error: e?.message || 'Internal error' },
-      'RPC error'
+    const code = (resp as any)?.error?.code ?? 0;
+    const message = (resp as any)?.error?.message ?? 'Internal error';
+    const status = mapRpcToHttpStatus(
+      code,
+      message,
+      (resp as any)?.error?.data
     );
-    return NextResponse.json(resp, { status: 200 });
+    const logger = logRpc(ctx, {
+      domain,
+      action,
+      id,
+      userId: ctx.state?.user?.id,
+      roles: ctx.state?.user?.roles,
+    });
+    const res = NextResponse.json(resp, { status });
+    setRpcHeaders(res, code, message, ctx.state?.traceId);
+    logger.error({ status, error: message, rpc_code: code }, 'RPC error');
+    return res;
   }
 }

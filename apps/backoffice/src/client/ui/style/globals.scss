@@ -1,0 +1,15 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+html,
+body {
+  height: 100%;
+}
+
+.flex-center {
+  @include flex-center;
+}
+
+.ellipsis {
+  @include ellipsis;
+}

@@ -27,14 +27,56 @@
 - src/shared/config/jsonrpc：JSON-RPC 辅助（codes/helpers/types）
 - scripts/run-kanel.ts：类型生成脚本，输出到 src/infra/postgres/generated/public
 
+**客户端路由与守卫**
+
+- App Router 客户端组件
+  - 在需要使用路由、交互或浏览器 API 的组件/页面顶部加 'use client'
+  - 受保护区段统一放在 (admin) 路由分组下，并在其布局中做守卫
+- 守卫 Hook（进入受保护区段时检查登录态）
+  - 位置：src/client/hooks/useAdminGuard.ts
+  - 用法：在 (admin)/layout.tsx 中调用 useAdminGuard()；未登录会跳转到 /login?next=当前路径
+  - 登录态检查：通过 utils/auth.checkLogin() 调用 /api/backoffice/auth/me，附带 Cookie 验证
+- 登录页
+  - 位置：app/(auth)/login/page.tsx
+  - 行为：提交登录后服务端设置 HttpOnly Cookie，并写入 Redis 会话；客户端依赖 auth.me 校验登录态
+- 服务端鉴权与会话
+  - 中间件 jwtAuth 支持从 Authorization Bearer 或 Cookie 读取 token，验签并校验 Redis 会话
+  - 会话模块：src/server/auth/session.ts（Redis 优先、缺失时内存回退，默认 TTL 2 小时）
+  - 控制器：auth.controller.ts 的 login/me 完成登录与会话校验
+
+**样式写法与用法**
+
+- 页面/组件级样式
+  - 推荐使用 SCSS Modules 并与页面同目录命名为 \*.module.scss
+  - 引入方式：import styles from './xxx.module.scss'，使用 className={styles.xxx}
+  - TypeScript 类型声明：apps/backoffice/src/client/types/style.d.ts（声明 _.scss 与 _.module.scss）
+- 全局样式与设计变量
+  - 全局样式在 RootLayout 引入；设计变量与混入集中在 src/client/ui/style 下维护
+  - 页面样式尽量模块化，避免在页面中直接写全局样式
+- 可选：内联样式
+  - 简单页面也可用内联 style（登录页示例已展示），但不利于复用与维护；推荐仍以 SCSS Modules 为主
+
 **RPC 规范**
 
 - 路由格式：POST /api/backoffice/:domain/:action
-  - 请求体需包含 method，且与 :action 一致；params 为方法参数，id 可选
+  - 请求体不再需要携带 method；params 为方法参数，id 可选（由服务端自动生成也可）
 - 响应（JSON-RPC 2.0）
   - 成功：{ jsonrpc: '2.0', id, result }
   - 失败：{ jsonrpc: '2.0', id, error: { code, message, data? } }
   - 错误编码由 shared/config/jsonrpc/codes.ts 定义（InvalidRequest/MethodNotFound/InvalidParams/InternalError）
+- 响应码策略（可开关）：
+  - 默认启用“有限状态码”映射：
+    - 404：MethodNotFound/Unknown
+    - 422：InvalidParams
+    - 400：InvalidRequest
+    - 401/403：Unauthorized/Forbidden（来自 jwtAuth/roles）
+    - 429：RateLimit（限流，data 含 remaining/resetMs）
+    - 500：InternalError
+- 响应头约定（前端可依赖）：
+  - X-RPC-Code：JSON-RPC 错误码（成功为 0）
+  - X-RPC-Message：错误信息或 OK
+  - X-RPC-Enum：错误枚举键（如 InvalidParams/MethodNotFound）
+  - X-Trace-Id：链路追踪 ID
 - 文档端点（OpenRPC）
   - GET /api/backoffice/openrpc.json（内部使用）
   - 文档由 modules 的 schemas 聚合生成（含 summary/params/result 简化说明）
@@ -73,6 +115,7 @@
 - REDIS_HOST/REDIS_PORT/REDIS_DB/REDIS_PASSWORD：Redis 连接配置
 - MONGODB_URI/MONGODB_DB：Mongo 连接配置
 - DOCS_ENABLED：是否启用内部文档端点（可选）
+- 加载方式：统一通过根目录 .env/.env.local 注入，示例参见 [项目根 .env.example](file:///Users/bytedance/project/CSISP/.env.example)（不再使用 apps/backoffice/.env.template）
 
 **开发与脚本**
 
