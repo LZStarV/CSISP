@@ -120,6 +120,8 @@ docs/.vitepress/cache
 .trae/*
 !.trae/rules/
 !.trae/rules/*
+!.trae/skills/
+!.trae/skills/*
 *.swp
 *.swo
 *~

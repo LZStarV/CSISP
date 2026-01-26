@@ -40,6 +40,7 @@ export default [
       'apps/backend-integrated/src/infra/postgres/generated/**',
       '**/.generated/**',
       'apps/backoffice/src/infra/postgres/generated/**',
+      'docs/index.md',
     ],
   },
   {
