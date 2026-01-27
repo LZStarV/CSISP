@@ -11,6 +11,7 @@
     "dev:infra": "turbo run db:init --filter=@csisp/infra-database && turbo run idl:gen --filter=@csisp/idl",
     "dev:backend-integrated": "turbo run db:types --filter=@csisp/backend-integrated && turbo run dev --filter=@csisp/backend-integrated",
     "dev:backoffice": "turbo run db:types --filter=@csisp/backoffice && turbo run dev --filter=@csisp/backoffice",
+    "dev:idp": "turbo run dev --filter=@csisp/idp-client --filter=@csisp/idp-server",
     "dev:bff": "turbo run dev --filter=@csisp/bff",
     "dev:admin": "turbo run dev --filter=@csisp/frontend-admin",
     "dev:portal": "turbo run dev --filter=@csisp/frontend-portal",
@@ -65,7 +66,10 @@
   "pnpm": {
     "overrides": {
       "dotenv": "^16.4.5"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "argon2"
+    ]
   },
   "dependencies": {
     "@creditkarma/thrift-server-core": "^1.0.4"

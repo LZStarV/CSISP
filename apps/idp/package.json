@@ -1,0 +1,17 @@
+{
+  "name": "@csisp/idp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "pnpm kanel && pnpm -r --filter ./client --filter ./server dev",
+    "build": "pnpm -r --filter ./client build && pnpm -r --filter ./server build",
+    "start": "pnpm -F ./server start",
+    "kanel": "pnpm -F ./server kanel",
+    "format": "pnpm -r --filter ./server --filter ./client exec eslint . --fix && pnpm -r --filter ./server --filter ./client exec prettier --write ."
+  }
+}

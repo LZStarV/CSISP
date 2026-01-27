@@ -49,6 +49,11 @@ export async function up(): Promise<void> {
           allowNull: false,
           defaultValue: 1,
         },
+        weak_password_flag: {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: false,
+        },
         email: {
           type: DataTypes.STRING(255),
           allowNull: true,

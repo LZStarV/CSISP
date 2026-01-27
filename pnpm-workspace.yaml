@@ -1,6 +1,8 @@
 packages:
   # 应用层 - 可独立部署的应用
   - 'apps/*'
+  - 'apps/idp/client'
+  - 'apps/idp/server'
   - 'infra/*'
 
   # 共享包层 - 可复用的代码模块

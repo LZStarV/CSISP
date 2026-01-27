@@ -74,9 +74,13 @@ docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postg
 log_info "检查数据库是否已初始化"
 HAS_USER_TABLE=$(docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres \
   psql -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user';" 2>/dev/null || true)
+HAS_MFA_TABLE=$(docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres \
+  psql -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'mfa_settings';" 2>/dev/null || true)
+HAS_RESET_TABLE=$(docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres \
+  psql -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'password_resets';" 2>/dev/null || true)
 
-if [ "$HAS_USER_TABLE" = "1" ]; then
-  log_info "检测到数据库已存在 user 表，跳过迁移步骤"
+if [ "$HAS_USER_TABLE" = "1" ] && [ "$HAS_MFA_TABLE" = "1" ] && [ "$HAS_RESET_TABLE" = "1" ]; then
+  log_info "检测到核心表已存在（user/mfa_settings/password_resets），跳过迁移步骤"
 else
   log_info "执行数据库迁移（@csisp/infra-database db:migrate）"
   if command -v pnpm >/dev/null 2>&1; then
@@ -101,6 +105,17 @@ if [ "${MONGODB_ENABLED:-true}" != "false" ]; then
     log_error "未检测到 pnpm，请先安装 pnpm 后再重试"
     exit 1
   fi
+fi
+
+log_info "执行统一种子（@csisp/infra-database db:seed）"
+if command -v pnpm >/dev/null 2>&1; then
+  (cd "$ROOT_DIR" && pnpm -F @csisp/infra-database db:seed) || {
+    log_error "统一种子执行失败，请检查日志"
+    exit 1
+  }
+else
+  log_error "未检测到 pnpm，请先安装 pnpm 后再重试"
+  exit 1
 fi
 
 log_success "初始化完成"

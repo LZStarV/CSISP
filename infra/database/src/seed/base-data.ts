@@ -1,15 +1,21 @@
-import { QueryTypes } from 'sequelize';
-import bcrypt from 'bcrypt';
-import { getSequelize } from '../sequelize-client';
-import { ADMIN_USER_SEED, BASE_ROLES } from '../seed/base';
 import { loadRootEnv } from '@csisp/utils';
+import bcrypt from 'bcrypt';
+import { QueryTypes } from 'sequelize';
+
+import { getInfraDbLogger } from '../logger';
+import { getSequelize, closeSequelize } from '../sequelize-client';
+
+import { ADMIN_USER_SEED, BASE_ROLES } from './config';
 
 loadRootEnv();
-export async function up(): Promise<void> {
+const logger = getInfraDbLogger();
+
+export async function seedBaseData(): Promise<void> {
   const sequelize = getSequelize();
-  const queryInterface = sequelize.getQueryInterface();
+  const qi = sequelize.getQueryInterface();
   const now = new Date();
 
+  logger.info('开始写入基础角色');
   for (const role of BASE_ROLES) {
     const existingRoles = (await sequelize.query(
       'SELECT id FROM role WHERE code = :code LIMIT 1',
@@ -18,9 +24,8 @@ export async function up(): Promise<void> {
         type: QueryTypes.SELECT,
       }
     )) as Array<{ id: number }>;
-
     if (!existingRoles.length) {
-      await queryInterface.bulkInsert('role', [
+      await qi.bulkInsert('role', [
         {
           name: role.name,
           code: role.code,
@@ -30,18 +35,11 @@ export async function up(): Promise<void> {
           updated_at: now,
         },
       ]);
+      logger.info({ role: role.code }, '插入角色成功');
     }
   }
 
-  const adminRoleRows = (await sequelize.query(
-    'SELECT id FROM role WHERE code = :code LIMIT 1',
-    {
-      replacements: { code: 'admin' },
-      type: QueryTypes.SELECT,
-    }
-  )) as Array<{ id: number }>;
-  const adminRoleId = adminRoleRows.length ? adminRoleRows[0].id : null;
-
+  logger.info('检查并创建 admin 用户');
   const adminUsername = ADMIN_USER_SEED.username;
   const adminUserRows = (await sequelize.query(
     'SELECT id FROM "user" WHERE username = :username LIMIT 1',
@@ -50,12 +48,11 @@ export async function up(): Promise<void> {
       type: QueryTypes.SELECT,
     }
   )) as Array<{ id: number }>;
-
   let userId: number | null = adminUserRows.length ? adminUserRows[0].id : null;
 
   if (!userId) {
     const hashed = await bcrypt.hash('admin123', 10);
-    await queryInterface.bulkInsert('user', [
+    await qi.bulkInsert('user', [
       {
         username: ADMIN_USER_SEED.username,
         password: hashed,
@@ -70,7 +67,6 @@ export async function up(): Promise<void> {
         updated_at: now,
       },
     ]);
-
     const createdRows = (await sequelize.query(
       'SELECT id FROM "user" WHERE username = :username LIMIT 1',
       {
@@ -79,7 +75,17 @@ export async function up(): Promise<void> {
       }
     )) as Array<{ id: number }>;
     userId = createdRows.length ? createdRows[0].id : null;
+    logger.info({ userId }, '创建 admin 用户成功');
   }
+
+  const adminRoleRows = (await sequelize.query(
+    'SELECT id FROM role WHERE code = :code LIMIT 1',
+    {
+      replacements: { code: 'admin' },
+      type: QueryTypes.SELECT,
+    }
+  )) as Array<{ id: number }>;
+  const adminRoleId = adminRoleRows.length ? adminRoleRows[0].id : null;
 
   if (adminRoleId && userId) {
     const linkRows = (await sequelize.query(
@@ -89,9 +95,8 @@ export async function up(): Promise<void> {
         type: QueryTypes.SELECT,
       }
     )) as Array<unknown>;
-
     if (!linkRows.length) {
-      await queryInterface.bulkInsert('user_role', [
+      await qi.bulkInsert('user_role', [
         {
           user_id: userId,
           role_id: adminRoleId,
@@ -99,32 +104,10 @@ export async function up(): Promise<void> {
           updated_at: now,
         },
       ]);
+      logger.info('绑定 admin 用户角色成功');
     }
   }
-}
 
-export async function down(): Promise<void> {
-  const sequelize = getSequelize();
-  const queryInterface = sequelize.getQueryInterface();
-  const adminUsername = ADMIN_USER_SEED.username;
-
-  const adminUserRows = (await sequelize.query(
-    'SELECT id FROM "user" WHERE username = :username LIMIT 1',
-    {
-      replacements: { username: adminUsername },
-      type: QueryTypes.SELECT,
-    }
-  )) as Array<{ id: number }>;
-
-  if (adminUserRows.length) {
-    const adminUserId = adminUserRows[0].id;
-    await queryInterface.bulkDelete('user_role', { user_id: adminUserId }, {});
-    await queryInterface.bulkDelete('user', { username: adminUsername }, {});
-  }
-
-  await queryInterface.bulkDelete(
-    'role',
-    { code: BASE_ROLES.map(role => role.code) },
-    {}
-  );
+  await closeSequelize();
+  logger.info('基础角色与 admin 用户种子完成');
 }

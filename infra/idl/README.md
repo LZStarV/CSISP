@@ -11,7 +11,8 @@
 - 源文件：`src/<module>/v1/*.thrift`
   - backoffice：`auth.thrift`、`user.thrift`、`db.thrift`、`logs.thrift`、`i18n.thrift`、`common.thrift`
   - backend：课程/作业等领域 IDL
-- 生成脚本：`scripts/config.sh`、`scripts/gen-ts.sh`、`scripts/gen-js.sh`
+- CLI：`cli/*.ts`（统一入口，使用 tsx 执行）
+- 脚本（可选参考）：`scripts/config.sh`、`scripts/gen-ts.sh`、`scripts/gen-js.sh`
 - 产物目录（不写入 src）：
   - TypeScript 源（中间产物）：`.generated/ts/<module>/v1/**`
   - TypeScript 编译产物（最终）：`dist/ts/<module>/v1/**`
@@ -19,16 +20,16 @@
 
 ## 构建与生成
 
-- 一次性生成（TS + JS）：
-  - `pnpm -F @csisp/idl idl:gen`
-- 仅 TS（含 tsc 编译到 dist/ts）：
-  - `pnpm -F @csisp/idl gen:ts`
-- 仅 JS（Thrift 编译到 dist/js）：
-  - `pnpm -F @csisp/idl gen:js`
-- 可选环境变量（脚本由 `config.sh` 读取）：
-  - `IDL_VERSION`（默认 v1）
-  - `IDL_SOURCE_DIR`（指定单模块源目录）
-  - `TS_OUT_DIR` / `JS_OUT_DIR`（覆盖输出目录）
+- CLI 用法（统一入口）：
+  - 一次生成（TS + JS）：`pnpm -F @csisp/idl idl:gen`
+  - 仅 TS 生成：`pnpm -F @csisp/idl gen:ts`
+  - 仅 JS 生成：`pnpm -F @csisp/idl gen:js`
+  - 兼容性检查（提示不阻断）：`pnpm -F @csisp/idl idl:check`
+  - 版本对比（vN→vN+1）：`pnpm -F @csisp/idl idl:diff`
+  - 环境诊断：`pnpm -F @csisp/idl idl doctor`
+  - 环境变量（可选）：`IDL_VERSION`（默认 v1）、`IDL_SOURCE_DIR`（单模块源）
+  - 模块扫描约定：默认扫描 `backoffice`、`backend`、`idp`
+  - 日志：开发环境启用彩色单行输出（pino-pretty），生产环境输出 JSON 结构化日志
 
 ## 在应用中使用（apps/backoffice）
 
@@ -49,6 +50,9 @@
 - Thrift 命名空间（backoffice 模块）：
   - `namespace js auth|user|db|logs|i18n|common`
 - 字段 ID 稳定不可重排；新增字段尽量使用 `optional`
+- 兼容性规则（检查仅提示）：
+  - 禁止重复的字段 ID
+  - 新增字段建议为 `optional`，避免破坏性变更
 - 别名与导出：
   - 包 `exports` 提供聚合入口路径（如 `@csisp/idl/backoffice`）用于类型导入
   - JS 运行时通过 `@csisp/idl/js/<module>/v1/*` 引入
@@ -57,7 +61,7 @@
 
 - 新增领域：在相应 `src/<module>/v1` 下增加 `.thrift`
 - 破坏性变更：复制到 `v2` 并平滑迁移上下游引用
-- 生成脚本将自动扫描固定模块 `backoffice`、`backend`
+- CLI 将自动扫描固定模块 `backoffice`、`backend`、`idp`
 
 ## 常见问题
 

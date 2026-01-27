@@ -3,15 +3,18 @@
   "name": "@csisp/idl",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "gen:ts": "bash ./scripts/gen-ts.sh && tsc -p tsconfig.json",
-    "gen:js": "bash ./scripts/gen-js.sh",
-    "idl:gen": "pnpm gen:ts && pnpm gen:js",
+    "gen:ts": "tsx ./cli/index.ts gen --ts",
+    "gen:js": "tsx ./cli/index.ts gen --js",
+    "idl:gen": "tsx ./cli/index.ts gen --ts --js",
+    "idl:check": "tsx ./cli/index.ts check",
+    "idl:diff": "tsx ./cli/index.ts diff",
     "build": "pnpm idl:gen"
   },
+  "bin": {},
   "files": [
     "dist",
     "src/v1"
@@ -19,11 +22,18 @@
   "exports": {
     "./backoffice": {
       "import": "./dist/backoffice.js",
+      "require": "./dist/backoffice.js",
       "types": "./dist/backoffice.d.ts"
     },
     "./backend": {
       "import": "./dist/backend.js",
+      "require": "./dist/backend.js",
       "types": "./dist/backend.d.ts"
+    },
+    "./idp": {
+      "import": "./dist/idp.js",
+      "require": "./dist/idp.js",
+      "types": "./dist/idp.d.ts"
     },
     "./ts/*": {
       "import": "./dist/ts/*",
@@ -34,15 +44,28 @@
   },
   "typesVersions": {
     "*": {
+      "backoffice": [
+        "dist/backoffice"
+      ],
+      "backend": [
+        "dist/backend"
+      ],
+      "idp": [
+        "dist/idp"
+      ],
       "ts/*": [
         "dist/ts/*"
       ]
     }
   },
   "dependencies": {
-    "@creditkarma/thrift-server-core": "^1.0.4"
+    "@creditkarma/thrift-server-core": "^1.0.4",
+    "pino": "^9.3.1",
+    "@csisp/utils": "workspace:*"
   },
   "devDependencies": {
-    "@creditkarma/thrift-typescript": "^3.7.6"
+    "@creditkarma/thrift-typescript": "^3.7.6",
+    "tsx": "^4.19.2",
+    "pino-pretty": "^10.3.1"
   }
 }
