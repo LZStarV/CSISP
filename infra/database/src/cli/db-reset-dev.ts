@@ -1,6 +1,6 @@
 import { loadRootEnv } from '@csisp/utils';
 import type { QueryInterface } from 'sequelize';
-import { Umzug } from 'umzug';
+import { Umzug, SequelizeStorage } from 'umzug';
 
 import { getInfraDbLogger } from '../logger';
 import { getSequelize, closeSequelize } from '../sequelize-client';
@@ -15,7 +15,10 @@ function createUmzug(): Umzug<QueryInterface> {
       glob: 'src/migrations/*.ts',
     },
     context: queryInterface,
-    storage: undefined,
+    storage: new SequelizeStorage({
+      sequelize,
+      tableName: 'schema_migrations',
+    }),
     logger: {
       info: (message: unknown) => logger.info(message),
       warn: (message: unknown) => logger.warn(message),

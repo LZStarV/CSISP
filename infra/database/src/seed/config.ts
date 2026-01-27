@@ -18,14 +18,17 @@ export type AdminUserSeed = {
   major: string;
   email: string;
   phone: string;
+  password: string;
 };
 
 export const ADMIN_USER_SEED: AdminUserSeed = {
-  username: 'admin',
-  realName: '系统管理员',
+  username: 'LZStarV',
+  realName: '管理员',
   studentId: '20232131082',
   enrollmentYear: 2023,
   major: '计算机科学与技术',
-  email: 'admin@csisp.edu',
-  phone: '13800000000',
+  email: '3654498270@qq.com',
+  phone: '13702501230',
+  password:
+    'scrypt$eNY9JfueXuvppVAP3RKgTg==$554SPCMIbGIGxWcvrjWUXdWdyBYHsiFGighDP3rkYVY=',
 };

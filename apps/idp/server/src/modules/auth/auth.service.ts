@@ -7,7 +7,10 @@ import { IsString, Length, validateSync } from 'class-validator';
 import type { Response } from 'express';
 
 import { signHS256, parseDurationToSeconds } from '../../infra/crypto/jwt';
-import { verifyPassword } from '../../infra/crypto/password';
+import {
+  verifyPassword,
+  hashPasswordScrypt,
+} from '../../infra/crypto/password';
 import { getPublicKey } from '../../infra/crypto/rsa';
 import { getIdpLogger } from '../../infra/logger';
 import { MfaSettingsModel } from '../../infra/postgres/models/mfa-settings.model';
@@ -19,7 +22,7 @@ type RpcParams = Record<string, any>;
 class LoginParamsDto {
   @IsString()
   @Length(1, 128)
-  username!: string;
+  studentId!: string;
   @IsString()
   @Length(1, 512)
   password!: string;
@@ -40,15 +43,15 @@ export class AuthService {
   }
 
   async login(params: {
-    username: string;
+    studentId: string;
     password: string;
   }): Promise<LoginResult> {
     const dto = plainToInstance(LoginParamsDto, params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new HttpException('Invalid params', 400);
     const user = await (this.userModel as any).findOne({
-      where: { username: dto.username },
-      attributes: ['id', 'username', 'phone', 'password'],
+      where: { student_id: dto.studentId },
+      attributes: ['id', 'username', 'student_id', 'phone', 'password'],
     });
     if (!user) {
       throw new HttpException('Invalid username or password', 401);
@@ -61,6 +64,14 @@ export class AuthService {
       if ((user as any).password !== dto.password) {
         throw new HttpException('Invalid username or password', 401);
       }
+    }
+    const pwd: string = (user as any).password ?? '';
+    const isFirstLogin = !pwd.startsWith('scrypt$');
+    if (isFirstLogin) {
+      return new LoginResult({
+        next: ['reset_password'],
+        multifactor: [],
+      });
     }
 
     let mfa: IMethod[] = [
@@ -141,24 +152,46 @@ export class AuthService {
   }
 
   async resetPassword(_params: {
+    studentId: string;
     newPassword: string;
     reason: ResetReason;
   }): Promise<Next> {
-    return new Next({ next: ['enter'] });
+    class ResetPasswordDto {
+      @IsString()
+      @Length(1, 128)
+      studentId!: string;
+      @IsString()
+      @Length(8, 64)
+      newPassword!: string;
+    }
+    const dto = plainToInstance(ResetPasswordDto, _params);
+    const errs = validateSync(dto, { whitelist: true });
+    if (errs.length) throw new HttpException('Invalid params', 400);
+    const user = await (this.userModel as any).findOne({
+      where: { student_id: dto.studentId },
+      attributes: ['id', 'student_id'],
+    });
+    if (!user) throw new HttpException('User not found', 404);
+    const hashed = await hashPasswordScrypt(dto.newPassword);
+    await (this.userModel as any).update(
+      { password: hashed },
+      { where: { student_id: dto.studentId } }
+    );
+    return new Next({ next: ['multifactor'] });
   }
 
   async enter(_params: RpcParams, res?: Response): Promise<Next> {
     class EnterParamsDto {
       @IsString()
       @Length(1, 128)
-      username!: string;
+      studentId!: string;
     }
     const dto = plainToInstance(EnterParamsDto, _params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new HttpException('Invalid params', 400);
     const user = await (this.userModel as any).findOne({
-      where: { username: dto.username },
-      attributes: ['id', 'username', 'status'],
+      where: { student_id: dto.studentId },
+      attributes: ['id', 'username', 'student_id', 'status'],
     });
     if (!user) throw new HttpException('User not found', 404);
     const secret = process.env.JWT_SECRET || 'local-dev-do-not-use';
@@ -171,7 +204,12 @@ export class AuthService {
       604800
     );
     const accessToken = signHS256(
-      { sub: (user as any).id, username: (user as any).username, scope: 'idp' },
+      {
+        sub: (user as any).id,
+        username: (user as any).username,
+        studentId: (user as any).student_id,
+        scope: 'idp',
+      },
       secret,
       accessExp
     );

@@ -126,6 +126,7 @@ export async function up(): Promise<void> {
         user_id: {
           type: DataTypes.INTEGER,
           allowNull: false,
+          primaryKey: true,
           references: {
             model: 'user',
             key: 'id',
@@ -135,6 +136,7 @@ export async function up(): Promise<void> {
         role_id: {
           type: DataTypes.INTEGER,
           allowNull: false,
+          primaryKey: true,
           references: {
             model: 'role',
             key: 'id',
@@ -154,13 +156,6 @@ export async function up(): Promise<void> {
       },
       { transaction }
     );
-
-    await queryInterface.addConstraint('user_role', {
-      fields: ['user_id', 'role_id'],
-      type: 'primary key',
-      name: 'user_role_pk',
-      transaction,
-    });
   });
 }
 

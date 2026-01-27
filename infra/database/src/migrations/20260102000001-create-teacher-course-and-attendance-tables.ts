@@ -119,7 +119,6 @@ export async function up(): Promise<void> {
     await queryInterface.addConstraint('course', {
       fields: ['course_code', 'semester', 'academic_year'],
       type: 'unique',
-      name: 'course_code_semester_year_unique',
       transaction,
     });
 
@@ -189,7 +188,6 @@ export async function up(): Promise<void> {
     await queryInterface.addConstraint('class', {
       fields: ['course_id', 'class_name'],
       type: 'unique',
-      name: 'class_course_class_name_unique',
       transaction,
     });
 
@@ -199,6 +197,7 @@ export async function up(): Promise<void> {
         course_id: {
           type: DataTypes.INTEGER,
           allowNull: false,
+          primaryKey: true,
           references: {
             model: 'course',
             key: 'id',
@@ -208,6 +207,7 @@ export async function up(): Promise<void> {
         teacher_id: {
           type: DataTypes.INTEGER,
           allowNull: false,
+          primaryKey: true,
           references: {
             model: 'teacher',
             key: 'id',
@@ -227,13 +227,6 @@ export async function up(): Promise<void> {
       },
       { transaction }
     );
-
-    await queryInterface.addConstraint('course_teacher', {
-      fields: ['course_id', 'teacher_id'],
-      type: 'primary key',
-      name: 'course_teacher_pk',
-      transaction,
-    });
 
     await queryInterface.createTable(
       'user_class',
@@ -289,7 +282,6 @@ export async function up(): Promise<void> {
     await queryInterface.addConstraint('user_class', {
       fields: ['user_id', 'class_id'],
       type: 'unique',
-      name: 'user_class_unique',
       transaction,
     });
 
@@ -447,7 +439,6 @@ export async function up(): Promise<void> {
     await queryInterface.addConstraint('attendance_record', {
       fields: ['task_id', 'user_id'],
       type: 'unique',
-      name: 'attendance_record_task_user_unique',
       transaction,
     });
   });

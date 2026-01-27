@@ -1,5 +1,4 @@
 import { loadRootEnv } from '@csisp/utils';
-import bcrypt from 'bcrypt';
 import { QueryTypes } from 'sequelize';
 
 import { getInfraDbLogger } from '../logger';
@@ -51,11 +50,10 @@ export async function seedBaseData(): Promise<void> {
   let userId: number | null = adminUserRows.length ? adminUserRows[0].id : null;
 
   if (!userId) {
-    const hashed = await bcrypt.hash('admin123', 10);
     await qi.bulkInsert('user', [
       {
         username: ADMIN_USER_SEED.username,
-        password: hashed,
+        password: ADMIN_USER_SEED.password,
         real_name: ADMIN_USER_SEED.realName,
         student_id: ADMIN_USER_SEED.studentId,
         enrollment_year: ADMIN_USER_SEED.enrollmentYear,

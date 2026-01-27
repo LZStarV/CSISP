@@ -43,7 +43,9 @@ function buildOptions(): SequelizeModuleOptions {
 
 @Module({
   imports: [
-    SequelizeModule.forRoot(buildOptions()),
+    SequelizeModule.forRootAsync({
+      useFactory: (): SequelizeModuleOptions => buildOptions(),
+    }),
     SequelizeModule.forFeature([...POSTGRES_MODELS]),
   ],
   exports: [SequelizeModule],
