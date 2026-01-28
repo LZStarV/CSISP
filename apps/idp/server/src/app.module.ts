@@ -5,7 +5,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 
 import { SequelizePostgresModule } from './infra/postgres/sequelize.module';
 import { RedisModule } from './infra/redis/redis.module';
-import { AuthModule, HealthModule } from './modules';
+import { DomainModules } from './modules';
 
 @Module({
   imports: [
@@ -15,8 +15,7 @@ import { AuthModule, HealthModule } from './modules';
     }),
     SequelizePostgresModule,
     RedisModule,
-    HealthModule,
-    AuthModule,
+    ...DomainModules,
   ],
 })
 export class AppModule {}

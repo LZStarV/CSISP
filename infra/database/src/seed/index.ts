@@ -4,6 +4,7 @@ import { getInfraDbLogger } from '../logger';
 
 import { seedBaseData } from './base-data';
 import { seedIdp } from './idp';
+import { seedOidc } from './oidc';
 
 loadRootEnv();
 const logger = getInfraDbLogger();
@@ -12,6 +13,7 @@ async function main() {
   logger.info('开始执行统一种子任务');
   await seedBaseData();
   await seedIdp();
+  await seedOidc();
   logger.info('统一种子任务完成');
 }
 

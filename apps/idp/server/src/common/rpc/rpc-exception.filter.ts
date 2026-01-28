@@ -22,7 +22,9 @@ export class RpcExceptionFilter implements ExceptionFilter {
       const message =
         (exception.getResponse?.() as any)?.message ?? exception.message;
       logger.warn({ status, message, id }, 'http exception');
-      response.status(status).json(makeRpcError(id, -32000, String(message)));
+      const code = status === 404 ? -32601 : -32000;
+      const msg = status === 404 ? 'Method not found' : String(message);
+      response.status(status).json(makeRpcError(id, code, msg));
     } else {
       logger.error(
         { err: (exception as any)?.stack || String(exception), id },

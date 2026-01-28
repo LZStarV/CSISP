@@ -93,7 +93,7 @@ infra/database/
 
 ## 4. 迁移与基础种子
 
-### 3.1 迁移设计
+### 4.1 迁移设计
 
 - 采用 **DB-first** 思路：
   - 所有表结构与索引演化由 `src/migrations/*.ts` 定义，是 PostgreSQL 的唯一结构事实源
@@ -107,7 +107,7 @@ infra/database/
   - 在 `sequelize.transaction` 中执行 `createTable`/`dropTable`/`addConstraint` 等操作
   - 时间字段（`created_at`/`updated_at` 等）使用 `sequelize.fn('NOW')` 作为默认值
 
-### 3.2 基础种子
+### 4.2 基础种子
 
 - 通过 `*-seed-base-*.ts` 这类迁移文件注入所有环境都需要的基础数据（如角色、初始账号等）。
 - 具体种子内容随业务演进调整，可在对应迁移中查阅实现。

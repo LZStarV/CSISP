@@ -15,6 +15,7 @@ async function bootstrap() {
     await connectRedis({});
   }
   const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix('/api/idp');
   app.useGlobalInterceptors(
     new RateLimitInterceptor(),
     new LoggingInterceptor()

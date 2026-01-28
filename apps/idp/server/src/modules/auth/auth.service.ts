@@ -6,7 +6,6 @@ import { plainToInstance } from 'class-transformer';
 import { IsString, Length, validateSync } from 'class-validator';
 import type { Response } from 'express';
 
-import { signHS256, parseDurationToSeconds } from '../../infra/crypto/jwt';
 import {
   verifyPassword,
   hashPasswordScrypt,
@@ -19,6 +18,9 @@ import { set as redisSet, get as redisGet } from '../../infra/redis';
 
 type RpcParams = Record<string, any>;
 
+// 登录参数说明：
+// - 使用 studentId + password 进行账号密码登录
+// - password 在前端通过 rsatoken 返回的 RSA 公钥进行加密传输（服务端按需解密后校验）
 class LoginParamsDto {
   @IsString()
   @Length(1, 128)
@@ -29,6 +31,12 @@ class LoginParamsDto {
 }
 
 @Injectable()
+// 认证服务：
+// - rsatoken：返回 RSA 公钥与短时 token
+// - login：账号密码校验 + 首次登录分流（reset_password）或进入多因子（multifactor）
+// - multifactor：短信验证码最小闭环（请求/校验），后续进入 enter
+// - reset_password：使用 scrypt 进行改密并写库
+// - enter：签发访问/刷新令牌（HS256）并通过 Cookie 下发
 export class AuthService {
   constructor(
     @InjectModel(UserModel) private readonly userModel: typeof UserModel,
@@ -36,6 +44,7 @@ export class AuthService {
     private readonly mfaSettingsModel: typeof MfaSettingsModel
   ) {}
   async rsatoken(_params: RpcParams): Promise<RSATokenResult> {
+    // 返回 RSA 公钥与短时 token，供前端进行密码加密传输
     return new RSATokenResult({
       publicKey: getPublicKey(),
       token: `rsat-${Date.now()}`,
@@ -46,9 +55,11 @@ export class AuthService {
     studentId: string;
     password: string;
   }): Promise<LoginResult> {
+    // 参数校验（运行时）
     const dto = plainToInstance(LoginParamsDto, params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new HttpException('Invalid params', 400);
+    // 查询用户（按学号）
     const user = await (this.userModel as any).findOne({
       where: { student_id: dto.studentId },
       attributes: ['id', 'username', 'student_id', 'phone', 'password'],
@@ -56,6 +67,7 @@ export class AuthService {
     if (!user) {
       throw new HttpException('Invalid username or password', 401);
     }
+    // 密码校验：优先 scrypt；兼容非 scrypt 存量（明文比较）
     const algo = (process.env.AUTH_HASH_ALGO ?? 'scrypt').toLowerCase();
     if (algo === 'scrypt') {
       const ok = await verifyPassword((user as any).password, dto.password);
@@ -65,6 +77,7 @@ export class AuthService {
         throw new HttpException('Invalid username or password', 401);
       }
     }
+    // 首次登录分流：非 scrypt$ 前缀视为首次登录，要求重置密码
     const pwd: string = (user as any).password ?? '';
     const isFirstLogin = !pwd.startsWith('scrypt$');
     if (isFirstLogin) {
@@ -74,6 +87,7 @@ export class AuthService {
       });
     }
 
+    // 构建多因子列表（根据 mfa_settings 动态启用）
     let mfa: IMethod[] = [
       { type: MFAType.SMS, extra: user?.phone ?? undefined, enabled: true },
       { type: MFAType.EMAIL, enabled: false },
@@ -107,6 +121,7 @@ export class AuthService {
       }
     }
 
+    // 返回进入多因子校验的指令
     return new LoginResult({
       next: ['multifactor'],
       multifactor: mfa,
@@ -118,6 +133,7 @@ export class AuthService {
     codeOrAssertion: string;
     phoneOrEmail: string;
   }): Promise<Next> {
+    // 多因子参数校验（最小闭环）：短信验证码请求与校验
     class MultifactorParamsDto {
       @IsString()
       type!: string;
@@ -138,6 +154,7 @@ export class AuthService {
     const logger = getIdpLogger('multifactor');
     const key = `idp:otp:${dto.phoneOrEmail}`;
     const code = dto.codeOrAssertion;
+    // 非 6 位数字视为“请求验证码”；生成后写入 Redis（TTL 300s）
     const isRequest = code.length !== 6 || /\D/.test(code);
     if (isRequest) {
       const otp = String(Math.floor(100000 + Math.random() * 900000));
@@ -145,6 +162,7 @@ export class AuthService {
       logger.info({ method: 'sms', target: dto.phoneOrEmail });
       return new Next({ next: ['multifactor'] });
     }
+    // 6 位数字视为“校验验证码”；比对 Redis 中的值
     const expected = await redisGet(key);
     if (!expected || expected !== code)
       throw new HttpException('Invalid verification code', 401);
@@ -156,6 +174,7 @@ export class AuthService {
     newPassword: string;
     reason: ResetReason;
   }): Promise<Next> {
+    // 重置密码：将新密码使用 scrypt 生成哈希并写入数据库
     class ResetPasswordDto {
       @IsString()
       @Length(1, 128)
@@ -177,14 +196,22 @@ export class AuthService {
       { password: hashed },
       { where: { student_id: dto.studentId } }
     );
+    // 改密成功后进入多因子校验
     return new Next({ next: ['multifactor'] });
   }
 
   async enter(_params: RpcParams, res?: Response): Promise<Next> {
+    // 完成登录：根据授权态颁发一次性授权码，并返回回调指令
     class EnterParamsDto {
       @IsString()
       @Length(1, 128)
       studentId!: string;
+      @IsString()
+      @Length(1, 256)
+      state!: string;
+      @IsString()
+      @Length(0, 16)
+      redirectMode?: string;
     }
     const dto = plainToInstance(EnterParamsDto, _params);
     const errs = validateSync(dto, { whitelist: true });
@@ -194,47 +221,31 @@ export class AuthService {
       attributes: ['id', 'username', 'student_id', 'status'],
     });
     if (!user) throw new HttpException('User not found', 404);
-    const secret = process.env.JWT_SECRET || 'local-dev-do-not-use';
-    const accessExp = parseDurationToSeconds(
-      process.env.JWT_EXPIRES_IN || '1h',
-      3600
-    );
-    const refreshExp = parseDurationToSeconds(
-      process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-      604800
-    );
-    const accessToken = signHS256(
-      {
+    const auth = await redisGet(`oidc:authreq:${dto.state}`);
+    if (!auth) throw new HttpException('Authorization state not found', 400);
+    const obj = JSON.parse(auth);
+    const code = (
+      Math.random().toString(36).slice(2) + Date.now().toString(36)
+    ).slice(0, 32);
+    await redisSet(
+      `oidc:code:${code}`,
+      JSON.stringify({
+        client_id: obj.client_id,
+        redirect_uri: obj.redirect_uri,
+        code_challenge: obj.code_challenge,
         sub: (user as any).id,
-        username: (user as any).username,
-        studentId: (user as any).student_id,
-        scope: 'idp',
-      },
-      secret,
-      accessExp
+        nonce: obj.nonce,
+        acr: 'mfa',
+        amr: ['sms'],
+        scope: obj.scope || 'openid',
+      }),
+      600
     );
-    const refreshToken = signHS256(
-      { sub: (user as any).id, t: 'refresh' },
-      secret,
-      refreshExp
-    );
-    if (res) {
-      const isDev = (process.env.NODE_ENV || 'development') === 'development';
-      const cookieCommon = {
-        httpOnly: true,
-        secure: !isDev,
-        sameSite: 'lax' as const,
-        path: '/',
-      };
-      (res as any).cookie('IDP_AT', accessToken, {
-        ...cookieCommon,
-        maxAge: accessExp * 1000,
-      });
-      (res as any).cookie('IDP_RT', refreshToken, {
-        ...cookieCommon,
-        maxAge: refreshExp * 1000,
-      });
+    const redirectTo = `${obj.redirect_uri}?code=${code}&state=${encodeURIComponent(dto.state)}`;
+    if (res && dto.redirectMode === 'http') {
+      (res as any).redirect(302, redirectTo);
+      return new Next({ next: ['finish'] });
     }
-    return new Next({ next: ['finish'] });
+    return { next: ['finish'], redirectTo } as any;
   }
 }

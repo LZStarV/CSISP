@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto';
+import { createHmac, createSign } from 'crypto';
 
 function b64url(input: Buffer | string): string {
   const buf = typeof input === 'string' ? Buffer.from(input) : input;
@@ -50,5 +50,25 @@ export function signHS256(
     Buffer.from(JSON.stringify(body))
   )}`;
   const sig = createHmac('sha256', secret).update(data).digest();
+  return `${data}.${b64url(sig)}`;
+}
+
+export function signRS256(
+  payload: Record<string, any>,
+  privatePem: string,
+  expiresInSec: number,
+  kid?: string
+): string {
+  const header = kid
+    ? { alg: 'RS256', typ: 'JWT', kid }
+    : { alg: 'RS256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
+  const body = { ...payload, iat: now, exp: now + expiresInSec };
+  const data = `${b64url(Buffer.from(JSON.stringify(header)))}.${b64url(
+    Buffer.from(JSON.stringify(body))
+  )}`;
+  const signer = createSign('RSA-SHA256');
+  signer.update(data);
+  const sig = signer.sign(privatePem);
   return `${data}.${b64url(sig)}`;
 }
