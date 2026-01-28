@@ -2,6 +2,8 @@ import crypto from 'crypto';
 
 import { Controller, Get, Query, Post, Body, Headers } from '@nestjs/common';
 
+import { makeRpcResponse } from '../../common/rpc/jsonrpc';
+import { RpcRequestPipe } from '../../common/rpc/rpc-request.pipe';
 import { get as redisGet, set as redisSet } from '../../infra/redis';
 
 import { OidcService } from './oidc.service';
@@ -73,6 +75,18 @@ export class OidcController {
     }
     const token = auth.slice('Bearer '.length);
     return this.svc.userinfo(token);
+  }
+  @Post('clients')
+  async clientsPost(
+    @Body(new RpcRequestPipe())
+    body: {
+      id: string | number | null;
+      params: any;
+    }
+  ) {
+    const id = body.id;
+    const result = await this.svc.listClients();
+    return makeRpcResponse(id, result);
   }
   @Post('backchannel_logout')
   async backchannelLogout(

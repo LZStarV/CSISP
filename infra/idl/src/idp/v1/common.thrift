@@ -16,8 +16,16 @@ struct Method {
   2: bool enabled,
   3: optional string extra
 }
+struct SmsSendResult {
+  1: string code,
+  2: bool success,
+  3: optional string message,
+  4: optional string request_id,
+  5: optional string access_denied_detail
+}
 struct Next {
-  1: list<string> next
+  1: list<string> next,
+  2: optional SmsSendResult sms
 }
 struct ResetPasswordFlags {
   1: bool forget_password,

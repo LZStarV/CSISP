@@ -22,12 +22,7 @@ export function Login() {
         return;
       }
       if (next.includes('enter')) {
-        const enterRes = await call('auth/enter', {
-          studentId: values.studentId,
-        });
-        if (enterRes.error)
-          throw new Error(enterRes.error.message || '进入失败');
-        navigate('/finish');
+        navigate('/finish', { state: { fromNormalFlow: true } });
         return;
       }
     } catch (e) {

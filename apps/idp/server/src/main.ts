@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { loadRootEnv } from '@csisp/utils';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import cookieParser from 'cookie-parser';
 
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -16,6 +17,7 @@ async function bootstrap() {
   }
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('/api/idp');
+  app.use(cookieParser());
   app.useGlobalInterceptors(
     new RateLimitInterceptor(),
     new LoggingInterceptor()

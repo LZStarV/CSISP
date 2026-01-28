@@ -5,17 +5,53 @@ import { Login } from '@/pages/Login';
 import { MFASelect } from '@/pages/MFASelect';
 import { ResetPassword } from '@/pages/ResetPassword';
 import { SmsVerify } from '@/pages/SmsVerify';
+import { SessionGuard } from '@/routes/SessionGuard';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path='/' element={<Navigate to='/login' replace />} />
-        <Route path='/login' element={<Login />} />
-        <Route path='/mfa/select' element={<MFASelect />} />
-        <Route path='/mfa/sms' element={<SmsVerify />} />
-        <Route path='/password/reset' element={<ResetPassword />} />
-        <Route path='/finish' element={<Finish />} />
+        <Route
+          path='/login'
+          element={
+            <SessionGuard>
+              <Login />
+            </SessionGuard>
+          }
+        />
+        <Route
+          path='/mfa/select'
+          element={
+            <SessionGuard>
+              <MFASelect />
+            </SessionGuard>
+          }
+        />
+        <Route
+          path='/mfa/sms'
+          element={
+            <SessionGuard>
+              <SmsVerify />
+            </SessionGuard>
+          }
+        />
+        <Route
+          path='/password/reset'
+          element={
+            <SessionGuard>
+              <ResetPassword />
+            </SessionGuard>
+          }
+        />
+        <Route
+          path='/finish'
+          element={
+            <SessionGuard>
+              <Finish />
+            </SessionGuard>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

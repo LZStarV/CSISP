@@ -405,4 +405,22 @@ export class OidcService {
     );
     return { ok: true };
   }
+
+  async listClients() {
+    const rows = await OidcClientModel.findAll({
+      where: { status: 'active' },
+      attributes: ['client_id', 'name', 'allowed_redirect_uris', 'scopes'],
+    });
+    return rows.map(r => {
+      const uris = Array.isArray((r as any).allowed_redirect_uris)
+        ? ((r as any).allowed_redirect_uris as any[])
+        : [];
+      return {
+        client_id: r.client_id,
+        name: r.name,
+        default_redirect_uri: uris[0] || null,
+        scopes: r.scopes,
+      };
+    });
+  }
 }

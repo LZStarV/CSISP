@@ -8,6 +8,7 @@ import { Card, Button, Typography, Space, Alert } from 'antd';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+import { call } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   MFAMethod,
@@ -29,17 +30,42 @@ export function MFASelect() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  async function loadMfa() {
+    try {
+      const res = await call('auth/mfa_methods', {});
+      if (
+        res &&
+        !res.error &&
+        Array.isArray(res.result?.multifactor) &&
+        res.result.multifactor.length
+      ) {
+        setMfaMethods(res.result.multifactor);
+        setErrorMsg(null);
+      } else {
+        setErrorMsg('未获取到验证方式列表，请返回登录重试');
+        setMfaMethods([]);
+      }
+    } catch {
+      setErrorMsg('获取验证方式失败，请返回登录重试');
+      setMfaMethods([]);
+    }
+  }
+
+  useEffect(() => {
+    loadMfa();
+  }, []);
+
   useEffect(() => {
     const state = location.state as {
       next?: string[];
       multifactor?: MFAMethod[];
     } | null;
-    if (state?.multifactor?.length) {
+    // 仅在没有错误提示时才使用路由状态覆盖列表
+    if (!errorMsg && state?.multifactor?.length) {
       setMfaMethods(state.multifactor);
-    } else {
-      setErrorMsg('未获取到验证方式列表，请返回登录重试');
+      setErrorMsg(null);
     }
-  }, [location.state]);
+  }, [location.state, errorMsg]);
 
   const handleMFASelect = async (method: MFAMethod) => {
     if (!method.enabled) return;

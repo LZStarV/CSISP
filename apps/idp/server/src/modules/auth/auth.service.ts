@@ -15,6 +15,7 @@ import { getIdpLogger } from '../../infra/logger';
 import { MfaSettingsModel } from '../../infra/postgres/models/mfa-settings.model';
 import { UserModel } from '../../infra/postgres/models/user.model';
 import { set as redisSet, get as redisGet } from '../../infra/redis';
+import { SmsService } from '../../infra/sms/sms.service';
 
 type RpcParams = Record<string, any>;
 
@@ -41,7 +42,8 @@ export class AuthService {
   constructor(
     @InjectModel(UserModel) private readonly userModel: typeof UserModel,
     @InjectModel(MfaSettingsModel)
-    private readonly mfaSettingsModel: typeof MfaSettingsModel
+    private readonly mfaSettingsModel: typeof MfaSettingsModel,
+    private readonly smsService: SmsService
   ) {}
   async rsatoken(_params: RpcParams): Promise<RSATokenResult> {
     // 返回 RSA 公钥与短时 token，供前端进行密码加密传输
@@ -51,10 +53,13 @@ export class AuthService {
     });
   }
 
-  async login(params: {
-    studentId: string;
-    password: string;
-  }): Promise<LoginResult> {
+  async login(
+    params: {
+      studentId: string;
+      password: string;
+    },
+    res?: Response
+  ): Promise<LoginResult> {
     // 参数校验（运行时）
     const dto = plainToInstance(LoginParamsDto, params);
     const errs = validateSync(dto, { whitelist: true });
@@ -67,16 +72,6 @@ export class AuthService {
     if (!user) {
       throw new HttpException('Invalid username or password', 401);
     }
-    // 密码校验：优先 scrypt；兼容非 scrypt 存量（明文比较）
-    const algo = (process.env.AUTH_HASH_ALGO ?? 'scrypt').toLowerCase();
-    if (algo === 'scrypt') {
-      const ok = await verifyPassword((user as any).password, dto.password);
-      if (!ok) throw new HttpException('Invalid username or password', 401);
-    } else {
-      if ((user as any).password !== dto.password) {
-        throw new HttpException('Invalid username or password', 401);
-      }
-    }
     // 首次登录分流：非 scrypt$ 前缀视为首次登录，要求重置密码
     const pwd: string = (user as any).password ?? '';
     const isFirstLogin = !pwd.startsWith('scrypt$');
@@ -86,10 +81,18 @@ export class AuthService {
         multifactor: [],
       });
     }
+    // 密码校验：仅支持 scrypt$ 前缀的密码（未来可能支持 RSA 公钥加密后的密码）
+    const ok = await verifyPassword((user as any).password, dto.password);
+    if (!ok) throw new HttpException('Invalid username or password', 401);
 
     // 构建多因子列表（根据 mfa_settings 动态启用）
+    // TODO：根据实际情况调整多因子列表（如 FIDO2 等）
     let mfa: IMethod[] = [
-      { type: MFAType.SMS, extra: user?.phone ?? undefined, enabled: true },
+      {
+        type: MFAType.SMS,
+        extra: user.phone ?? undefined,
+        enabled: true,
+      },
       { type: MFAType.EMAIL, enabled: false },
       { type: MFAType.FIDO2, enabled: false },
       { type: MFAType.OTP, enabled: false },
@@ -121,6 +124,15 @@ export class AuthService {
       }
     }
 
+    // 在 login 阶段建立短期 SSO 会话（待完成多因子后升级）
+    if (res) {
+      const sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      await redisSet(`idp:sess:${sid}`, String((user as any).id), 300);
+      (res as any).cookie('idp_session', sid, {
+        httpOnly: true,
+        sameSite: 'lax',
+      });
+    }
     // 返回进入多因子校验的指令
     return new LoginResult({
       next: ['multifactor'],
@@ -128,11 +140,14 @@ export class AuthService {
     });
   }
 
-  async multifactor(_params: {
-    type: MFAType;
-    codeOrAssertion: string;
-    phoneOrEmail: string;
-  }): Promise<Next> {
+  async multifactor(
+    _params: {
+      type: MFAType;
+      codeOrAssertion: string;
+      phoneOrEmail: string;
+    },
+    res?: Response
+  ): Promise<Next> {
     // 多因子参数校验（最小闭环）：短信验证码请求与校验
     class MultifactorParamsDto {
       @IsString()
@@ -147,26 +162,54 @@ export class AuthService {
     const dto = plainToInstance(MultifactorParamsDto, _params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new HttpException('Invalid params', 400);
-    const isSms =
-      String(dto.type).toUpperCase() === 'SMS' ||
-      dto.type === (MFAType as any).SMS;
-    if (!isSms) return new Next({ next: ['enter'] });
+    const t = String(dto.type).toUpperCase();
     const logger = getIdpLogger('multifactor');
-    const key = `idp:otp:${dto.phoneOrEmail}`;
-    const code = dto.codeOrAssertion;
-    // 非 6 位数字视为“请求验证码”；生成后写入 Redis（TTL 300s）
-    const isRequest = code.length !== 6 || /\D/.test(code);
-    if (isRequest) {
-      const otp = String(Math.floor(100000 + Math.random() * 900000));
-      await redisSet(key, otp, 300);
-      logger.info({ method: 'sms', target: dto.phoneOrEmail });
-      return new Next({ next: ['multifactor'] });
+    switch (t) {
+      case 'SMS': {
+        const key = `idp:otp:${dto.phoneOrEmail}`;
+        const code = dto.codeOrAssertion;
+        const isRequest = code.length !== 6 || /\D/.test(code);
+        if (isRequest) {
+          logger.info({ method: 'sms', target: dto.phoneOrEmail });
+          let api: any = null;
+          if (dto.phoneOrEmail) {
+            api = await this.smsService.sendOtp(dto.phoneOrEmail);
+          }
+          return new Next({ next: ['multifactor'], sms: api ?? {} });
+        }
+        const expected = await redisGet(key);
+        if (!expected || expected !== code)
+          throw new HttpException('Invalid verification code', 401);
+        if (res && dto.phoneOrEmail) {
+          const user = await (this.userModel as any).findOne({
+            where: { phone: dto.phoneOrEmail },
+            attributes: ['id', 'phone'],
+          });
+          if (user) {
+            const sid =
+              Math.random().toString(36).slice(2) + Date.now().toString(36);
+            await redisSet(`idp:sess:${sid}`, String((user as any).id), 3600);
+            (res as any).cookie('idp_session', sid, {
+              httpOnly: true,
+              sameSite: 'lax',
+            });
+          }
+        }
+        return new Next({ next: ['enter'] });
+      }
+      case 'EMAIL': {
+        throw new HttpException('MFA method email not supported', 400);
+      }
+      case 'FIDO2': {
+        throw new HttpException('MFA method fido2 not supported', 400);
+      }
+      case 'OTP': {
+        throw new HttpException('MFA method otp not supported', 400);
+      }
+      default: {
+        throw new HttpException('MFA method not supported', 400);
+      }
     }
-    // 6 位数字视为“校验验证码”；比对 Redis 中的值
-    const expected = await redisGet(key);
-    if (!expected || expected !== code)
-      throw new HttpException('Invalid verification code', 401);
-    return new Next({ next: ['enter'] });
   }
 
   async resetPassword(_params: {
@@ -201,11 +244,8 @@ export class AuthService {
   }
 
   async enter(_params: RpcParams, res?: Response): Promise<Next> {
-    // 完成登录：根据授权态颁发一次性授权码，并返回回调指令
+    // 完成登录：建立 SSO 会话；如存在授权态则颁发一次性授权码并返回回调指令
     class EnterParamsDto {
-      @IsString()
-      @Length(1, 128)
-      studentId!: string;
       @IsString()
       @Length(1, 256)
       state!: string;
@@ -216,13 +256,26 @@ export class AuthService {
     const dto = plainToInstance(EnterParamsDto, _params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new HttpException('Invalid params', 400);
-    const user = await (this.userModel as any).findOne({
-      where: { student_id: dto.studentId },
-      attributes: ['id', 'username', 'student_id', 'status'],
-    });
-    if (!user) throw new HttpException('User not found', 404);
+    const studentId = (_params as any).studentId;
+    const user = studentId
+      ? await (this.userModel as any).findOne({
+          where: { student_id: studentId },
+          attributes: ['id', 'username', 'student_id', 'status'],
+        })
+      : null;
+    const uid = user ? (user as any).id : null;
+    if (res && uid) {
+      const sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      await redisSet(`idp:sess:${sid}`, String(uid), 3600);
+      (res as any).cookie('idp_session', sid, {
+        httpOnly: true,
+        sameSite: 'lax',
+      });
+    }
     const auth = await redisGet(`oidc:authreq:${dto.state}`);
-    if (!auth) throw new HttpException('Authorization state not found', 400);
+    if (!auth) {
+      return new Next({ next: ['finish'] });
+    }
     const obj = JSON.parse(auth);
     const code = (
       Math.random().toString(36).slice(2) + Date.now().toString(36)
@@ -233,7 +286,7 @@ export class AuthService {
         client_id: obj.client_id,
         redirect_uri: obj.redirect_uri,
         code_challenge: obj.code_challenge,
-        sub: (user as any).id,
+        sub: uid ?? 0,
         nonce: obj.nonce,
         acr: 'mfa',
         amr: ['sms'],
@@ -247,5 +300,49 @@ export class AuthService {
       return new Next({ next: ['finish'] });
     }
     return { next: ['finish'], redirectTo } as any;
+  }
+
+  async mfaMethodsBySession(sid?: string): Promise<IMethod[]> {
+    if (!sid) return [];
+    const uid = await redisGet(`idp:sess:${sid}`);
+    if (!uid) return [];
+    const user = await (this.userModel as any).findOne({
+      where: { id: Number(uid) },
+      attributes: ['id', 'phone'],
+    });
+    if (!user) return [];
+    let mfa: IMethod[] = [
+      {
+        type: MFAType.SMS,
+        extra: (user as any).phone ?? undefined,
+        enabled: true,
+      },
+      { type: MFAType.EMAIL, enabled: false },
+      { type: MFAType.FIDO2, enabled: false },
+      { type: MFAType.OTP, enabled: false },
+    ];
+    const cfg = await (this.mfaSettingsModel as any).findOne({
+      where: { user_id: (user as any).id },
+      attributes: [
+        'sms_enabled',
+        'email_enabled',
+        'fido2_enabled',
+        'otp_enabled',
+        'phone_number',
+      ],
+    });
+    if (cfg) {
+      mfa = [
+        {
+          type: MFAType.SMS,
+          extra: (user as any).phone ?? (cfg as any).phone_number ?? undefined,
+          enabled: !!(cfg as any).sms_enabled,
+        },
+        { type: MFAType.EMAIL, enabled: !!(cfg as any).email_enabled },
+        { type: MFAType.FIDO2, enabled: !!(cfg as any).fido2_enabled },
+        { type: MFAType.OTP, enabled: !!(cfg as any).otp_enabled },
+      ];
+    }
+    return mfa;
   }
 }
