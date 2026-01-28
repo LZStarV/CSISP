@@ -25,7 +25,8 @@ struct SmsSendResult {
 }
 struct Next {
   1: list<string> next,
-  2: optional SmsSendResult sms
+  2: optional SmsSendResult sms,
+  3: optional string redirectTo
 }
 struct ResetPasswordFlags {
   1: bool forget_password,

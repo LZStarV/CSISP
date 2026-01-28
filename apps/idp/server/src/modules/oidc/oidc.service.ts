@@ -1,5 +1,17 @@
 import crypto from 'crypto';
 
+import {
+  AuthorizationRequest,
+  AuthorizationInitResult,
+  TokenRequest,
+  TokenResponse,
+  JWK,
+  JWKSet,
+  UserInfo,
+  RevocationResult,
+  ClientInfo,
+  Configuration,
+} from '@csisp/idl/idp';
 import { Injectable, BadRequestException } from '@nestjs/common';
 
 import { signRS256, parseDurationToSeconds } from '../../infra/crypto/jwt';
@@ -18,12 +30,21 @@ function baseUrl(): string {
   const host = process.env.IDP_BASE_URL ?? `http://localhost:${port}`;
   return `${host}/api/idp`;
 }
+type TokenRefreshRequest = {
+  grant_type: string;
+  client_id: string;
+  refresh_token: string;
+};
 
 @Injectable()
 export class OidcService {
-  getConfiguration() {
+  /**
+   * 获取 OIDC 发现配置（Well‑Known）
+   * - issuer/authorization_endpoint/token_endpoint/userinfo/jwks_uri 等
+   */
+  getConfiguration(): Configuration {
     const issuer = baseUrl();
-    return {
+    return new Configuration({
       issuer,
       authorization_endpoint: `${issuer}/oidc/authorize`,
       token_endpoint: `${issuer}/oidc/token`,
@@ -45,7 +66,7 @@ export class OidcService {
         'amr',
         'nonce',
       ],
-    };
+    });
   }
 
   private decryptPrivatePem(enc: Buffer): string {
@@ -60,7 +81,11 @@ export class OidcService {
     return out.toString();
   }
 
-  async getJwks() {
+  /**
+   * 获取用于验证签名的公钥集合（JWKS）
+   * - 仅返回状态为 active/retired 的密钥
+   */
+  async getJwks(): Promise<JWKSet> {
     const rows = await OidcKeyModel.findAll({
       attributes: ['kid', 'kty', 'alg', 'use', 'public_pem', 'status'],
     });
@@ -69,19 +94,26 @@ export class OidcService {
       .map(r => {
         const pub = crypto.createPublicKey(r.public_pem);
         const jwk: any = pub.export({ format: 'jwk' });
-        return {
+        return new JWK({
           kid: r.kid as string,
           kty: (r.kty as string) || jwk.kty || 'RSA',
           alg: (r.alg as string) || 'RS256',
           use: (r.use as string) || 'sig',
           n: jwk.n,
           e: jwk.e,
-        };
+        });
       });
-    return { keys };
+    return new JWKSet({ keys });
   }
 
-  async startAuthorization(params: Record<string, string>) {
+  /**
+   * 发起授权请求（支持 PKCE S256）
+   * - 校验 client/redirect_uri 白名单
+   * - 在 Redis 记录授权态，返回 ok/state
+   */
+  async startAuthorization(
+    params: AuthorizationRequest
+  ): Promise<AuthorizationInitResult> {
     const {
       client_id,
       redirect_uri,
@@ -90,7 +122,6 @@ export class OidcService {
       code_challenge,
       code_challenge_method,
       scope,
-      nonce,
     } = params;
     if (!client_id || !redirect_uri || response_type !== 'code' || !state) {
       throw new BadRequestException('Invalid authorization request');
@@ -133,26 +164,26 @@ export class OidcService {
         code_challenge,
         code_challenge_method,
         scope: scopeStr,
-        nonce,
         ts: Date.now(),
       }),
       600
     );
-    return { ok: true, state };
+    return new AuthorizationInitResult({ ok: true, state });
   }
 
-  async exchangeToken(params: Record<string, string>) {
-    const {
-      client_id,
-      code_verifier,
-      code,
-      redirect_uri,
-      grant_type,
-      refresh_token,
-    } = params;
+  /**
+   * 令牌交换与刷新
+   * - 授权码模式校验 code_verifier/redirect_uri 等并签发令牌
+   * - 刷新模式进行 RT 轮换与防重放
+   */
+  async exchangeToken(
+    params: TokenRequest | TokenRefreshRequest
+  ): Promise<TokenResponse> {
+    const { client_id, grant_type } = params;
     if (!client_id || !grant_type)
       throw new BadRequestException('Invalid token request');
     if (grant_type === 'authorization_code') {
+      const { code_verifier, code, redirect_uri } = params as TokenRequest;
       if (!code_verifier || !code || !redirect_uri)
         throw new BadRequestException('Invalid token request');
       const auth = await redisGet(`oidc:code:${code}`);
@@ -188,6 +219,7 @@ export class OidcService {
       );
     }
     if (grant_type === 'refresh_token') {
+      const { refresh_token } = params as TokenRefreshRequest;
       if (!refresh_token)
         throw new BadRequestException('Missing refresh_token');
       const rtHash = crypto
@@ -237,6 +269,11 @@ export class OidcService {
     throw new BadRequestException('Unsupported grant_type');
   }
 
+  /**
+   * 签发 Access/ID/Refresh 三种令牌
+   * - 使用当前激活的 RS256 私钥进行签名
+   * - 记录 refresh_token（以哈希形式）
+   */
   private async issueTokens(
     client_id: string,
     sub: string,
@@ -245,7 +282,7 @@ export class OidcService {
     amr?: string[],
     preferred_username?: string,
     scope?: string
-  ) {
+  ): Promise<TokenResponse> {
     const keyRow = await OidcKeyModel.findOne({
       where: { status: 'active' },
       attributes: ['kid', 'public_pem', 'private_pem_enc'],
@@ -301,30 +338,38 @@ export class OidcService {
       status: 'active',
       created_at: new Date(),
     });
-    return {
+    return new TokenResponse({
       access_token,
       id_token,
       refresh_token,
       token_type: 'bearer',
       expires_in: accessExp,
-    };
+    });
   }
 
-  async revokeToken(token: string) {
+  /**
+   * 撤销 refresh_token
+   * - 根据传入 token 的哈希匹配记录并标记为 revoked
+   */
+  async revokeToken(token: string): Promise<RevocationResult> {
     const rtHash = crypto.createHash('sha256').update(token).digest('hex');
     const cur = await RefreshTokenModel.findOne({
       where: { rt_hash: rtHash },
       attributes: ['id'],
     });
-    if (!cur) return { ok: true };
+    if (!cur) return new RevocationResult({ ok: true });
     await RefreshTokenModel.update(
       { status: 'revoked' },
       { where: { id: cur.id as number } }
     );
-    return { ok: true };
+    return new RevocationResult({ ok: true });
   }
 
-  async userinfo(token: string) {
+  /**
+   * 用户信息查询（验证 RS256 签名）
+   * - 验证 access_token 的签名后返回用户声明
+   */
+  async userinfo(token: string): Promise<UserInfo> {
     const [h, p, s] = token.split('.');
     if (!h || !p || !s) throw new BadRequestException('Invalid token');
     const header = JSON.parse(
@@ -373,10 +418,22 @@ export class OidcService {
     }
     if (payload.acr) claims.acr = payload.acr;
     if (payload.amr) claims.amr = payload.amr;
-    return claims;
+    return new UserInfo({
+      sub: String(claims.sub),
+      name: claims.name ?? undefined,
+      preferred_username: claims.preferred_username ?? undefined,
+      email: claims.email ?? undefined,
+      phone: undefined,
+      acr: claims.acr ?? undefined,
+      amr: claims.amr ?? undefined,
+    });
   }
 
-  async backchannelLogout(logout_token: string) {
+  /**
+   * 后通道登出
+   * - 验证登出令牌签名后批量撤销对应用户的 refresh_token
+   */
+  async backchannelLogout(logout_token: string): Promise<RevocationResult> {
     const [h, p, s] = logout_token.split('.');
     if (!h || !p || !s) throw new BadRequestException('Invalid token');
     const header = JSON.parse(
@@ -403,10 +460,14 @@ export class OidcService {
       { status: 'revoked' },
       { where: { sub_hash: sub } }
     );
-    return { ok: true };
+    return new RevocationResult({ ok: true });
   }
 
-  async listClients() {
+  /**
+   * 列出可用客户端
+   * - 返回 client_id/name/default_redirect_uri/scopes
+   */
+  async listClients(): Promise<ClientInfo[]> {
     const rows = await OidcClientModel.findAll({
       where: { status: 'active' },
       attributes: ['client_id', 'name', 'allowed_redirect_uris', 'scopes'],
@@ -415,12 +476,16 @@ export class OidcService {
       const uris = Array.isArray((r as any).allowed_redirect_uris)
         ? ((r as any).allowed_redirect_uris as any[])
         : [];
-      return {
-        client_id: r.client_id,
-        name: r.name,
-        default_redirect_uri: uris[0] || null,
-        scopes: r.scopes,
-      };
+      const scopesArr = Array.isArray((r as any).scopes)
+        ? ((r as any).scopes as string[])
+        : undefined;
+      return new ClientInfo({
+        client_id: r.client_id as string,
+        name: (r as any).name ?? undefined,
+        default_redirect_uri:
+          typeof uris[0] === 'string' ? (uris[0] as string) : undefined,
+        scopes: scopesArr ?? undefined,
+      });
     });
   }
 }

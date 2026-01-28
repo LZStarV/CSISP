@@ -20,10 +20,18 @@ struct LoginResult {
   2: optional list<common.Method> multifactor,
   3: optional common.ResetPasswordFlags reset_password
 }
+struct MfaMethodsResult {
+  1: list<common.Method> multifactor
+}
+struct SessionResult {
+  1: bool logged
+}
 service AuthService {
   RSATokenResult rsatoken(),
-  LoginResult login(1: string username, 2: string password),
+  LoginResult login(1: string studentId, 2: string password),
   common.Next multifactor(1: common.MFAType type, 2: string codeOrAssertion, 3: string phoneOrEmail),
-  common.Next reset_password(1: string newPassword, 2: ResetReason reason),
-  common.Next enter()
+  common.Next reset_password(1: string studentId, 2: string newPassword, 3: ResetReason reason),
+  common.Next enter(1: string state, 2: optional string redirectMode),
+  MfaMethodsResult mfa_methods(),
+  SessionResult session()
 }

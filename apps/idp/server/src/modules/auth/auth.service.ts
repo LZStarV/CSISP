@@ -45,6 +45,10 @@ export class AuthService {
     private readonly mfaSettingsModel: typeof MfaSettingsModel,
     private readonly smsService: SmsService
   ) {}
+  /**
+   * 获取 RSA 公钥与一次性标识
+   * - 用于前端进行密码加密传输
+   */
   async rsatoken(_params: RpcParams): Promise<RSATokenResult> {
     // 返回 RSA 公钥与短时 token，供前端进行密码加密传输
     return new RSATokenResult({
@@ -53,6 +57,11 @@ export class AuthService {
     });
   }
 
+  /**
+   * 账号密码登录
+   * - 校验用户是否首次登录（非 scrypt$ 前缀需重置密码）
+   * - 校验密码通过后生成短期会话并返回多因子列表
+   */
   async login(
     params: {
       studentId: string;
@@ -140,6 +149,11 @@ export class AuthService {
     });
   }
 
+  /**
+   * 多因子认证（短信最小闭环）
+   * - codeOrAssertion 非 6 位数字视为请求验证码
+   * - 6 位数字视为校验验证码，成功则建立会话并进入 enter
+   */
   async multifactor(
     _params: {
       type: MFAType;
@@ -212,6 +226,11 @@ export class AuthService {
     }
   }
 
+  /**
+   * 重置密码
+   * - 使用 scrypt 生成新密码哈希并写入数据库
+   * - 成功后进入多因子校验
+   */
   async resetPassword(_params: {
     studentId: string;
     newPassword: string;
@@ -243,6 +262,11 @@ export class AuthService {
     return new Next({ next: ['multifactor'] });
   }
 
+  /**
+   * 完成登录并处理授权码回调
+   * - 若已存在授权请求，颁发一次性 code 并返回 redirectTo 或执行 302
+   * - 同时建立 SSO 会话（Cookie）
+   */
   async enter(_params: RpcParams, res?: Response): Promise<Next> {
     // 完成登录：建立 SSO 会话；如存在授权态则颁发一次性授权码并返回回调指令
     class EnterParamsDto {
@@ -299,9 +323,13 @@ export class AuthService {
       (res as any).redirect(302, redirectTo);
       return new Next({ next: ['finish'] });
     }
-    return { next: ['finish'], redirectTo } as any;
+    return new Next({ next: ['finish'], redirectTo });
   }
 
+  /**
+   * 根据会话查询可用的多因子方法
+   * - 默认开启短信，其他方法按 mfa_settings 动态启用
+   */
   async mfaMethodsBySession(sid?: string): Promise<IMethod[]> {
     if (!sid) return [];
     const uid = await redisGet(`idp:sess:${sid}`);

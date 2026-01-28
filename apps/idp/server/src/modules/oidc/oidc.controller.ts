@@ -1,125 +1,91 @@
-import crypto from 'crypto';
+import type {
+  AuthorizationInitResult,
+  TokenResponse,
+  JWKSet,
+  UserInfo,
+  RevocationResult,
+  ClientInfo,
+  Configuration,
+} from '@csisp/idl/idp';
+import { AuthorizationRequest, TokenRequest } from '@csisp/idl/idp';
+import { OIDCService as IdlOIDC } from '@csisp/idl/idp';
+import { Controller, Post, Body, Param } from '@nestjs/common';
 
-import { Controller, Get, Query, Post, Body, Headers } from '@nestjs/common';
-
-import { makeRpcResponse } from '../../common/rpc/jsonrpc';
+import { makeRpcError, makeRpcResponse } from '../../common/rpc/jsonrpc';
 import { RpcRequestPipe } from '../../common/rpc/rpc-request.pipe';
-import { get as redisGet, set as redisSet } from '../../infra/redis';
 
 import { OidcService } from './oidc.service';
+type OidcActions = (typeof IdlOIDC.methodNames)[number];
 
-@Controller('.well-known')
-export class OidcWellKnownController {
-  constructor(private readonly svc: OidcService) {}
-  @Get('openid-configuration')
-  openidConfig() {
-    return this.svc.getConfiguration();
-  }
-}
+type RpcResult =
+  | AuthorizationInitResult
+  | TokenResponse
+  | JWKSet
+  | UserInfo
+  | RevocationResult
+  | ClientInfo[]
+  | Configuration;
 
 @Controller('oidc')
 export class OidcController {
   constructor(private readonly svc: OidcService) {}
 
-  @Get('authorize')
-  async authorize(
-    @Query()
-    q: {
-      response_type?: string;
-      client_id?: string;
-      redirect_uri?: string;
-      scope?: string;
-      state?: string;
-      code_challenge?: string;
-      code_challenge_method?: string;
-      nonce?: string;
-    }
-  ) {
-    return this.svc.startAuthorization(q as Record<string, string>);
-  }
-
-  @Post('token')
-  async token(
-    @Body()
-    body: {
-      grant_type?: string;
-      client_id?: string;
-      code_verifier?: string;
-      code?: string;
-      redirect_uri?: string;
-      refresh_token?: string;
-    }
-  ) {
-    return this.svc.exchangeToken(body as Record<string, string>);
-  }
-
-  @Get('jwks.json')
-  jwks() {
-    return this.svc.getJwks();
-  }
-
-  @Post('revocation')
-  async revocation(
-    @Body()
-    body: {
-      token: string;
-    }
-  ) {
-    return this.svc.revokeToken(body.token);
-  }
-
-  @Get('userinfo')
-  async userinfo(@Headers('authorization') auth?: string) {
-    if (!auth || !auth.startsWith('Bearer ')) {
-      return { error: 'invalid_token' };
-    }
-    const token = auth.slice('Bearer '.length);
-    return this.svc.userinfo(token);
-  }
-  @Post('clients')
-  async clientsPost(
+  @Post(':action')
+  /**
+   * 处理 OIDC 相关的 JSON‑RPC 请求
+   * - 路由格式：POST /api/idp/oidc/:action
+   * - 支持 authorize/token/userinfo/jwks/revocation/backchannel/clients/configuration
+   * - 将请求体 params 构造成 IDL 请求结构并调用服务层
+   */
+  async handle(
+    @Param('action') action: string,
     @Body(new RpcRequestPipe())
     body: {
       id: string | number | null;
-      params: any;
+      params: Record<string, any>;
     }
   ) {
     const id = body.id;
-    const result = await this.svc.listClients();
+    const params = body.params || {};
+    const dispatch: Record<
+      OidcActions,
+      (p: Record<string, unknown>) => Promise<RpcResult>
+    > = {
+      authorize: async p => {
+        const req = new AuthorizationRequest({
+          client_id: String(p.client_id ?? ''),
+          redirect_uri: String(p.redirect_uri ?? ''),
+          response_type: String(p.response_type ?? ''),
+          scope: String(p.scope ?? ''),
+          state: String(p.state ?? ''),
+          code_challenge: String(p.code_challenge ?? ''),
+          code_challenge_method: String(p.code_challenge_method ?? ''),
+        });
+        return this.svc.startAuthorization(req);
+      },
+      token: async p => {
+        const req = new TokenRequest({
+          grant_type: String(p.grant_type ?? ''),
+          code: String(p.code ?? ''),
+          redirect_uri: String(p.redirect_uri ?? ''),
+          client_id: String(p.client_id ?? ''),
+          code_verifier: String(p.code_verifier ?? ''),
+        });
+        return this.svc.exchangeToken(req);
+      },
+      jwks: async _p => this.svc.getJwks(),
+      userinfo: async p => this.svc.userinfo(String(p.access_token ?? '')),
+      revocation: async p => this.svc.revokeToken(String(p.token ?? '')),
+      backchannel_logout: async p =>
+        this.svc.backchannelLogout(String(p.logout_token ?? '')),
+      clients: async _p => this.svc.listClients(),
+      configuration: async _p => this.svc.getConfiguration(),
+    };
+    const finalHandler = dispatch[action as OidcActions];
+    if (!finalHandler) {
+      return makeRpcError(id, -32601, 'Method not found');
+    }
+    const result = await finalHandler(params);
     return makeRpcResponse(id, result);
-  }
-  @Post('backchannel_logout')
-  async backchannelLogout(
-    @Body()
-    body: {
-      logout_token: string;
-    }
-  ) {
-    return this.svc.backchannelLogout(body.logout_token);
-  }
-  @Post('dev/issue_code')
-  async devIssueCode(
-    @Body()
-    body: {
-      state: string;
-      sub: string;
-    }
-  ) {
-    const auth = await redisGet(`oidc:authreq:${body.state}`);
-    if (!auth) return { ok: false };
-    const obj = JSON.parse(auth);
-    const code = crypto.randomUUID().replace(/-/g, '');
-    await redisSet(
-      `oidc:code:${code}`,
-      JSON.stringify({
-        client_id: obj.client_id,
-        redirect_uri: obj.redirect_uri,
-        code_challenge: obj.code_challenge,
-        sub: body.sub,
-        nonce: obj.nonce,
-      }),
-      600
-    );
-    return { ok: true, code };
   }
 }

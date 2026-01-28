@@ -4,6 +4,21 @@
 // - jwks：公钥集合
 // - userinfo：用户信息
 namespace js oidc
+struct Configuration {
+  1: string issuer,
+  2: string authorization_endpoint,
+  3: string token_endpoint,
+  4: string userinfo_endpoint,
+  5: string jwks_uri,
+  6: list<string> response_types_supported,
+  7: list<string> grant_types_supported,
+  8: list<string> response_modes_supported,
+  9: list<string> token_endpoint_auth_methods_supported,
+  10: list<string> code_challenge_methods_supported,
+  11: list<string> id_token_signing_alg_values_supported,
+  12: list<string> scopes_supported,
+  13: list<string> claims_supported
+}
 struct AuthorizationRequest {
   1: string client_id,
   2: string redirect_uri,
@@ -13,9 +28,9 @@ struct AuthorizationRequest {
   6: string code_challenge,
   7: string code_challenge_method
 }
-struct AuthorizationCode {
-  1: string code,
-  2: string redirect_uri
+struct AuthorizationInitResult {
+  1: bool ok,
+  2: string state
 }
 struct TokenRequest {
   1: string grant_type,
@@ -45,12 +60,28 @@ struct JWKSet {
 struct UserInfo {
   1: string sub,
   2: optional string name,
-  3: optional string email,
-  4: optional string phone
+  3: optional string preferred_username,
+  4: optional string email,
+  5: optional string phone,
+  6: optional string acr,
+  7: optional list<string> amr
+}
+struct RevocationResult {
+  1: bool ok
+}
+struct ClientInfo {
+  1: string client_id,
+  2: string name,
+  3: optional string default_redirect_uri,
+  4: optional list<string> scopes
 }
 service OIDCService {
-  AuthorizationCode authorize(1: AuthorizationRequest req),
+  AuthorizationInitResult authorize(1: AuthorizationRequest req),
   TokenResponse token(1: TokenRequest req),
   JWKSet jwks(),
-  UserInfo userinfo(1: string access_token)
+  UserInfo userinfo(1: string access_token),
+  RevocationResult revocation(1: string token),
+  RevocationResult backchannel_logout(1: string logout_token),
+  list<ClientInfo> clients(),
+  Configuration configuration()
 }

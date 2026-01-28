@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 
-import { OidcController, OidcWellKnownController } from './oidc.controller';
+import { OidcController } from './oidc.controller';
 import { OidcService } from './oidc.service';
 
 @Module({
-  controllers: [OidcController, OidcWellKnownController],
+  controllers: [OidcController],
   providers: [OidcService],
 })
 export class OidcModule {}

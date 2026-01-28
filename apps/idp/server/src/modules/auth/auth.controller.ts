@@ -1,4 +1,14 @@
 import {
+  MfaMethodsResult,
+  SessionResult,
+  RSATokenResult,
+  LoginResult,
+  Next,
+  MFAType,
+  ResetReason,
+} from '@csisp/idl/idp';
+import { AuthService as IdlAuth } from '@csisp/idl/idp';
+import {
   Body,
   Controller,
   Param,
@@ -7,8 +17,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
-import type { Request } from 'express';
+import type { Response, Request } from 'express';
 
 import { IdpSessionGuard } from '../../common/guards/idp-session.guard';
 import { makeRpcError, makeRpcResponse } from '../../common/rpc/jsonrpc';
@@ -41,27 +50,64 @@ export class AuthController {
       'request received'
     );
     const id = body.id;
-    const params = body.params;
+    const params = body.params || {};
+    type AuthActions = (typeof IdlAuth.methodNames)[number];
     const dispatch: Record<
-      string,
-      (p: any, r: Request, s: Response) => Promise<any>
+      AuthActions,
+      (
+        p: Record<string, unknown>,
+        r: Request,
+        s: Response
+      ) => Promise<
+        RSATokenResult | LoginResult | Next | MfaMethodsResult | SessionResult
+      >
     > = {
-      rsatoken: async p => this.svc.rsatoken(p),
-      login: async (p, _r, s) => this.svc.login(p, s),
-      multifactor: async (p, _r, s) => this.svc.multifactor(p, s),
-      reset_password: async p => this.svc.resetPassword(p),
-      enter: async (p, _r, s) => this.svc.enter(p, s),
+      rsatoken: async _p => this.svc.rsatoken({}),
+      login: async (p, _r, s) =>
+        this.svc.login(
+          {
+            studentId: String(p.studentId ?? ''),
+            password: String(p.password ?? ''),
+          },
+          s
+        ),
+      multifactor: async (p, _r, s) =>
+        this.svc.multifactor(
+          {
+            type: String(p.type ?? '') as unknown as MFAType,
+            codeOrAssertion: String(p.codeOrAssertion ?? ''),
+            phoneOrEmail: String(p.phoneOrEmail ?? ''),
+          },
+          s
+        ),
+      reset_password: async p =>
+        this.svc.resetPassword({
+          studentId: String(p.studentId ?? ''),
+          newPassword: String(p.newPassword ?? ''),
+          reason: String(p.reason ?? 'WEAK_PASSWORD') as unknown as ResetReason,
+        }),
+      enter: async (p, _r, s) =>
+        this.svc.enter(
+          {
+            state: String(p.state ?? ''),
+            redirectMode:
+              typeof p.redirectMode === 'string'
+                ? (p.redirectMode as string)
+                : undefined,
+          },
+          s
+        ),
       mfa_methods: async (_p, r) => {
         const sid = (r as any).idpSession as string | undefined;
         const list = await this.svc.mfaMethodsBySession(sid);
-        return { multifactor: list };
+        return new MfaMethodsResult({ multifactor: list });
       },
       session: async (_p, r) => {
         const uid = (r as any).idpUserId as number | undefined;
-        return { logged: !!uid };
+        return new SessionResult({ logged: !!uid });
       },
     };
-    const handler = dispatch[action];
+    const handler = dispatch[action as AuthActions];
     if (!handler) {
       logger.warn({ action }, 'method not found');
       return makeRpcError(id, -32601, 'Method not found');

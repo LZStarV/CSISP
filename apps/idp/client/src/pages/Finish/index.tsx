@@ -47,21 +47,18 @@ export function Finish() {
       const challenge = await s256(verifier);
       sessionStorage.setItem('idp_state', state);
       sessionStorage.setItem(`cv:${state}`, verifier);
-      const url = new URL('/api/idp/oidc/authorize', window.location.origin);
-      url.searchParams.set('response_type', 'code');
-      url.searchParams.set('client_id', item.client_id);
-      url.searchParams.set('redirect_uri', item.default_redirect_uri);
-      url.searchParams.set('scope', (item.scopes || ['openid']).join(' '));
-      url.searchParams.set('state', state);
-      url.searchParams.set('code_challenge_method', 'S256');
-      url.searchParams.set('code_challenge', challenge);
-      url.searchParams.set('nonce', randomString(16));
-      const res = await fetch(url.toString(), {
-        method: 'GET',
-        credentials: 'include',
+      const authRes = await call('oidc/authorize', {
+        response_type: 'code',
+        client_id: item.client_id,
+        redirect_uri: item.default_redirect_uri,
+        scope: (item.scopes || ['openid']).join(' '),
+        state,
+        code_challenge_method: 'S256',
+        code_challenge: challenge,
+        nonce: randomString(16),
       });
-      const data = await res.json();
-      if (!data || !data.ok) throw new Error('授权态创建失败');
+      if (authRes.error || !authRes.result?.ok)
+        throw new Error('授权态创建失败');
       const enterRes = await call('auth/enter', {
         state,
       });
