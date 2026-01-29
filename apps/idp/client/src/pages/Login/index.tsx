@@ -1,3 +1,5 @@
+import { AuthNextStep } from '@csisp/idl/idp';
+import type { LoginResult } from '@csisp/idl/idp';
 import { Form, Input, Button, Typography, Alert } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -14,14 +16,14 @@ export function Login() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await call('auth/login', values);
+      const res = await call<LoginResult>('auth/login', values);
       if (res.error) throw new Error(res.error.message || '登录失败');
-      const next: string[] = res.result?.next ?? [];
-      if (next.includes('multifactor')) {
+      const next = (res.result?.next ?? []) as AuthNextStep[];
+      if (next.includes(AuthNextStep.Multifactor)) {
         navigate('/mfa/select', { state: res.result });
         return;
       }
-      if (next.includes('enter')) {
+      if (next.includes(AuthNextStep.Enter)) {
         navigate('/finish', { state: { fromNormalFlow: true } });
         return;
       }

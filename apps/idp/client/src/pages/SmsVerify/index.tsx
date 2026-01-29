@@ -1,3 +1,5 @@
+import { MFAType } from '@csisp/idl/idp';
+import type { Next } from '@csisp/idl/idp';
 import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -28,30 +30,31 @@ export function SmsVerify() {
     const remain = exp > now ? Math.ceil((exp - now) / 1000) : 0;
     setCooldown(remain);
     const timer = setInterval(() => {
-      const n = Date.now();
-      const r = exp > n ? Math.ceil((exp - n) / 1000) : 0;
-      setCooldown(r);
-      if (r <= 0) {
+      const now = Date.now();
+      const remain = exp > now ? Math.ceil((exp - now) / 1000) : 0;
+      setCooldown(remain);
+      if (remain <= 0) {
         clearInterval(timer);
       }
     }, 1000);
     return () => clearInterval(timer);
   }, [phone]);
 
+  // 发送短信验证码
   const sendCode = async () => {
     if (!phone) return;
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await call('auth/multifactor', {
-        type: 'sms',
+      const res = await call<Next>('auth/multifactor', {
+        type: MFAType.Sms,
         phoneOrEmail: phone,
         codeOrAssertion: 'request',
       });
       if (res.error) throw new Error(res.error.message || '发送失败');
       const sms = res.result?.sms;
-      if (!sms || sms.Code !== 'OK' || sms.Success !== true) {
-        throw new Error(sms?.Message || '短信发送失败');
+      if (!sms || sms.code !== 'OK' || sms.success !== true) {
+        throw new Error(sms?.message || '短信发送失败');
       }
       const exp = Date.now() + 60000;
       localStorage.setItem(`idp_otp_exp:${phone}`, String(exp));
@@ -63,20 +66,21 @@ export function SmsVerify() {
     }
   };
 
+  // 校验短信验证码
   const onFinish = async (values: { code: string }) => {
     if (!phone) return;
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await call('auth/multifactor', {
-        type: 'sms',
+      const res = await call<Next>('auth/multifactor', {
+        type: MFAType.Sms,
         phoneOrEmail: phone,
         codeOrAssertion: values.code,
       });
       if (res.error) throw new Error(res.error.message || '校验失败');
       const state = sessionStorage.getItem('idp_state');
       if (state) {
-        const enterRes = await call('auth/enter', {
+        const enterRes = await call<Next>('auth/enter', {
           state,
         });
         if (enterRes.error) throw new Error('进入失败');

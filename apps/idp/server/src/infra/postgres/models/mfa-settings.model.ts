@@ -1,3 +1,6 @@
+import type MfaSettings from '@pgtype/MfaSettings';
+import type { MfaSettingsId } from '@pgtype/MfaSettings';
+import type { UserId } from '@pgtype/User';
 import {
   Table,
   Column,
@@ -15,16 +18,16 @@ import {
   timestamps: true,
   underscored: true,
 })
-export class MfaSettingsModel extends Model {
+export class MfaSettingsModel extends Model implements MfaSettings {
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.INTEGER)
-  id!: number;
+  id!: MfaSettingsId;
 
   @Index
   @AllowNull(false)
   @Column(DataType.INTEGER)
-  user_id!: number;
+  user_id!: UserId;
 
   @Default(false)
   @AllowNull(false)
@@ -54,4 +57,14 @@ export class MfaSettingsModel extends Model {
   @AllowNull(false)
   @Column(DataType.BOOLEAN)
   required!: boolean;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 }

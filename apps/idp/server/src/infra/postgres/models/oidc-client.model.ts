@@ -1,3 +1,5 @@
+import type OidcClients from '@pgtype/OidcClients';
+import type { OidcClientsClientId } from '@pgtype/OidcClients';
 import {
   Table,
   Column,
@@ -13,10 +15,10 @@ import {
   timestamps: false,
   underscored: true,
 })
-export class OidcClientModel extends Model {
+export class OidcClientModel extends Model implements OidcClients {
   @PrimaryKey
   @Column(DataType.STRING)
-  client_id!: string;
+  client_id!: OidcClientsClientId;
 
   @AllowNull(true)
   @Column(DataType.STRING)

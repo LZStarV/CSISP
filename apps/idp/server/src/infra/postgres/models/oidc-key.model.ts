@@ -1,3 +1,5 @@
+import type OidcKeys from '@pgtype/OidcKeys';
+import type { OidcKeysKid } from '@pgtype/OidcKeys';
 import {
   Table,
   Column,
@@ -13,10 +15,10 @@ import {
   timestamps: false,
   underscored: true,
 })
-export class OidcKeyModel extends Model {
+export class OidcKeyModel extends Model implements OidcKeys {
   @PrimaryKey
   @Column(DataType.STRING)
-  kid!: string;
+  kid!: OidcKeysKid;
 
   @AllowNull(false)
   @Column(DataType.STRING)

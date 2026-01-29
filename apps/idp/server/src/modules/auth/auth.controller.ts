@@ -71,21 +71,41 @@ export class AuthController {
           },
           s
         ),
-      multifactor: async (p, _r, s) =>
-        this.svc.multifactor(
+      multifactor: async (p, _r, s) => {
+        let typeParsed: MFAType;
+        if (typeof p.type === 'string' && p.type in MFAType) {
+          typeParsed = (MFAType as any)[p.type as keyof typeof MFAType];
+        } else if (typeof p.type === 'number') {
+          typeParsed = p.type as MFAType;
+        } else {
+          typeParsed = MFAType.Sms;
+        }
+        return this.svc.multifactor(
           {
-            type: String(p.type ?? '') as unknown as MFAType,
+            type: typeParsed,
             codeOrAssertion: String(p.codeOrAssertion ?? ''),
             phoneOrEmail: String(p.phoneOrEmail ?? ''),
           },
           s
-        ),
-      reset_password: async p =>
-        this.svc.resetPassword({
+        );
+      },
+      reset_password: async p => {
+        let reasonParsed: ResetReason;
+        if (typeof p.reason === 'string' && p.reason in ResetReason) {
+          reasonParsed = (ResetReason as any)[
+            p.reason as keyof typeof ResetReason
+          ];
+        } else if (typeof p.reason === 'number') {
+          reasonParsed = p.reason as ResetReason;
+        } else {
+          reasonParsed = ResetReason.WeakPassword;
+        }
+        return this.svc.resetPassword({
           studentId: String(p.studentId ?? ''),
           newPassword: String(p.newPassword ?? ''),
-          reason: String(p.reason ?? 'WEAK_PASSWORD') as unknown as ResetReason,
-        }),
+          reason: reasonParsed,
+        });
+      },
       enter: async (p, _r, s) =>
         this.svc.enter(
           {
@@ -98,12 +118,14 @@ export class AuthController {
           s
         ),
       mfa_methods: async (_p, r) => {
-        const sid = (r as any).idpSession as string | undefined;
+        type IdpRequest = Request & { idpSession?: string };
+        const sid = (r as IdpRequest).idpSession;
         const list = await this.svc.mfaMethodsBySession(sid);
         return new MfaMethodsResult({ multifactor: list });
       },
       session: async (_p, r) => {
-        const uid = (r as any).idpUserId as number | undefined;
+        type IdpRequest = Request & { idpUserId?: number };
+        const uid = (r as IdpRequest).idpUserId;
         return new SessionResult({ logged: !!uid });
       },
     };

@@ -1,3 +1,6 @@
+import { OIDCScope } from '@csisp/idl/idp';
+import type { ClientInfo } from '@csisp/idl/idp';
+import type { AuthorizationInitResult } from '@csisp/idl/idp';
 import { Card, Space, Typography, Alert, Button } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -5,15 +8,22 @@ import { useLocation } from 'react-router-dom';
 import { randomString, s256 } from '@/api/pkce';
 import { call } from '@/api/rpc';
 
-type ClientItem = {
-  client_id: string;
-  name?: string | null;
-  default_redirect_uri?: string | null;
-  scopes?: string[] | null;
-};
+// 将 OIDCScope 枚举值转换为字符串
+function scopeEnumsToString(scopes?: Array<OIDCScope> | null): string {
+  if (!scopes || !Array.isArray(scopes) || scopes.length === 0) return 'openid';
+  const map: Record<OIDCScope, string> = {
+    [OIDCScope.Openid]: 'openid',
+    [OIDCScope.Profile]: 'profile',
+    [OIDCScope.Email]: 'email',
+  };
+  return scopes
+    .map(s => map[s as OIDCScope] ?? null)
+    .filter((x): x is string => !!x)
+    .join(' ');
+}
 
 export function Finish() {
-  const [items, setItems] = useState<ClientItem[]>([]);
+  const [items, setItems] = useState<ClientInfo[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const location = useLocation();
@@ -27,7 +37,7 @@ export function Finish() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await call('oidc/clients', {});
+        const res = await call<ClientInfo[]>('oidc/clients', {});
         if (res.error) throw new Error(res.error.message || '获取系统列表失败');
         const data = res.result;
         setItems(Array.isArray(data) ? data : []);
@@ -37,7 +47,7 @@ export function Finish() {
     })();
   }, []);
 
-  const handleEnter = async (item: ClientItem) => {
+  const handleEnter = async (item: ClientInfo) => {
     if (!item.default_redirect_uri) return;
     setLoading(true);
     setErrorMsg(null);
@@ -47,11 +57,11 @@ export function Finish() {
       const challenge = await s256(verifier);
       sessionStorage.setItem('idp_state', state);
       sessionStorage.setItem(`cv:${state}`, verifier);
-      const authRes = await call('oidc/authorize', {
+      const authRes = await call<AuthorizationInitResult>('oidc/authorize', {
         response_type: 'code',
         client_id: item.client_id,
         redirect_uri: item.default_redirect_uri,
-        scope: (item.scopes || ['openid']).join(' '),
+        scope: scopeEnumsToString(item.scopes),
         state,
         code_challenge_method: 'S256',
         code_challenge: challenge,
@@ -59,7 +69,7 @@ export function Finish() {
       });
       if (authRes.error || !authRes.result?.ok)
         throw new Error('授权态创建失败');
-      const enterRes = await call('auth/enter', {
+      const enterRes = await call<import('@csisp/idl/idp').Next>('auth/enter', {
         state,
       });
       const redirectTo = enterRes.result?.redirectTo;

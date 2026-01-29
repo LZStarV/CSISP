@@ -7,7 +7,14 @@ import type {
   ClientInfo,
   Configuration,
 } from '@csisp/idl/idp';
-import { AuthorizationRequest, TokenRequest } from '@csisp/idl/idp';
+import {
+  AuthorizationRequest,
+  TokenRequest,
+  OIDCResponseType,
+  OIDCScope,
+  OIDCPKCEMethod,
+  OIDCGrantType,
+} from '@csisp/idl/idp';
 import { OIDCService as IdlOIDC } from '@csisp/idl/idp';
 import { Controller, Post, Body, Param } from '@nestjs/common';
 
@@ -15,8 +22,10 @@ import { makeRpcError, makeRpcResponse } from '../../common/rpc/jsonrpc';
 import { RpcRequestPipe } from '../../common/rpc/rpc-request.pipe';
 
 import { OidcService } from './oidc.service';
-type OidcActions = (typeof IdlOIDC.methodNames)[number];
 
+// OIDC 路由参数：action
+type OidcActions = (typeof IdlOIDC.methodNames)[number];
+// OIDC JSON‑RPC 结果类型
 type RpcResult =
   | AuthorizationInitResult
   | TokenResponse
@@ -30,15 +39,15 @@ type RpcResult =
 export class OidcController {
   constructor(private readonly svc: OidcService) {}
 
-  @Post(':action')
   /**
    * 处理 OIDC 相关的 JSON‑RPC 请求
    * - 路由格式：POST /api/idp/oidc/:action
    * - 支持 authorize/token/userinfo/jwks/revocation/backchannel/clients/configuration
    * - 将请求体 params 构造成 IDL 请求结构并调用服务层
    */
+  @Post(':action')
   async handle(
-    @Param('action') action: string,
+    @Param('action') action: OidcActions,
     @Body(new RpcRequestPipe())
     body: {
       id: string | number | null;
@@ -55,17 +64,35 @@ export class OidcController {
         const req = new AuthorizationRequest({
           client_id: String(p.client_id ?? ''),
           redirect_uri: String(p.redirect_uri ?? ''),
-          response_type: String(p.response_type ?? ''),
-          scope: String(p.scope ?? ''),
+          response_type: OIDCResponseType.Code,
+          scope: String(p.scope ?? '')
+            .split(' ')
+            .map(s => s.trim())
+            .filter(Boolean)
+            .map(s => {
+              switch (s) {
+                case 'openid':
+                  return OIDCScope.Openid;
+                case 'profile':
+                  return OIDCScope.Profile;
+                case 'email':
+                  return OIDCScope.Email;
+                default:
+                  return OIDCScope.Openid;
+              }
+            }),
           state: String(p.state ?? ''),
           code_challenge: String(p.code_challenge ?? ''),
-          code_challenge_method: String(p.code_challenge_method ?? ''),
+          code_challenge_method: OIDCPKCEMethod.S256,
         });
         return this.svc.startAuthorization(req);
       },
       token: async p => {
         const req = new TokenRequest({
-          grant_type: String(p.grant_type ?? ''),
+          grant_type:
+            String(p.grant_type ?? '') === 'refresh_token'
+              ? OIDCGrantType.RefreshToken
+              : OIDCGrantType.AuthorizationCode,
           code: String(p.code ?? ''),
           redirect_uri: String(p.redirect_uri ?? ''),
           client_id: String(p.client_id ?? ''),

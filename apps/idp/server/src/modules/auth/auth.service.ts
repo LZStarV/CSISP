@@ -1,7 +1,16 @@
-import { Next, MFAType, IMethod } from '@csisp/idl/idp';
-import { LoginResult, RSATokenResult, ResetReason } from '@csisp/idl/idp';
+import {
+  Next,
+  MFAType,
+  IMethod,
+  AuthNextStep,
+  LoginResult,
+  RSATokenResult,
+  ResetReason,
+} from '@csisp/idl/idp';
 import { Injectable, HttpException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+import type MfaSettings from '@pgtype/MfaSettings';
+import type User from '@pgtype/User';
 import { plainToInstance } from 'class-transformer';
 import { IsString, Length, validateSync } from 'class-validator';
 import type { Response } from 'express';
@@ -19,25 +28,15 @@ import { SmsService } from '../../infra/sms/sms.service';
 
 type RpcParams = Record<string, any>;
 
-// 登录参数说明：
-// - 使用 studentId + password 进行账号密码登录
-// - password 在前端通过 rsatoken 返回的 RSA 公钥进行加密传输（服务端按需解密后校验）
-class LoginParamsDto {
-  @IsString()
-  @Length(1, 128)
-  studentId!: string;
-  @IsString()
-  @Length(1, 512)
-  password!: string;
-}
-
+/**
+ * 认证服务
+ * - rsatoken：返回 RSA 公钥与短时 token
+ * - login：账号密码校验 + 首次登录分流（reset_password）或进入多因子（multifactor）
+ * - multifactor：短信验证码最小闭环（请求/校验），后续进入 enter
+ * - reset_password：使用 scrypt 进行改密并写库
+ * - enter：签发访问/刷新令牌（HS256）并通过 Cookie 下发
+ */
 @Injectable()
-// 认证服务：
-// - rsatoken：返回 RSA 公钥与短时 token
-// - login：账号密码校验 + 首次登录分流（reset_password）或进入多因子（multifactor）
-// - multifactor：短信验证码最小闭环（请求/校验），后续进入 enter
-// - reset_password：使用 scrypt 进行改密并写库
-// - enter：签发访问/刷新令牌（HS256）并通过 Cookie 下发
 export class AuthService {
   constructor(
     @InjectModel(UserModel) private readonly userModel: typeof UserModel,
@@ -69,47 +68,71 @@ export class AuthService {
     },
     res?: Response
   ): Promise<LoginResult> {
+    class LoginParamsDto {
+      @IsString()
+      @Length(1, 128)
+      studentId!: string;
+      @IsString()
+      @Length(1, 512)
+      password!: string;
+    }
     // 参数校验（运行时）
     const dto = plainToInstance(LoginParamsDto, params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new HttpException('Invalid params', 400);
+
     // 查询用户（按学号）
-    const user = await (this.userModel as any).findOne({
+    type UserPick = Pick<
+      User,
+      'id' | 'username' | 'student_id' | 'phone' | 'password'
+    >;
+    const user = (await this.userModel.findOne({
       where: { student_id: dto.studentId },
       attributes: ['id', 'username', 'student_id', 'phone', 'password'],
-    });
+      raw: true,
+    })) as UserPick | null;
     if (!user) {
       throw new HttpException('Invalid username or password', 401);
     }
+
     // 首次登录分流：非 scrypt$ 前缀视为首次登录，要求重置密码
-    const pwd: string = (user as any).password ?? '';
+    const pwd: string = user.password ?? '';
     const isFirstLogin = !pwd.startsWith('scrypt$');
     if (isFirstLogin) {
       return new LoginResult({
-        next: ['reset_password'],
+        next: [AuthNextStep.ResetPassword],
         multifactor: [],
       });
     }
+
     // 密码校验：仅支持 scrypt$ 前缀的密码（未来可能支持 RSA 公钥加密后的密码）
-    const ok = await verifyPassword((user as any).password, dto.password);
+    const ok = await verifyPassword(user.password, dto.password);
     if (!ok) throw new HttpException('Invalid username or password', 401);
 
     // 构建多因子列表（根据 mfa_settings 动态启用）
     // TODO：根据实际情况调整多因子列表（如 FIDO2 等）
     let mfa: IMethod[] = [
       {
-        type: MFAType.SMS,
+        type: MFAType.Sms,
         extra: user.phone ?? undefined,
         enabled: true,
       },
-      { type: MFAType.EMAIL, enabled: false },
-      { type: MFAType.FIDO2, enabled: false },
-      { type: MFAType.OTP, enabled: false },
+      { type: MFAType.Email, enabled: false },
+      { type: MFAType.Fido2, enabled: false },
+      { type: MFAType.Otp, enabled: false },
     ];
 
     if (user) {
-      const cfg = await (this.mfaSettingsModel as any).findOne({
-        where: { user_id: (user as any).id },
+      type MfaPick = Pick<
+        MfaSettings,
+        | 'sms_enabled'
+        | 'email_enabled'
+        | 'fido2_enabled'
+        | 'otp_enabled'
+        | 'phone_number'
+      >;
+      const mfaSettings = (await this.mfaSettingsModel.findOne({
+        where: { user_id: user.id },
         attributes: [
           'sms_enabled',
           'email_enabled',
@@ -117,34 +140,35 @@ export class AuthService {
           'otp_enabled',
           'phone_number',
         ],
-      });
-      if (cfg) {
+        raw: true,
+      })) as MfaPick | null;
+      if (mfaSettings) {
         mfa = [
           {
-            type: MFAType.SMS,
-            extra:
-              (user as any).phone ?? (cfg as any).phone_number ?? undefined,
-            enabled: !!(cfg as any).sms_enabled,
+            type: MFAType.Sms,
+            extra: user.phone ?? mfaSettings.phone_number ?? undefined,
+            enabled: !!mfaSettings.sms_enabled,
           },
-          { type: MFAType.EMAIL, enabled: !!(cfg as any).email_enabled },
-          { type: MFAType.FIDO2, enabled: !!(cfg as any).fido2_enabled },
-          { type: MFAType.OTP, enabled: !!(cfg as any).otp_enabled },
+          { type: MFAType.Email, enabled: !!mfaSettings.email_enabled },
+          { type: MFAType.Fido2, enabled: !!mfaSettings.fido2_enabled },
+          { type: MFAType.Otp, enabled: !!mfaSettings.otp_enabled },
         ];
       }
     }
 
     // 在 login 阶段建立短期 SSO 会话（待完成多因子后升级）
-    if (res) {
+    if (res && user) {
       const sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
-      await redisSet(`idp:sess:${sid}`, String((user as any).id), 300);
-      (res as any).cookie('idp_session', sid, {
+      await redisSet(`idp:sess:${sid}`, String(user.id), 300);
+      res.cookie('idp_session', sid, {
         httpOnly: true,
         sameSite: 'lax',
       });
     }
+
     // 返回进入多因子校验的指令
     return new LoginResult({
-      next: ['multifactor'],
+      next: [AuthNextStep.Multifactor],
       multifactor: mfa,
     });
   }
@@ -155,7 +179,7 @@ export class AuthService {
    * - 6 位数字视为校验验证码，成功则建立会话并进入 enter
    */
   async multifactor(
-    _params: {
+    params: {
       type: MFAType;
       codeOrAssertion: string;
       phoneOrEmail: string;
@@ -165,59 +189,59 @@ export class AuthService {
     // 多因子参数校验（最小闭环）：短信验证码请求与校验
     class MultifactorParamsDto {
       @IsString()
-      type!: string;
-      @IsString()
       @Length(1, 64)
       codeOrAssertion!: string;
       @IsString()
       @Length(0, 128)
       phoneOrEmail!: string;
     }
-    const dto = plainToInstance(MultifactorParamsDto, _params);
+    const dto = plainToInstance(MultifactorParamsDto, params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new HttpException('Invalid params', 400);
-    const t = String(dto.type).toUpperCase();
     const logger = getIdpLogger('multifactor');
-    switch (t) {
-      case 'SMS': {
+
+    switch (params.type) {
+      case MFAType.Sms: {
         const key = `idp:otp:${dto.phoneOrEmail}`;
         const code = dto.codeOrAssertion;
         const isRequest = code.length !== 6 || /\D/.test(code);
         if (isRequest) {
           logger.info({ method: 'sms', target: dto.phoneOrEmail });
-          let api: any = null;
+          let api: unknown = null;
           if (dto.phoneOrEmail) {
             api = await this.smsService.sendOtp(dto.phoneOrEmail);
           }
-          return new Next({ next: ['multifactor'], sms: api ?? {} });
+          return new Next({ next: [AuthNextStep.Multifactor], sms: api ?? {} });
         }
         const expected = await redisGet(key);
         if (!expected || expected !== code)
           throw new HttpException('Invalid verification code', 401);
         if (res && dto.phoneOrEmail) {
-          const user = await (this.userModel as any).findOne({
+          type UserPick = Pick<User, 'id' | 'phone'>;
+          const user = (await this.userModel.findOne({
             where: { phone: dto.phoneOrEmail },
             attributes: ['id', 'phone'],
-          });
+            raw: true,
+          })) as UserPick | null;
           if (user) {
             const sid =
               Math.random().toString(36).slice(2) + Date.now().toString(36);
-            await redisSet(`idp:sess:${sid}`, String((user as any).id), 3600);
-            (res as any).cookie('idp_session', sid, {
+            await redisSet(`idp:sess:${sid}`, String(user.id), 3600);
+            res.cookie('idp_session', sid, {
               httpOnly: true,
               sameSite: 'lax',
             });
           }
         }
-        return new Next({ next: ['enter'] });
+        return new Next({ next: [AuthNextStep.Enter] });
       }
-      case 'EMAIL': {
+      case MFAType.Email: {
         throw new HttpException('MFA method email not supported', 400);
       }
-      case 'FIDO2': {
+      case MFAType.Fido2: {
         throw new HttpException('MFA method fido2 not supported', 400);
       }
-      case 'OTP': {
+      case MFAType.Otp: {
         throw new HttpException('MFA method otp not supported', 400);
       }
       default: {
@@ -248,18 +272,20 @@ export class AuthService {
     const dto = plainToInstance(ResetPasswordDto, _params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new HttpException('Invalid params', 400);
-    const user = await (this.userModel as any).findOne({
+    type UserPick = Pick<User, 'id' | 'student_id'>;
+    const user = (await this.userModel.findOne({
       where: { student_id: dto.studentId },
       attributes: ['id', 'student_id'],
-    });
+      raw: true,
+    })) as UserPick | null;
     if (!user) throw new HttpException('User not found', 404);
     const hashed = await hashPasswordScrypt(dto.newPassword);
-    await (this.userModel as any).update(
+    await this.userModel.update(
       { password: hashed },
       { where: { student_id: dto.studentId } }
     );
     // 改密成功后进入多因子校验
-    return new Next({ next: ['multifactor'] });
+    return new Next({ next: [AuthNextStep.Multifactor] });
   }
 
   /**
@@ -276,29 +302,34 @@ export class AuthService {
       @IsString()
       @Length(0, 16)
       redirectMode?: string;
+      @IsString()
+      @Length(1, 128)
+      studentId?: string;
     }
     const dto = plainToInstance(EnterParamsDto, _params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new HttpException('Invalid params', 400);
-    const studentId = (_params as any).studentId;
+    const studentId = dto.studentId;
+    type UserPick = Pick<User, 'id' | 'username' | 'student_id' | 'status'>;
     const user = studentId
-      ? await (this.userModel as any).findOne({
+      ? ((await this.userModel.findOne({
           where: { student_id: studentId },
           attributes: ['id', 'username', 'student_id', 'status'],
-        })
+          raw: true,
+        })) as UserPick | null)
       : null;
-    const uid = user ? (user as any).id : null;
+    const uid = user ? user.id : null;
     if (res && uid) {
       const sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
       await redisSet(`idp:sess:${sid}`, String(uid), 3600);
-      (res as any).cookie('idp_session', sid, {
+      res.cookie('idp_session', sid, {
         httpOnly: true,
         sameSite: 'lax',
       });
     }
     const auth = await redisGet(`oidc:authreq:${dto.state}`);
     if (!auth) {
-      return new Next({ next: ['finish'] });
+      return new Next({ next: [AuthNextStep.Finish] });
     }
     const obj = JSON.parse(auth);
     const code = (
@@ -320,10 +351,10 @@ export class AuthService {
     );
     const redirectTo = `${obj.redirect_uri}?code=${code}&state=${encodeURIComponent(dto.state)}`;
     if (res && dto.redirectMode === 'http') {
-      (res as any).redirect(302, redirectTo);
-      return new Next({ next: ['finish'] });
+      res.redirect(302, redirectTo);
+      return new Next({ next: [AuthNextStep.Finish] });
     }
-    return new Next({ next: ['finish'], redirectTo });
+    return new Next({ next: [AuthNextStep.Finish], redirectTo });
   }
 
   /**
@@ -334,23 +365,33 @@ export class AuthService {
     if (!sid) return [];
     const uid = await redisGet(`idp:sess:${sid}`);
     if (!uid) return [];
-    const user = await (this.userModel as any).findOne({
+    type UserPick = Pick<User, 'id' | 'phone'>;
+    const user = (await this.userModel.findOne({
       where: { id: Number(uid) },
       attributes: ['id', 'phone'],
-    });
+      raw: true,
+    })) as UserPick | null;
     if (!user) return [];
     let mfa: IMethod[] = [
       {
-        type: MFAType.SMS,
+        type: MFAType.Sms,
         extra: (user as any).phone ?? undefined,
         enabled: true,
       },
-      { type: MFAType.EMAIL, enabled: false },
-      { type: MFAType.FIDO2, enabled: false },
-      { type: MFAType.OTP, enabled: false },
+      { type: MFAType.Email, enabled: false },
+      { type: MFAType.Fido2, enabled: false },
+      { type: MFAType.Otp, enabled: false },
     ];
-    const cfg = await (this.mfaSettingsModel as any).findOne({
-      where: { user_id: (user as any).id },
+    type MfaPick = Pick<
+      MfaSettings,
+      | 'sms_enabled'
+      | 'email_enabled'
+      | 'fido2_enabled'
+      | 'otp_enabled'
+      | 'phone_number'
+    >;
+    const cfg = (await this.mfaSettingsModel.findOne({
+      where: { user_id: user.id },
       attributes: [
         'sms_enabled',
         'email_enabled',
@@ -358,17 +399,18 @@ export class AuthService {
         'otp_enabled',
         'phone_number',
       ],
-    });
+      raw: true,
+    })) as MfaPick | null;
     if (cfg) {
       mfa = [
         {
-          type: MFAType.SMS,
-          extra: (user as any).phone ?? (cfg as any).phone_number ?? undefined,
-          enabled: !!(cfg as any).sms_enabled,
+          type: MFAType.Sms,
+          extra: user.phone ?? cfg.phone_number ?? undefined,
+          enabled: !!cfg.sms_enabled,
         },
-        { type: MFAType.EMAIL, enabled: !!(cfg as any).email_enabled },
-        { type: MFAType.FIDO2, enabled: !!(cfg as any).fido2_enabled },
-        { type: MFAType.OTP, enabled: !!(cfg as any).otp_enabled },
+        { type: MFAType.Email, enabled: !!cfg.email_enabled },
+        { type: MFAType.Fido2, enabled: !!cfg.fido2_enabled },
+        { type: MFAType.Otp, enabled: !!cfg.otp_enabled },
       ];
     }
     return mfa;

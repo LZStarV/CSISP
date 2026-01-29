@@ -1,3 +1,5 @@
+import type User from '@pgtype/User';
+import type { UserId } from '@pgtype/User';
 import {
   Table,
   Column,
@@ -14,11 +16,11 @@ import {
   timestamps: true,
   underscored: true,
 })
-export class UserModel extends Model {
+export class UserModel extends Model implements User {
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.INTEGER)
-  id!: number;
+  id!: UserId;
 
   @AllowNull(false)
   @Column(DataType.STRING)
@@ -49,6 +51,11 @@ export class UserModel extends Model {
   @Column(DataType.INTEGER)
   status!: number;
 
+  @Default(false)
+  @AllowNull(false)
+  @Column(DataType.BOOLEAN)
+  weak_password_flag!: boolean;
+
   @AllowNull(true)
   @Column(DataType.STRING)
   email!: string | null;
@@ -56,4 +63,14 @@ export class UserModel extends Model {
   @AllowNull(true)
   @Column(DataType.STRING)
   phone!: string | null;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 }

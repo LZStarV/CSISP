@@ -1,3 +1,6 @@
+import type PasswordResets from '@pgtype/PasswordResets';
+import type { PasswordResetsId } from '@pgtype/PasswordResets';
+import type { UserId } from '@pgtype/User';
 import {
   Table,
   Column,
@@ -15,16 +18,16 @@ import {
   timestamps: true,
   underscored: true,
 })
-export class PasswordResetsModel extends Model {
+export class PasswordResetsModel extends Model implements PasswordResets {
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.INTEGER)
-  id!: number;
+  id!: PasswordResetsId;
 
   @Index
   @AllowNull(false)
   @Column(DataType.INTEGER)
-  user_id!: number;
+  user_id!: UserId;
 
   @AllowNull(false)
   @Column(DataType.STRING)
@@ -38,4 +41,14 @@ export class PasswordResetsModel extends Model {
   @AllowNull(false)
   @Column(DataType.BOOLEAN)
   used!: boolean;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 }

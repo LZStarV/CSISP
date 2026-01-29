@@ -13,5 +13,8 @@
     "start": "pnpm -F ./server start",
     "kanel": "pnpm -F ./server kanel",
     "format": "pnpm -r --filter ./server --filter ./client exec eslint . --fix && pnpm -r --filter ./server --filter ./client exec prettier --write ."
+  },
+  "devDependencies": {
+    "@csisp/idl": "workspace:*"
   }
 }

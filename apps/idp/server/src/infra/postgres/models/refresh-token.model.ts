@@ -1,3 +1,5 @@
+import type RefreshTokens from '@pgtype/RefreshTokens';
+import type { RefreshTokensId } from '@pgtype/RefreshTokens';
 import {
   Table,
   Column,
@@ -14,11 +16,11 @@ import {
   timestamps: false,
   underscored: true,
 })
-export class RefreshTokenModel extends Model {
+export class RefreshTokenModel extends Model implements RefreshTokens {
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.INTEGER)
-  id!: number;
+  id!: RefreshTokensId;
 
   @AllowNull(false)
   @Column(DataType.STRING)

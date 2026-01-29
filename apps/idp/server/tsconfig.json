@@ -13,7 +13,11 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "sourceMap": true,
-    "inlineSources": true
+    "inlineSources": true,
+    "baseUrl": ".",
+    "paths": {
+      "@pgtype/*": ["src/infra/postgres/generated/public/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

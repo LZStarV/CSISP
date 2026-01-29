@@ -11,8 +11,20 @@ import {
   RevocationResult,
   ClientInfo,
   Configuration,
+  OIDCResponseType,
+  OIDCGrantType,
+  OIDCResponseMode,
+  OIDCTokenAuthMethod,
+  OIDCPKCEMethod,
+  OIDCSigningAlg,
+  OIDCScope,
+  OIDCClaim,
 } from '@csisp/idl/idp';
 import { Injectable, BadRequestException } from '@nestjs/common';
+import type OidcClients from '@pgtype/OidcClients';
+import type OidcKeys from '@pgtype/OidcKeys';
+import type RefreshTokens from '@pgtype/RefreshTokens';
+import type User from '@pgtype/User';
 
 import { signRS256, parseDurationToSeconds } from '../../infra/crypto/jwt';
 import { OidcClientModel } from '../../infra/postgres/models/oidc-client.model';
@@ -31,7 +43,7 @@ function baseUrl(): string {
   return `${host}/api/idp`;
 }
 type TokenRefreshRequest = {
-  grant_type: string;
+  grant_type: OIDCGrantType;
   client_id: string;
   refresh_token: string;
 };
@@ -50,25 +62,29 @@ export class OidcService {
       token_endpoint: `${issuer}/oidc/token`,
       userinfo_endpoint: `${issuer}/oidc/userinfo`,
       jwks_uri: `${issuer}/oidc/jwks.json`,
-      response_types_supported: ['code'],
-      grant_types_supported: ['authorization_code', 'refresh_token'],
-      response_modes_supported: ['query'],
-      token_endpoint_auth_methods_supported: ['none'],
-      code_challenge_methods_supported: ['S256'],
-      id_token_signing_alg_values_supported: ['RS256'],
-      scopes_supported: ['openid', 'profile', 'email'],
+      response_types_supported: [OIDCResponseType.Code],
+      grant_types_supported: [
+        OIDCGrantType.AuthorizationCode,
+        OIDCGrantType.RefreshToken,
+      ],
+      response_modes_supported: [OIDCResponseMode.Query],
+      token_endpoint_auth_methods_supported: [OIDCTokenAuthMethod.None],
+      code_challenge_methods_supported: [OIDCPKCEMethod.S256],
+      id_token_signing_alg_values_supported: [OIDCSigningAlg.Rs256],
+      scopes_supported: [OIDCScope.Openid, OIDCScope.Profile, OIDCScope.Email],
       claims_supported: [
-        'sub',
-        'name',
-        'preferred_username',
-        'email',
-        'acr',
-        'amr',
-        'nonce',
+        OIDCClaim.Sub,
+        OIDCClaim.Name,
+        OIDCClaim.PreferredUsername,
+        OIDCClaim.Email,
+        OIDCClaim.Acr,
+        OIDCClaim.Amr,
+        OIDCClaim.Nonce,
       ],
     });
   }
 
+  // 解密 OIDC 客户端密钥（AES-GCM 256）
   private decryptPrivatePem(enc: Buffer): string {
     const kek = process.env.OIDC_KEK_SECRET || 'dev-kek';
     const key = crypto.createHash('sha256').update(kek).digest();
@@ -86,19 +102,29 @@ export class OidcService {
    * - 仅返回状态为 active/retired 的密钥
    */
   async getJwks(): Promise<JWKSet> {
-    const rows = await OidcKeyModel.findAll({
+    type KeyPick = Pick<
+      OidcKeys,
+      'kid' | 'kty' | 'alg' | 'use' | 'public_pem' | 'status'
+    >;
+    const rows = (await OidcKeyModel.findAll({
       attributes: ['kid', 'kty', 'alg', 'use', 'public_pem', 'status'],
-    });
+      raw: true,
+    })) as KeyPick[];
+    const activeStatuses = new Set<string>(['active', 'retired']);
     const keys = rows
-      .filter(r => r.status === 'active' || r.status === 'retired')
+      .filter(r => activeStatuses.has(r.status))
       .map(r => {
         const pub = crypto.createPublicKey(r.public_pem);
-        const jwk: any = pub.export({ format: 'jwk' });
+        const jwk = pub.export({ format: 'jwk' }) as {
+          n: string;
+          e: string;
+          kty?: string;
+        };
         return new JWK({
-          kid: r.kid as string,
-          kty: (r.kty as string) || jwk.kty || 'RSA',
-          alg: (r.alg as string) || 'RS256',
-          use: (r.use as string) || 'sig',
+          kid: r.kid,
+          kty: r.kty,
+          alg: r.alg,
+          use: r.use,
           n: jwk.n,
           e: jwk.e,
         });
@@ -123,28 +149,37 @@ export class OidcService {
       code_challenge_method,
       scope,
     } = params;
-    if (!client_id || !redirect_uri || response_type !== 'code' || !state) {
+    if (
+      !client_id ||
+      !redirect_uri ||
+      response_type !== OIDCResponseType.Code ||
+      !state
+    ) {
       throw new BadRequestException('Invalid authorization request');
     }
-    if (!code_challenge || code_challenge_method !== 'S256') {
+    if (!code_challenge || code_challenge_method !== OIDCPKCEMethod.S256) {
       throw new BadRequestException('PKCE S256 required');
     }
-    const client = await OidcClientModel.findOne({
+    type ClientPick = Pick<OidcClients, 'allowed_redirect_uris' | 'status'>;
+    const client = (await OidcClientModel.findOne({
       where: { client_id },
       attributes: ['allowed_redirect_uris', 'status'],
-    });
+      raw: true,
+    })) as ClientPick | null;
     if (!client || client.status !== 'active') {
       throw new BadRequestException('Unknown or inactive client');
     }
     let whitelist: string[] = [];
-    const ar = client.allowed_redirect_uris as unknown as string[] | string;
+    const ar = client.allowed_redirect_uris as string[] | string | null;
     if (Array.isArray(ar)) {
-      whitelist = (ar as any[]).filter((x: any) => typeof x === 'string');
+      whitelist = ar.filter((x: unknown) => typeof x === 'string') as string[];
     } else if (typeof ar === 'string') {
       try {
         const parsed = JSON.parse(ar);
         if (Array.isArray(parsed)) {
-          whitelist = parsed.filter((x: any) => typeof x === 'string');
+          whitelist = parsed.filter(
+            (x: unknown) => typeof x === 'string'
+          ) as string[];
         }
       } catch {}
     }
@@ -152,7 +187,12 @@ export class OidcService {
       throw new BadRequestException('redirect_uri not allowed');
     }
     const scopeStr =
-      typeof scope === 'string' && scope.length > 0 ? scope : 'openid';
+      Array.isArray(scope) && scope.length > 0
+        ? scope
+            .map(s => (OIDCScope as any)[s])
+            .filter((x: unknown) => typeof x === 'string')
+            .join(' ')
+        : 'openid';
     const key = `oidc:authreq:${state}`;
     await redisSet(
       key,
@@ -179,11 +219,15 @@ export class OidcService {
   async exchangeToken(
     params: TokenRequest | TokenRefreshRequest
   ): Promise<TokenResponse> {
-    const { client_id, grant_type } = params;
-    if (!client_id || !grant_type)
+    const client_id = 'client_id' in params ? params.client_id : '';
+    const grant_type = 'grant_type' in params ? params.grant_type : undefined;
+    if (!client_id || grant_type === undefined)
       throw new BadRequestException('Invalid token request');
-    if (grant_type === 'authorization_code') {
-      const { code_verifier, code, redirect_uri } = params as TokenRequest;
+    const isAuthCode = (
+      p: TokenRequest | TokenRefreshRequest
+    ): p is TokenRequest => (p as TokenRequest).code_verifier !== undefined;
+    if (isAuthCode(params)) {
+      const { code_verifier, code, redirect_uri } = params;
       if (!code_verifier || !code || !redirect_uri)
         throw new BadRequestException('Invalid token request');
       const auth = await redisGet(`oidc:code:${code}`);
@@ -218,31 +262,37 @@ export class OidcService {
         scopeStr
       );
     }
-    if (grant_type === 'refresh_token') {
-      const { refresh_token } = params as TokenRefreshRequest;
+    const isRefresh = (
+      p: TokenRequest | TokenRefreshRequest
+    ): p is TokenRefreshRequest =>
+      (p as TokenRefreshRequest).refresh_token !== undefined;
+    if (isRefresh(params)) {
+      const { refresh_token } = params;
       if (!refresh_token)
         throw new BadRequestException('Missing refresh_token');
       const rtHash = crypto
         .createHash('sha256')
         .update(refresh_token)
         .digest('hex');
-      const cur = await RefreshTokenModel.findOne({
+      type RtPick = Pick<RefreshTokens, 'id' | 'status' | 'sub_hash'>;
+      const cur = (await RefreshTokenModel.findOne({
         where: { rt_hash: rtHash },
         attributes: ['id', 'status', 'sub_hash'],
-      });
+        raw: true,
+      })) as RtPick | null;
       if (!cur) throw new BadRequestException('Invalid refresh token');
       if (cur.status !== 'active') {
         await RefreshTokenModel.update(
           { status: 'revoked' },
-          { where: { client_id, sub_hash: cur.sub_hash as string } }
+          { where: { client_id, sub_hash: cur.sub_hash } }
         );
         throw new BadRequestException('Refresh token reused or revoked');
       }
       await RefreshTokenModel.update(
         { status: 'rotated', last_used_at: new Date() },
-        { where: { id: cur.id as number } }
+        { where: { id: cur.id } }
       );
-      const sub = cur.sub_hash as string;
+      const sub = cur.sub_hash;
       const issued = await this.issueTokens(
         client_id,
         sub,
@@ -254,14 +304,14 @@ export class OidcService {
       );
       const newHash = crypto
         .createHash('sha256')
-        .update(issued.refresh_token as string)
+        .update(String(issued.refresh_token))
         .digest('hex');
       await RefreshTokenModel.create({
         client_id,
         sub_hash: sub,
         rt_hash: newHash,
         status: 'active',
-        prev_id: cur.id as number,
+        prev_id: cur.id,
         created_at: new Date(),
       });
       return issued;
@@ -283,15 +333,21 @@ export class OidcService {
     preferred_username?: string,
     scope?: string
   ): Promise<TokenResponse> {
-    const keyRow = await OidcKeyModel.findOne({
+    type KeyPick = Pick<
+      OidcKeys,
+      'kid' | 'public_pem' | 'private_pem_enc' | 'status'
+    >;
+    const keyRow = (await OidcKeyModel.findOne({
       where: { status: 'active' },
       attributes: ['kid', 'public_pem', 'private_pem_enc'],
-    });
+      raw: true,
+    })) as Omit<KeyPick, 'status'> | null;
     if (!keyRow) throw new BadRequestException('No active signing key');
-    const privatePem = this.decryptPrivatePem(
-      Buffer.from(keyRow.private_pem_enc as any)
-    );
-    const kid = keyRow.kid as string;
+    const enc = Buffer.isBuffer(keyRow.private_pem_enc)
+      ? keyRow.private_pem_enc
+      : Buffer.from(String(keyRow.private_pem_enc));
+    const privatePem = this.decryptPrivatePem(enc);
+    const kid = keyRow.kid;
     const accessExp = parseDurationToSeconds(
       process.env.JWT_EXPIRES_IN || '1h',
       3600
@@ -381,7 +437,7 @@ export class OidcService {
       attributes: ['public_pem'],
     });
     if (!row) throw new BadRequestException('Unknown key');
-    const pubPem = row.public_pem as string;
+    const pubPem = String(row.public_pem);
     const data = `${h}.${p}`;
     const sig = Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
     const verifier = crypto.createVerify('RSA-SHA256');
@@ -394,21 +450,23 @@ export class OidcService {
     const sub = payload.sub;
     const scope = payload.scope as string | undefined;
     const idNum = Number(sub);
+    type UserPick = Pick<User, 'id' | 'username' | 'real_name' | 'email'>;
     const user =
       Number.isFinite(idNum) && idNum > 0
-        ? await UserModel.findOne({
+        ? ((await UserModel.findOne({
             where: { id: idNum },
             attributes: ['id', 'username', 'real_name', 'email'],
-          })
+            raw: true,
+          })) as UserPick | null)
         : null;
     const claims: any = { sub };
     if (user) {
-      claims.preferred_username = (user as any).username;
+      claims.preferred_username = user.username;
       if (scope && scope.includes('profile')) {
-        claims.name = (user as any).real_name;
+        claims.name = user.real_name;
       }
       if (scope && scope.includes('email')) {
-        claims.email = (user as any).email ?? null;
+        claims.email = user.email ?? null;
       }
     } else {
       claims.preferred_username = sub;
@@ -468,23 +526,44 @@ export class OidcService {
    * - 返回 client_id/name/default_redirect_uri/scopes
    */
   async listClients(): Promise<ClientInfo[]> {
-    const rows = await OidcClientModel.findAll({
+    type ClientPick = Pick<
+      OidcClients,
+      'client_id' | 'name' | 'allowed_redirect_uris' | 'scopes'
+    >;
+    const rows = (await OidcClientModel.findAll({
       where: { status: 'active' },
       attributes: ['client_id', 'name', 'allowed_redirect_uris', 'scopes'],
-    });
+      raw: true,
+    })) as ClientPick[];
     return rows.map(r => {
-      const uris = Array.isArray((r as any).allowed_redirect_uris)
-        ? ((r as any).allowed_redirect_uris as any[])
+      const uris = Array.isArray(r.allowed_redirect_uris)
+        ? r.allowed_redirect_uris
         : [];
-      const scopesArr = Array.isArray((r as any).scopes)
-        ? ((r as any).scopes as string[])
+      const scopesArrStr = Array.isArray(r.scopes)
+        ? (r.scopes as string[])
+        : undefined;
+      const scopesEnums = scopesArrStr
+        ? (scopesArrStr
+            .map(s => {
+              switch (s) {
+                case 'openid':
+                  return OIDCScope.Openid;
+                case 'profile':
+                  return OIDCScope.Profile;
+                case 'email':
+                  return OIDCScope.Email;
+                default:
+                  return undefined;
+              }
+            })
+            .filter(Boolean) as OIDCScope[])
         : undefined;
       return new ClientInfo({
-        client_id: r.client_id as string,
-        name: (r as any).name ?? undefined,
+        client_id: String(r.client_id),
+        name: r.name ?? undefined,
         default_redirect_uri:
           typeof uris[0] === 'string' ? (uris[0] as string) : undefined,
-        scopes: scopesArr ?? undefined,
+        scopes: scopesEnums,
       });
     });
   }

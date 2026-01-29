@@ -1,4 +1,9 @@
-export async function call(method: string, params: unknown) {
+import type { JsonRpcResponse } from '@/types/rpc';
+
+export async function call<T>(
+  method: string,
+  params: unknown
+): Promise<JsonRpcResponse<T>> {
   const res = await fetch(`/api/idp/${method}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

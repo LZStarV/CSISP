@@ -4,6 +4,8 @@ import {
   KeyOutlined,
   QrcodeOutlined,
 } from '@ant-design/icons';
+import { MFAType, MfaMethodsResult } from '@csisp/idl/idp';
+import { AuthNextStep } from '@csisp/idl/idp';
 import { Card, Button, Typography, Space, Alert } from 'antd';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -16,11 +18,11 @@ import {
   MFA_METHOD_DESCRIPTIONS,
 } from '@/types/auth';
 
-const MFA_ICONS = {
-  0: MobileOutlined,
-  1: MailOutlined,
-  2: KeyOutlined,
-  3: QrcodeOutlined,
+const MFA_ICONS: Record<MFAType, React.ComponentType<any>> = {
+  [MFAType.Sms]: MobileOutlined,
+  [MFAType.Email]: MailOutlined,
+  [MFAType.Fido2]: KeyOutlined,
+  [MFAType.Otp]: QrcodeOutlined,
 };
 
 export function MFASelect() {
@@ -32,7 +34,7 @@ export function MFASelect() {
 
   async function loadMfa() {
     try {
-      const res = await call('auth/mfa_methods', {});
+      const res = await call<MfaMethodsResult>('auth/mfa_methods', {});
       if (
         res &&
         !res.error &&
@@ -57,7 +59,7 @@ export function MFASelect() {
 
   useEffect(() => {
     const state = location.state as {
-      next?: string[];
+      next?: AuthNextStep[];
       multifactor?: MFAMethod[];
     } | null;
     // 仅在没有错误提示时才使用路由状态覆盖列表
@@ -74,7 +76,7 @@ export function MFASelect() {
     setErrorMsg(null);
 
     try {
-      if (method.type === 0) {
+      if (method.type === MFAType.Sms) {
         navigate('/mfa/sms', { state: { phone: method.extra } });
         return;
       }
@@ -120,10 +122,9 @@ export function MFASelect() {
       ) : (
         <Space direction='vertical' style={{ width: '100%' }} size='middle'>
           {mfaMethods.map(method => {
-            const IconComponent =
-              MFA_ICONS[method.type as keyof typeof MFA_ICONS];
-            const label = MFA_METHOD_LABELS[method.type];
-            const description = MFA_METHOD_DESCRIPTIONS[method.type];
+            const IconComponent = MFA_ICONS[method.type as MFAType];
+            const label = MFA_METHOD_LABELS[method.type as MFAType];
+            const description = MFA_METHOD_DESCRIPTIONS[method.type as MFAType];
 
             return (
               <Card
