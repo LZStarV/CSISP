@@ -1,0 +1,38 @@
+{
+  "name": "@csisp/rpc",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/esm/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/esm/core.js",
+      "require": "./dist/core.js",
+      "types": "./dist/esm/core.d.ts"
+    },
+    "./client-fetch": {
+      "import": "./dist/esm/client-fetch.js",
+      "require": "./dist/client-fetch.js",
+      "types": "./dist/esm/client-fetch.d.ts"
+    },
+    "./server-nest": {
+      "import": "./dist/esm/server-nest.js",
+      "require": "./dist/server-nest.js",
+      "types": "./dist/esm/server-nest.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.4.22"
+  }
+}

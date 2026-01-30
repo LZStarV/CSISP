@@ -4,8 +4,13 @@ import { Form, Input, Button, Typography, Alert } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { call } from '@/api/rpc';
+import { call, hasError } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
+import {
+  ROUTE_MFA_SELECT,
+  ROUTE_FINISH,
+  ROUTE_PASSWORD_FORGOT,
+} from '@/routes/router';
 
 export function Login() {
   const [loading, setLoading] = useState(false);
@@ -17,14 +22,14 @@ export function Login() {
     setErrorMsg(null);
     try {
       const res = await call<LoginResult>('auth/login', values);
-      if (res.error) throw new Error(res.error.message || '登录失败');
+      if (hasError(res)) throw new Error(res.error.message || '登录失败');
       const next = (res.result?.next ?? []) as AuthNextStep[];
       if (next.includes(AuthNextStep.Multifactor)) {
-        navigate('/mfa/select', { state: res.result });
+        navigate(ROUTE_MFA_SELECT, { state: res.result });
         return;
       }
       if (next.includes(AuthNextStep.Enter)) {
-        navigate('/finish', { state: { fromNormalFlow: true } });
+        navigate(ROUTE_FINISH, { state: { fromNormalFlow: true } });
         return;
       }
     } catch (e) {
@@ -80,7 +85,9 @@ export function Login() {
         </Form.Item>
 
         <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <a href='#'>忘记密码？</a>
+          <Button type='link' onClick={() => navigate(ROUTE_PASSWORD_FORGOT)}>
+            忘记密码？
+          </Button>
         </div>
       </Form>
     </AuthLayout>

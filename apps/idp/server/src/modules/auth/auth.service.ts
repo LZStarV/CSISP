@@ -7,6 +7,13 @@ import {
   RSATokenResult,
   ResetReason,
 } from '@csisp/idl/idp';
+import { SessionResult } from '@csisp/idl/idp';
+import {
+  RecoveryInitResult,
+  RecoveryMethod,
+  VerifyResult,
+  RecoveryUnavailableReason,
+} from '@csisp/idl/idp';
 import { Injectable, HttpException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import type MfaSettings from '@pgtype/MfaSettings';
@@ -130,6 +137,7 @@ export class AuthService {
         | 'fido2_enabled'
         | 'otp_enabled'
         | 'phone_number'
+        | 'required'
       >;
       const mfaSettings = (await this.mfaSettingsModel.findOne({
         where: { user_id: user.id },
@@ -139,6 +147,7 @@ export class AuthService {
           'fido2_enabled',
           'otp_enabled',
           'phone_number',
+          'required',
         ],
         raw: true,
       })) as MfaPick | null;
@@ -153,6 +162,28 @@ export class AuthService {
           { type: MFAType.Fido2, enabled: !!mfaSettings.fido2_enabled },
           { type: MFAType.Otp, enabled: !!mfaSettings.otp_enabled },
         ];
+        // 根据 required 控制是否需要多因子登录
+        const requiresMfa = !!mfaSettings.required;
+        // 在 login 阶段建立会话：需要多因子则短期，否则直接长期
+        if (res && user) {
+          const sid =
+            Math.random().toString(36).slice(2) + Date.now().toString(36);
+          await redisSet(
+            `idp:sess:${sid}`,
+            String(user.id),
+            requiresMfa ? 300 : 3600
+          );
+          res.cookie('idp_session', sid, {
+            httpOnly: true,
+            sameSite: 'lax',
+          });
+        }
+        if (!requiresMfa) {
+          return new LoginResult({
+            next: [AuthNextStep.Enter],
+            multifactor: mfa,
+          });
+        }
       }
     }
 
@@ -213,9 +244,8 @@ export class AuthService {
           }
           return new Next({ next: [AuthNextStep.Multifactor], sms: api ?? {} });
         }
-        const expected = await redisGet(key);
-        if (!expected || expected !== code)
-          throw new HttpException('Invalid verification code', 401);
+        const ok = await this.smsService.verifyOtp(dto.phoneOrEmail, code);
+        if (!ok) throw new HttpException('Invalid verification code', 401);
         if (res && dto.phoneOrEmail) {
           type UserPick = Pick<User, 'id' | 'phone'>;
           const user = (await this.userModel.findOne({
@@ -250,6 +280,189 @@ export class AuthService {
     }
   }
 
+  async session(uid?: number): Promise<SessionResult> {
+    if (!uid) return new SessionResult({ logged: false });
+    type UserPick = Pick<User, 'id' | 'username' | 'student_id'>;
+    const user = (await this.userModel.findOne({
+      where: { id: uid },
+      attributes: ['id', 'username', 'student_id'],
+      raw: true,
+    })) as UserPick | null;
+    return new SessionResult({
+      logged: true,
+      name: user?.username ?? undefined,
+      student_id: user?.student_id ?? undefined,
+    });
+  }
+
+  // 忘记密码：初始化
+  async forgotInit(params: { studentId: string }): Promise<RecoveryInitResult> {
+    const stu = String(params.studentId ?? '');
+    type UserPick = Pick<
+      User,
+      'id' | 'username' | 'student_id' | 'phone' | 'email'
+    >;
+    const user = (await this.userModel.findOne({
+      where: { student_id: stu },
+      attributes: ['id', 'username', 'student_id', 'phone', 'email'],
+      raw: true,
+    })) as UserPick | null;
+    const methods: RecoveryMethod[] = [];
+    if (!user) {
+      return new RecoveryInitResult({
+        student_id: stu,
+        methods: [],
+      });
+    }
+    const cfg = (await this.mfaSettingsModel.findOne({
+      where: { user_id: user.id },
+      attributes: [
+        'sms_enabled',
+        'email_enabled',
+        'fido2_enabled',
+        'otp_enabled',
+        'phone_number',
+      ],
+      raw: true,
+    })) as Pick<
+      MfaSettings,
+      | 'sms_enabled'
+      | 'email_enabled'
+      | 'fido2_enabled'
+      | 'otp_enabled'
+      | 'phone_number'
+    > | null;
+    const boundPhone = user.phone ?? cfg?.phone_number ?? null;
+    // SMS
+    {
+      const enabled = !!cfg?.sms_enabled && !!boundPhone;
+      const reason = !cfg?.sms_enabled
+        ? RecoveryUnavailableReason.MethodDisabled
+        : !boundPhone
+          ? RecoveryUnavailableReason.NotBoundPhone
+          : undefined;
+      methods.push(
+        new RecoveryMethod({
+          type: MFAType.Sms,
+          enabled,
+          extra: boundPhone ?? undefined,
+          reason,
+        })
+      );
+    }
+    // Email（占位）
+    {
+      const boundEmail = user.email ?? null;
+      const enabled = !!cfg?.email_enabled && !!boundEmail;
+      const reason = !cfg?.email_enabled
+        ? RecoveryUnavailableReason.MethodDisabled
+        : !boundEmail
+          ? RecoveryUnavailableReason.NotBoundEmail
+          : RecoveryUnavailableReason.NotImplemented;
+      methods.push(
+        new RecoveryMethod({
+          type: MFAType.Email,
+          enabled: enabled && false, // 暂未实现
+          extra: boundEmail ?? undefined,
+          reason,
+        })
+      );
+    }
+    // 其他未实现
+    methods.push(
+      new RecoveryMethod({
+        type: MFAType.Fido2,
+        enabled: false,
+        reason: RecoveryUnavailableReason.NotImplemented,
+      })
+    );
+    methods.push(
+      new RecoveryMethod({
+        type: MFAType.Otp,
+        enabled: false,
+        reason: RecoveryUnavailableReason.NotImplemented,
+      })
+    );
+    return new RecoveryInitResult({
+      student_id: user.student_id,
+      name: user.username,
+      methods,
+    });
+  }
+
+  // 忘记密码：触发验证码
+  async forgotChallenge(params: {
+    type: string;
+    studentId: string;
+  }): Promise<Next> {
+    const typeStr = String(params.type ?? 'sms').toLowerCase();
+    const stu = String(params.studentId ?? '');
+    if (typeStr !== 'sms') {
+      throw new HttpException('Recovery method not supported', 400);
+    }
+    type UserPick = Pick<User, 'id' | 'student_id' | 'phone'>;
+    const user = (await this.userModel.findOne({
+      where: { student_id: stu },
+      attributes: ['id', 'student_id', 'phone'],
+      raw: true,
+    })) as UserPick | null;
+    const cfg = user
+      ? ((await this.mfaSettingsModel.findOne({
+          where: { user_id: user.id },
+          attributes: ['phone_number'],
+          raw: true,
+        })) as Pick<MfaSettings, 'phone_number'> | null)
+      : null;
+    const boundPhone = user?.phone ?? cfg?.phone_number ?? null;
+    let api: unknown = null;
+    if (boundPhone) {
+      api = await this.smsService.sendOtp(boundPhone);
+    }
+    return new Next({ next: [AuthNextStep.ResetPassword], sms: api ?? {} });
+  }
+
+  // 忘记密码：校验验证码并下发令牌
+  async forgotVerify(params: {
+    type: string;
+    studentId: string;
+    code: string;
+  }): Promise<VerifyResult> {
+    const typeStr = String(params.type ?? 'sms').toLowerCase();
+    const stu = String(params.studentId ?? '');
+    const code = String(params.code ?? '');
+    if (typeStr !== 'sms') {
+      throw new HttpException('Recovery method not supported', 400);
+    }
+    type UserPick = Pick<User, 'id' | 'student_id' | 'phone'>;
+    const user = (await this.userModel.findOne({
+      where: { student_id: stu },
+      attributes: ['id', 'student_id', 'phone'],
+      raw: true,
+    })) as UserPick | null;
+    const cfg = user
+      ? ((await this.mfaSettingsModel.findOne({
+          where: { user_id: user.id },
+          attributes: ['phone_number'],
+          raw: true,
+        })) as Pick<MfaSettings, 'phone_number'> | null)
+      : null;
+    const boundPhone = user?.phone ?? cfg?.phone_number ?? null;
+    if (!boundPhone) throw new HttpException('No phone bound', 400);
+    const ok = await this.smsService.verifyOtp(boundPhone, code);
+    if (!ok) throw new HttpException('Invalid verification code', 401);
+    const token = (
+      Math.random().toString(36).slice(2) + Date.now().toString(36)
+    ).slice(0, 32);
+    // 这里暂以 Redis 存储令牌；如需持久化可改用 PasswordResetsModel
+    if (user) {
+      await redisSet(
+        `idp:reset:${user.student_id}:${token}`,
+        String(user.id),
+        900
+      );
+    }
+    return new VerifyResult({ ok: true, reset_token: token });
+  }
   /**
    * 重置密码
    * - 使用 scrypt 生成新密码哈希并写入数据库
@@ -259,6 +472,7 @@ export class AuthService {
     studentId: string;
     newPassword: string;
     reason: ResetReason;
+    resetToken: string;
   }): Promise<Next> {
     // 重置密码：将新密码使用 scrypt 生成哈希并写入数据库
     class ResetPasswordDto {
@@ -268,6 +482,9 @@ export class AuthService {
       @IsString()
       @Length(8, 64)
       newPassword!: string;
+      @IsString()
+      @Length(1, 128)
+      resetToken!: string;
     }
     const dto = plainToInstance(ResetPasswordDto, _params);
     const errs = validateSync(dto, { whitelist: true });
@@ -279,13 +496,44 @@ export class AuthService {
       raw: true,
     })) as UserPick | null;
     if (!user) throw new HttpException('User not found', 404);
+    // 校验重置令牌（Redis）
+    const tokenKey = `idp:reset:${user.student_id}:${dto.resetToken}`;
+    const tokenVal = await redisGet(tokenKey);
+    if (!tokenVal || Number(tokenVal) !== user.id) {
+      throw new HttpException('Invalid reset token', 401);
+    }
     const hashed = await hashPasswordScrypt(dto.newPassword);
     await this.userModel.update(
       { password: hashed },
       { where: { student_id: dto.studentId } }
     );
+    // 标记令牌失效
+    await redisSet(tokenKey, '0', 1);
     // 改密成功后进入多因子校验
     return new Next({ next: [AuthNextStep.Multifactor] });
+  }
+
+  async resetPasswordRequest(_params: { studentId: string }): Promise<Next> {
+    class ResetPasswordReqDto {
+      @IsString()
+      @Length(1, 128)
+      studentId!: string;
+    }
+    const dto = plainToInstance(ResetPasswordReqDto, _params);
+    const errs = validateSync(dto, { whitelist: true });
+    if (errs.length) throw new HttpException('Invalid params', 400);
+    type UserPick = Pick<User, 'phone'>;
+    const user = (await this.userModel.findOne({
+      where: { student_id: dto.studentId },
+      attributes: ['phone'],
+      raw: true,
+    })) as UserPick | null;
+    const phone = user?.phone ?? null;
+    let api: unknown = null;
+    if (phone) {
+      api = await this.smsService.sendOtp(phone);
+    }
+    return new Next({ next: [AuthNextStep.ResetPassword], sms: api ?? {} });
   }
 
   /**

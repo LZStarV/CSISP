@@ -1,7 +1,10 @@
+import type { SessionResult } from '@csisp/idl/idp';
+import { message } from 'antd';
 import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { call } from '@/api/rpc';
+import { call, hasError } from '@/api/rpc';
+import { ROUTE_LOGIN, ROUTE_FINISH } from '@/routes/router';
 
 export function SessionGuard({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
@@ -9,22 +12,42 @@ export function SessionGuard({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const hasQuery = !!location.search && location.search.length > 1;
+    if (hasQuery) {
+      setChecking(false);
+      return;
+    }
     (async () => {
       try {
-        const res = await call('auth/session', {});
-        const logged = !!res?.result?.logged;
-        if (logged) {
-          if (location.pathname === '/login') {
-            navigate('/finish', { state: { fromGuard: true } });
+        const res = await call<SessionResult>('auth/session', {});
+        if (hasError(res)) {
+          const msg = res?.error?.message || '服务器错误或连接失败，请稍后重试';
+          message.error(msg);
+          if (location.pathname !== ROUTE_LOGIN) {
+            navigate(ROUTE_LOGIN);
             return;
           }
         } else {
-          if (location.pathname !== '/login') {
-            navigate('/login');
-            return;
+          const logged = !!res.result?.logged;
+          if (logged) {
+            if (location.pathname === ROUTE_LOGIN) {
+              navigate(ROUTE_FINISH, { state: { fromGuard: true } });
+              return;
+            }
+          } else {
+            if (location.pathname !== ROUTE_LOGIN) {
+              navigate(ROUTE_LOGIN);
+              return;
+            }
           }
         }
-      } catch {}
+      } catch {
+        message.error('服务器错误或连接失败，请稍后重试');
+        if (location.pathname !== ROUTE_LOGIN) {
+          navigate(ROUTE_LOGIN);
+          return;
+        }
+      }
       setChecking(false);
     })();
   }, [navigate, location.pathname]);

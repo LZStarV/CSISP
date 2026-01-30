@@ -1,12 +1,12 @@
 import { OIDCScope } from '@csisp/idl/idp';
 import type { ClientInfo } from '@csisp/idl/idp';
 import type { AuthorizationInitResult } from '@csisp/idl/idp';
-import { Card, Space, Typography, Alert, Button } from 'antd';
+import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { randomString, s256 } from '@/api/pkce';
-import { call } from '@/api/rpc';
+import { call, hasError } from '@/api/rpc';
 
 // 将 OIDCScope 枚举值转换为字符串
 function scopeEnumsToString(scopes?: Array<OIDCScope> | null): string {
@@ -27,6 +27,8 @@ export function Finish() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const [userLabel, setUserLabel] = useState<string>('已登录');
   const fromNormalFlow =
     !!(location.state as any)?.fromNormalFlow ||
     new URLSearchParams(window.location.search).get('flow') === 'normal';
@@ -38,12 +40,31 @@ export function Finish() {
     (async () => {
       try {
         const res = await call<ClientInfo[]>('oidc/clients', {});
-        if (res.error) throw new Error(res.error.message || '获取系统列表失败');
+        if (hasError(res))
+          throw new Error(res.error.message || '获取系统列表失败');
         const data = res.result;
         setItems(Array.isArray(data) ? data : []);
       } catch {
         setErrorMsg('获取系统列表失败');
       }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await call<import('@csisp/idl/idp').SessionResult>(
+          'auth/session',
+          {}
+        );
+        if (!hasError(res)) {
+          const n = (res.result as any)?.name as string | undefined;
+          const sid = (res.result as any)?.student_id as string | undefined;
+          if (n && sid) setUserLabel(`${n}（${sid}）`);
+          else if (sid) setUserLabel(`（${sid}）`);
+          else if (n) setUserLabel(n);
+        }
+      } catch {}
     })();
   }, []);
 
@@ -67,11 +88,12 @@ export function Finish() {
         code_challenge: challenge,
         nonce: randomString(16),
       });
-      if (authRes.error || !authRes.result?.ok)
+      if (hasError(authRes) || !authRes.result?.ok)
         throw new Error('授权态创建失败');
       const enterRes = await call<import('@csisp/idl/idp').Next>('auth/enter', {
         state,
       });
+      if (hasError(enterRes)) throw new Error('进入失败');
       const redirectTo = enterRes.result?.redirectTo;
       if (redirectTo) {
         window.location.href = redirectTo;
@@ -84,8 +106,36 @@ export function Finish() {
     }
   };
 
+  const handleLogout = async () => {
+    Modal.confirm({
+      title: '确认退出登录？',
+      onOk: async () => {
+        try {
+          const res = await call<import('@csisp/idl/idp').SessionResult>(
+            'auth/session',
+            { logout: true }
+          );
+          if (hasError(res)) throw new Error('退出失败');
+          sessionStorage.removeItem('idp_studentId');
+          navigate('/login');
+        } catch {
+          setErrorMsg('退出失败，请重试');
+        }
+      },
+    });
+  };
+
   return (
     <div style={{ maxWidth: 720, margin: '32px auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div />
+        <Space>
+          <Typography.Text>{userLabel}</Typography.Text>
+          <Button type='link' onClick={handleLogout}>
+            退出登录
+          </Button>
+        </Space>
+      </div>
       <Typography.Title level={3} style={{ textAlign: 'center' }}>
         已登录到统一身份认证
       </Typography.Title>

@@ -6,7 +6,7 @@ import { loadRootEnv } from '@csisp/utils';
 import { Injectable } from '@nestjs/common';
 
 import { getIdpLogger } from '../logger';
-import { set as redisSet } from '../redis';
+import { set as redisSet, get as redisGet } from '../redis';
 
 const OTP_MINUTES = 5;
 
@@ -36,9 +36,11 @@ export class SmsService {
 
   private generateCode(): string {
     const n = Math.floor(100000 + Math.random() * 900000);
+    this.logger.info({ n }, 'generated otp code');
     return String(n);
   }
 
+  // 发送 OTP 短信验证码
   async sendOtp(phone: string): Promise<SmsSendResult> {
     const code = this.generateCode();
     await redisSet(`idp:otp:${phone}`, code, OTP_MINUTES * 60);
@@ -86,5 +88,13 @@ export class SmsService {
       };
       return apiResult;
     }
+  }
+
+  // 校验 OTP 短信验证码
+  async verifyOtp(phone: string, code: string): Promise<boolean> {
+    if (!phone || !code) return false;
+    const expected = await redisGet(`idp:otp:${phone}`);
+    this.logger.info({ phone, expected, code }, 'verify otp');
+    return !!expected && expected === code;
   }
 }

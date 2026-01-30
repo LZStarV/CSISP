@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.1",
+    "@csisp/rpc": "workspace:*",
     "antd": "^5.18.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

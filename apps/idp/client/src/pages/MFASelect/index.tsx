@@ -10,7 +10,7 @@ import { Card, Button, Typography, Space, Alert } from 'antd';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import { call } from '@/api/rpc';
+import { call, hasError } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   MFAMethod,
@@ -37,7 +37,7 @@ export function MFASelect() {
       const res = await call<MfaMethodsResult>('auth/mfa_methods', {});
       if (
         res &&
-        !res.error &&
+        !hasError(res) &&
         Array.isArray(res.result?.multifactor) &&
         res.result.multifactor.length
       ) {

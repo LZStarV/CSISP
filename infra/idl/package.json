@@ -9,7 +9,7 @@
   "scripts": {
     "gen:ts": "tsx ./cli/index.ts gen --ts",
     "gen:js": "tsx ./cli/index.ts gen --js",
-    "idl:gen": "tsx ./cli/index.ts gen --ts --js",
+    "idl:gen": "tsx ./cli/index.ts gen --ts --js && tsc -p tsconfig.esm.json && tsx ./scripts/build-esm-index.ts",
     "idl:check": "tsx ./cli/index.ts check",
     "idl:diff": "tsx ./cli/index.ts diff",
     "build": "pnpm idl:gen"
@@ -21,17 +21,17 @@
   ],
   "exports": {
     "./backoffice": {
-      "import": "./dist/backoffice.js",
+      "import": "./dist/esm/backoffice.js",
       "require": "./dist/backoffice.js",
       "types": "./dist/backoffice.d.ts"
     },
     "./backend": {
-      "import": "./dist/backend.js",
+      "import": "./dist/esm/backend.js",
       "require": "./dist/backend.js",
       "types": "./dist/backend.d.ts"
     },
     "./idp": {
-      "import": "./dist/idp.js",
+      "import": "./dist/esm/idp.js",
       "require": "./dist/idp.js",
       "types": "./dist/idp.d.ts"
     },
@@ -60,12 +60,12 @@
   },
   "dependencies": {
     "@creditkarma/thrift-server-core": "^1.0.4",
-    "pino": "^9.3.1",
-    "@csisp/utils": "workspace:*"
+    "@csisp/utils": "workspace:*",
+    "pino": "^9.3.1"
   },
   "devDependencies": {
     "@creditkarma/thrift-typescript": "^3.7.6",
-    "tsx": "^4.19.2",
-    "pino-pretty": "^10.3.1"
+    "pino-pretty": "^10.3.1",
+    "tsx": "^4.19.2"
   }
 }

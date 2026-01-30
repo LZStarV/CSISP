@@ -1,11 +1,16 @@
 import { MFAType } from '@csisp/idl/idp';
-import type { Next } from '@csisp/idl/idp';
+import type { Next, RecoveryInitResult } from '@csisp/idl/idp';
 import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { call } from '@/api/rpc';
+import { call, hasError } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
+import {
+  ROUTE_LOGIN,
+  ROUTE_PASSWORD_RESET,
+  ROUTE_FINISH,
+} from '@/routes/router';
 
 export function SmsVerify() {
   const [loading, setLoading] = useState(false);
@@ -13,32 +18,60 @@ export function SmsVerify() {
   const [phone, setPhone] = useState<string | undefined>(undefined);
   const [codeValue, setCodeValue] = useState('');
   const [cooldown, setCooldown] = useState(0);
+  const [expireAt, setExpireAt] = useState<number>(0);
   const navigate = useNavigate();
   const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const fromForgot = params.get('flow') === 'forgot';
+  const studentId = params.get('studentId') || undefined;
 
   useEffect(() => {
-    const state = location.state as { phone?: string } | null;
-    setPhone(state?.phone);
-  }, [location.state]);
+    if (fromForgot && !studentId) {
+      navigate(ROUTE_LOGIN);
+      return;
+    }
+    if (fromForgot && studentId) {
+      (async () => {
+        try {
+          const res = await call<RecoveryInitResult>('auth/forgot_init', {
+            studentId,
+          });
+          if (!hasError(res)) {
+            const methods = (res.result?.methods ?? []) as any[];
+            const sms = methods.find(m => m?.type === MFAType.Sms);
+            setPhone((sms?.extra as string | undefined) ?? undefined);
+          }
+        } catch {
+          // ignore
+        }
+      })();
+    }
+  }, [fromForgot, studentId]);
 
   useEffect(() => {
     if (!phone) return;
     const key = `idp_otp_exp:${phone}`;
     const expStr = localStorage.getItem(key);
     const exp = expStr ? Number(expStr) : 0;
+    setExpireAt(exp);
+  }, [phone]);
+
+  useEffect(() => {
+    if (!expireAt || expireAt <= 0) return;
     const now = Date.now();
-    const remain = exp > now ? Math.ceil((exp - now) / 1000) : 0;
-    setCooldown(remain);
+    const initialRemain =
+      expireAt > now ? Math.ceil((expireAt - now) / 1000) : 0;
+    setCooldown(initialRemain);
     const timer = setInterval(() => {
-      const now = Date.now();
-      const remain = exp > now ? Math.ceil((exp - now) / 1000) : 0;
-      setCooldown(remain);
-      if (remain <= 0) {
+      const now2 = Date.now();
+      const remain2 = expireAt > now2 ? Math.ceil((expireAt - now2) / 1000) : 0;
+      setCooldown(remain2);
+      if (remain2 <= 0) {
         clearInterval(timer);
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [phone]);
+  }, [expireAt]);
 
   // 发送短信验证码
   const sendCode = async () => {
@@ -46,18 +79,27 @@ export function SmsVerify() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await call<Next>('auth/multifactor', {
-        type: MFAType.Sms,
-        phoneOrEmail: phone,
-        codeOrAssertion: 'request',
-      });
-      if (res.error) throw new Error(res.error.message || '发送失败');
-      const sms = res.result?.sms;
-      if (!sms || sms.code !== 'OK' || sms.success !== true) {
-        throw new Error(sms?.message || '短信发送失败');
+      let res: any;
+      if (fromForgot && studentId) {
+        res = await call<Next>('auth/forgot_challenge', {
+          type: 'sms',
+          studentId,
+        });
+      } else {
+        res = await call<Next>('auth/multifactor', {
+          type: MFAType.Sms,
+          phoneOrEmail: phone,
+          codeOrAssertion: 'request',
+        });
+      }
+      if (hasError(res)) throw new Error(res.error.message || '发送失败');
+      const sms = res.result.sms;
+      if (sms && sms.success === false) {
+        throw new Error(sms.message || '短信发送失败');
       }
       const exp = Date.now() + 60000;
       localStorage.setItem(`idp_otp_exp:${phone}`, String(exp));
+      setExpireAt(exp);
       setCooldown(60);
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '发送失败，请重试');
@@ -72,25 +114,46 @@ export function SmsVerify() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await call<Next>('auth/multifactor', {
-        type: MFAType.Sms,
-        phoneOrEmail: phone,
-        codeOrAssertion: values.code,
-      });
-      if (res.error) throw new Error(res.error.message || '校验失败');
-      const state = sessionStorage.getItem('idp_state');
-      if (state) {
-        const enterRes = await call<Next>('auth/enter', {
-          state,
-        });
-        if (enterRes.error) throw new Error('进入失败');
-        const redirectTo = enterRes.result?.redirectTo;
-        if (redirectTo) {
-          window.location.href = redirectTo;
-          return;
+      if (fromForgot && studentId) {
+        const res = await call<import('@csisp/idl/idp').VerifyResult>(
+          'auth/forgot_verify',
+          {
+            type: 'sms',
+            studentId,
+            code: codeValue,
+          }
+        );
+        if (hasError(res)) throw new Error(res.error.message || '校验失败');
+        const token = res.result?.reset_token;
+        if (!token) throw new Error('校验失败');
+        if (studentId) {
+          sessionStorage.setItem(`idp_reset_token:${studentId}`, token);
         }
+        const qs = new URLSearchParams({
+          studentId: studentId || '',
+        }).toString();
+        navigate(`${ROUTE_PASSWORD_RESET}?${qs}`);
+      } else {
+        const res = await call<Next>('auth/multifactor', {
+          type: MFAType.Sms,
+          phoneOrEmail: phone,
+          codeOrAssertion: codeValue,
+        });
+        if (hasError(res)) throw new Error(res.error.message || '校验失败');
+        const state = sessionStorage.getItem('idp_state');
+        if (state) {
+          const enterRes = await call<Next>('auth/enter', {
+            state,
+          });
+          if (hasError(enterRes)) throw new Error('进入失败');
+          const redirectTo = enterRes.result?.redirectTo;
+          if (redirectTo) {
+            window.location.href = redirectTo;
+            return;
+          }
+        }
+        navigate(ROUTE_FINISH, { state: { fromNormalFlow: true } });
       }
-      navigate('/finish', { state: { fromNormalFlow: true } });
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '校验失败，请重试');
     } finally {

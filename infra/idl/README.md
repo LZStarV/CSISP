@@ -11,8 +11,18 @@
 - 源文件：`src/<module>/v1/*.thrift`
   - backoffice：`auth.thrift`、`user.thrift`、`db.thrift`、`logs.thrift`、`i18n.thrift`、`common.thrift`
   - backend：课程/作业等领域 IDL
+  - idp：IDP 领域 IDL
 - CLI：`cli/*.ts`（统一入口，使用 tsx 执行）
-- 脚本（可选参考）：`scripts/config.sh`、`scripts/gen-ts.sh`、`scripts/gen-js.sh`
+- 脚本：
+  - ESM 聚合导出：`scripts/build-esm-index.ts`
+    - 自动扫描 `src/<module>/<version>` 目录下的 `.thrift` 文件名作为模块名
+    - 生成聚合入口 `dist/esm/<module>.js`，每个模块生成一行：
+      - `export * from './ts/<module>/<version>/<filename>/index.js';`
+    - 这样可保证 `package.json` 中的 `exports.import` 指向真实的 ESM 聚合文件：
+      - `@csisp/idl/idp` → `dist/esm/idp.js`
+      - `@csisp/idl/backend` → `dist/esm/backend.js`
+      - `@csisp/idl/backoffice` → `dist/esm/backoffice.js`
+    - 类型聚合保持不变：`exports.types` 指向 `dist/<module>.d.ts`
 - 产物目录（不写入 src）：
   - TypeScript 源（中间产物）：`.generated/ts/<module>/v1/**`
   - TypeScript 编译产物（最终）：`dist/ts/<module>/v1/**`
@@ -35,10 +45,8 @@
 
 - 安装与依赖（工作区内已声明依赖）：
   - backoffice `package.json`：`"@csisp/idl": "workspace:*"`
-- 类型导入（推荐）：
+- 类型导入（cmj 与 esm 都支持）：
   - `import type { IUser, QueryTableResponse } from '@csisp/idl/backoffice'`
-- 运行时导入（如需 Thrift JS 客户端/服务桩）：
-  - `import { DB } from '@csisp/idl/js/backoffice/v1/DB'`
 - 示例（服务端处理器返回结构对齐）：
   - 用户详情：
     - `const user: IUser = { id: 1, username: 'alice', status: 1 }`
