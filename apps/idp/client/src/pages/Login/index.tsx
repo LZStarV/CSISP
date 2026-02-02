@@ -1,10 +1,10 @@
-import { AuthNextStep } from '@csisp/idl/idp';
 import type { LoginResult } from '@csisp/idl/idp';
+import { AuthNextStep, auth } from '@csisp/idl/idp';
 import { Form, Input, Button, Typography, Alert } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { call, hasError } from '@/api/rpc';
+import { authCall, hasError } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   ROUTE_MFA_SELECT,
@@ -21,7 +21,7 @@ export function Login() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await call<LoginResult>('auth/login', values);
+      const res = await authCall<LoginResult>('login', values);
       if (hasError(res)) throw new Error(res.error.message || '登录失败');
       const next = (res.result?.next ?? []) as AuthNextStep[];
       if (next.includes(AuthNextStep.Multifactor)) {

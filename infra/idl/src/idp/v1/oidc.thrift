@@ -131,7 +131,7 @@ struct ClientInfo {
   3: optional string default_redirect_uri, // 默认回调地址
   4: optional list<OIDCScope> scopes   // 支持的 scopes
 }
-service OIDCService {
+service oidc {
   AuthorizationInitResult authorize(1: AuthorizationRequest req), // 发起授权请求
   TokenResponse token(1: TokenRequest req),                       // 令牌交换/刷新
   JWKSet jwks(),                                                  // 获取公钥集合

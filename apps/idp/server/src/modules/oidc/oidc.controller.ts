@@ -15,7 +15,7 @@ import {
   OIDCPKCEMethod,
   OIDCGrantType,
 } from '@csisp/idl/idp';
-import { OIDCService as IdlOIDC } from '@csisp/idl/idp';
+import { oidc as IdlOIDC } from '@csisp/idl/idp';
 import { Controller, Post, Body, Param } from '@nestjs/common';
 
 import { makeRpcError, makeRpcResponse } from '../../common/rpc/jsonrpc';

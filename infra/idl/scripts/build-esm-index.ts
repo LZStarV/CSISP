@@ -19,6 +19,7 @@ function listThriftModules(p: string) {
 
 function buildAll() {
   const srcRoot = resolve(__dirname, '../src');
+  const esmTsRoot = resolve(__dirname, '../dist/esm/ts');
   const outDir = resolve(__dirname, '../dist/esm');
   ensureDir(outDir);
   const projects = listDirs(srcRoot);
@@ -30,9 +31,19 @@ function buildAll() {
       const versionDir = resolve(versionsRoot, version);
       const modules = listThriftModules(versionDir);
       for (const mod of modules) {
+        const modOutDir = resolve(esmTsRoot, projectName, version, mod);
+        // 优先导出模块 index.js
         lines.push(
           `export * from './ts/${projectName}/${version}/${mod}/index.js';`
         );
+        // 逐文件补充导出，避免模块 index 未覆盖全部成员
+        for (const f of readdirSync(modOutDir, { withFileTypes: true })) {
+          if (f.isFile() && f.name.endsWith('.js') && f.name !== 'index.js') {
+            lines.push(
+              `export * from './ts/${projectName}/${version}/${mod}/${f.name}';`
+            );
+          }
+        }
       }
     }
     const outFile = resolve(outDir, `${projectName}.js`);

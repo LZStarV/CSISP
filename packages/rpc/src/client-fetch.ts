@@ -2,14 +2,18 @@ import type { JsonRpcResponse, JsonRpcId, JsonRpcError } from './core';
 
 /**
  * 以 fetch 发起 JSON‑RPC 调用
- * - method：后端方法路径（如 'auth/login'）
+ * - prefix：路由前缀（如 '/api/idp'）
+ * - domain：模块域名（如 'auth'）
+ * - action：方法名（如 'login'）
  * - params：请求参数对象
  * - init：可选的 fetch 参数（headers/credentials 等）
  * - 自动注入 x-trace-id 以便链路追踪
  */
 export async function call<T>(
-  method: string,
-  params: unknown,
+  prefix: string,
+  domain: string,
+  action: string,
+  params?: unknown,
   init?: RequestInit
 ): Promise<JsonRpcResponse<T>> {
   const headers: Record<string, string> = {
@@ -20,10 +24,14 @@ export async function call<T>(
     headers['x-trace-id'] =
       Math.random().toString(36).slice(2) + Date.now().toString(36);
   }
-  const res = await fetch(`/api/idp/${method}`, {
+  const res = await fetch(`${prefix}/${domain}/${action}`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), params }),
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: Date.now(),
+      params: params ?? {},
+    }),
     credentials: init?.credentials ?? 'include',
   });
   return res.json();

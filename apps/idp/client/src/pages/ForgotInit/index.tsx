@@ -1,4 +1,5 @@
 import { MFAType, RecoveryUnavailableReason } from '@csisp/idl/idp';
+import type { RecoveryInitResult } from '@csisp/idl/idp';
 import {
   Card,
   Space,
@@ -12,7 +13,7 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { call, hasError } from '@/api/rpc';
+import { authCall, hasError } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_MFA_SMS, ROUTE_LOGIN } from '@/routes/router';
 import { MFA_METHOD_LABELS, MFA_METHOD_DESCRIPTIONS } from '@/types/auth';
@@ -54,12 +55,9 @@ export function ForgotInit() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await call<import('@csisp/idl/idp').RecoveryInitResult>(
-        'auth/forgot_init',
-        {
-          studentId,
-        }
-      );
+      const res = await authCall<RecoveryInitResult>('forgot_init', {
+        studentId,
+      });
       if (hasError(res))
         throw new Error(res.error.message || '获取可用方式失败');
       const list = (res.result?.methods ?? []) as any[];

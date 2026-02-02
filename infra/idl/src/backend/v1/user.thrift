@@ -4,7 +4,7 @@ include "./common.thrift"
 include "./base.thrift"
 
 // 用户实体
-struct User {
+struct UserRecord {
   1: common.UUID id,     // 用户唯一 ID
   2: string name,        // 用户姓名
   3: string email,       // 邮箱（唯一）
@@ -21,16 +21,16 @@ struct CreateUserInput {
 
 // 列表响应
 struct ListUsersResponse {
-  1: list<User> items,   // 用户列表
+  1: list<UserRecord> items,   // 用户列表
   2: common.PageMeta meta // 分页元信息
 }
 
 // 用户服务定义
-service UserService {
+service user {
   // 根据用户 ID 获取详情
-  User getUserById(1: common.UUID id) throws (1: common.ApiException e),
+  UserRecord getUserById(1: common.UUID id) throws (1: common.ApiException e),
   // 创建用户
-  User createUser(1: CreateUserInput input) throws (1: common.ApiException e),
+  UserRecord createUser(1: CreateUserInput input) throws (1: common.ApiException e),
   // 分页查询用户列表
   ListUsersResponse listUsers(1: common.Pagination page) throws (1: common.ApiException e)
 }

@@ -4,13 +4,13 @@ import {
   KeyOutlined,
   QrcodeOutlined,
 } from '@ant-design/icons';
-import { MFAType, MfaMethodsResult } from '@csisp/idl/idp';
-import { AuthNextStep } from '@csisp/idl/idp';
+import type { MfaMethodsResult, AuthNextStep } from '@csisp/idl/idp';
+import { MFAType } from '@csisp/idl/idp';
 import { Card, Button, Typography, Space, Alert } from 'antd';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import { call, hasError } from '@/api/rpc';
+import { authCall, hasError } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   MFAMethod,
@@ -34,7 +34,7 @@ export function MFASelect() {
 
   async function loadMfa() {
     try {
-      const res = await call<MfaMethodsResult>('auth/mfa_methods', {});
+      const res = await authCall<MfaMethodsResult>('mfa_methods', {});
       if (
         res &&
         !hasError(res) &&

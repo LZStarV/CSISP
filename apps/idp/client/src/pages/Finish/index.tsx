@@ -1,12 +1,16 @@
 import { OIDCScope } from '@csisp/idl/idp';
-import type { ClientInfo } from '@csisp/idl/idp';
-import type { AuthorizationInitResult } from '@csisp/idl/idp';
+import type {
+  SessionResult,
+  Next,
+  AuthorizationInitResult,
+  ClientInfo,
+} from '@csisp/idl/idp';
 import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { randomString, s256 } from '@/api/pkce';
-import { call, hasError } from '@/api/rpc';
+import { authCall, oidcCall, hasError } from '@/api/rpc';
 
 // 将 OIDCScope 枚举值转换为字符串
 function scopeEnumsToString(scopes?: Array<OIDCScope> | null): string {
@@ -39,7 +43,7 @@ export function Finish() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await call<ClientInfo[]>('oidc/clients', {});
+        const res = await oidcCall<ClientInfo[]>('clients', {});
         if (hasError(res))
           throw new Error(res.error.message || '获取系统列表失败');
         const data = res.result;
@@ -53,10 +57,7 @@ export function Finish() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await call<import('@csisp/idl/idp').SessionResult>(
-          'auth/session',
-          {}
-        );
+        const res = await authCall<SessionResult>('session', {});
         if (!hasError(res)) {
           const n = (res.result as any)?.name as string | undefined;
           const sid = (res.result as any)?.student_id as string | undefined;
@@ -78,7 +79,7 @@ export function Finish() {
       const challenge = await s256(verifier);
       sessionStorage.setItem('idp_state', state);
       sessionStorage.setItem(`cv:${state}`, verifier);
-      const authRes = await call<AuthorizationInitResult>('oidc/authorize', {
+      const authRes = await oidcCall<AuthorizationInitResult>('authorize', {
         response_type: 'code',
         client_id: item.client_id,
         redirect_uri: item.default_redirect_uri,
@@ -90,7 +91,7 @@ export function Finish() {
       });
       if (hasError(authRes) || !authRes.result?.ok)
         throw new Error('授权态创建失败');
-      const enterRes = await call<import('@csisp/idl/idp').Next>('auth/enter', {
+      const enterRes = await authCall<Next>('enter', {
         state,
       });
       if (hasError(enterRes)) throw new Error('进入失败');
@@ -111,10 +112,9 @@ export function Finish() {
       title: '确认退出登录？',
       onOk: async () => {
         try {
-          const res = await call<import('@csisp/idl/idp').SessionResult>(
-            'auth/session',
-            { logout: true }
-          );
+          const res = await authCall<SessionResult>('session', {
+            logout: true,
+          });
           if (hasError(res)) throw new Error('退出失败');
           sessionStorage.removeItem('idp_studentId');
           navigate('/login');

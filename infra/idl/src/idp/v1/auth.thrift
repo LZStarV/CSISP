@@ -58,7 +58,7 @@ struct VerifyResult {
   2: optional string reset_token    // 重置令牌（一次性、短期）
 }
 
-service AuthService {
+service auth {
   RSATokenResult rsatoken(), // 获取 RSA 公钥与一次性标识
   LoginResult login(1: string studentId, 2: string password), // 账号密码登录
   common.Next multifactor(1: common.MFAType type, 2: string codeOrAssertion, 3: string phoneOrEmail), // 多因子挑战/校验（短信等）

@@ -1,10 +1,10 @@
-import { MFAType } from '@csisp/idl/idp';
+import { MFAType, VerifyResult } from '@csisp/idl/idp';
 import type { Next, RecoveryInitResult } from '@csisp/idl/idp';
 import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { call, hasError } from '@/api/rpc';
+import { authCall, hasError } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   ROUTE_LOGIN,
@@ -33,7 +33,7 @@ export function SmsVerify() {
     if (fromForgot && studentId) {
       (async () => {
         try {
-          const res = await call<RecoveryInitResult>('auth/forgot_init', {
+          const res = await authCall<RecoveryInitResult>('forgot_init', {
             studentId,
           });
           if (!hasError(res)) {
@@ -81,12 +81,12 @@ export function SmsVerify() {
     try {
       let res: any;
       if (fromForgot && studentId) {
-        res = await call<Next>('auth/forgot_challenge', {
+        res = await authCall<Next>('forgot_challenge', {
           type: 'sms',
           studentId,
         });
       } else {
-        res = await call<Next>('auth/multifactor', {
+        res = await authCall<Next>('multifactor', {
           type: MFAType.Sms,
           phoneOrEmail: phone,
           codeOrAssertion: 'request',
@@ -115,14 +115,11 @@ export function SmsVerify() {
     setErrorMsg(null);
     try {
       if (fromForgot && studentId) {
-        const res = await call<import('@csisp/idl/idp').VerifyResult>(
-          'auth/forgot_verify',
-          {
-            type: 'sms',
-            studentId,
-            code: codeValue,
-          }
-        );
+        const res = await authCall<VerifyResult>('forgot_verify', {
+          type: 'sms',
+          studentId,
+          code: codeValue,
+        });
         if (hasError(res)) throw new Error(res.error.message || '校验失败');
         const token = res.result?.reset_token;
         if (!token) throw new Error('校验失败');
@@ -134,7 +131,7 @@ export function SmsVerify() {
         }).toString();
         navigate(`${ROUTE_PASSWORD_RESET}?${qs}`);
       } else {
-        const res = await call<Next>('auth/multifactor', {
+        const res = await authCall<Next>('multifactor', {
           type: MFAType.Sms,
           phoneOrEmail: phone,
           codeOrAssertion: codeValue,
@@ -142,9 +139,7 @@ export function SmsVerify() {
         if (hasError(res)) throw new Error(res.error.message || '校验失败');
         const state = sessionStorage.getItem('idp_state');
         if (state) {
-          const enterRes = await call<Next>('auth/enter', {
-            state,
-          });
+          const enterRes = await authCall<Next>('enter', { state });
           if (hasError(enterRes)) throw new Error('进入失败');
           const redirectTo = enterRes.result?.redirectTo;
           if (redirectTo) {

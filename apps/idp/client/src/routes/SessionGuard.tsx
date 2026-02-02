@@ -3,7 +3,7 @@ import { message } from 'antd';
 import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { call, hasError } from '@/api/rpc';
+import { authCall, hasError } from '@/api/rpc';
 import { ROUTE_LOGIN, ROUTE_FINISH } from '@/routes/router';
 
 export function SessionGuard({ children }: { children: ReactNode }) {
@@ -19,7 +19,7 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     }
     (async () => {
       try {
-        const res = await call<SessionResult>('auth/session', {});
+        const res = await authCall<SessionResult>('session', {});
         if (hasError(res)) {
           const msg = res?.error?.message || '服务器错误或连接失败，请稍后重试';
           message.error(msg);

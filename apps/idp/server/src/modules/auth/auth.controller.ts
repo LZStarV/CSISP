@@ -7,7 +7,7 @@ import {
   MFAType,
   ResetReason,
 } from '@csisp/idl/idp';
-import { AuthService as IdlAuth } from '@csisp/idl/idp';
+import { auth as IdlAuth } from '@csisp/idl/idp';
 import {
   Body,
   Controller,

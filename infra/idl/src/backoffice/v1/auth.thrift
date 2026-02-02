@@ -4,7 +4,7 @@
 
 namespace js auth
 include "user.thrift"
-service Auth {
+service auth {
   string login(1: string username, 2: string password),
   user.UserInfo me()
 }

@@ -4,7 +4,7 @@
 // - import / export：占位方法
 
 namespace js i18n
-service I18n {
+service i18n {
   list<string> listNamespaces(),
   list<string> listEntries(1: string ns, 2: i32 page, 3: i32 size),
   bool import(),
