@@ -1,4 +1,5 @@
 import {
+  auth as IdlAuth,
   MfaMethodsResult,
   SessionResult,
   RSATokenResult,
@@ -7,7 +8,6 @@ import {
   MFAType,
   ResetReason,
 } from '@csisp/idl/idp';
-import { auth as IdlAuth } from '@csisp/idl/idp';
 import {
   Body,
   Controller,
@@ -24,8 +24,127 @@ import { makeRpcError, makeRpcResponse } from '../../common/rpc/jsonrpc';
 import { RpcRequestPipe } from '../../common/rpc/rpc-request.pipe';
 import { getIdpLogger } from '../../infra/logger';
 import { del as redisDel } from '../../infra/redis';
+import { parseEnum } from '../../utils/idl';
 
 import { AuthService } from './auth.service';
+
+type AuthActions = (typeof IdlAuth.methodNames)[number];
+const logger = getIdpLogger('auth-controller');
+
+function makeAuthDispatch(
+  service: AuthService
+): Record<
+  AuthActions,
+  (
+    params: Record<string, unknown>,
+    request: Request,
+    response: Response
+  ) => Promise<
+    RSATokenResult | LoginResult | Next | MfaMethodsResult | SessionResult
+  >
+> {
+  return {
+    rsatoken: async (_params: Record<string, unknown>) => service.rsatoken({}),
+    login: async (
+      params: Record<string, unknown>,
+      _request: Request,
+      response: Response
+    ) =>
+      service.login(
+        {
+          studentId: String(params.studentId ?? ''),
+          password: String(params.password ?? ''),
+        },
+        response
+      ),
+    multifactor: async (
+      params: Record<string, unknown>,
+      _request: Request,
+      response: Response
+    ) => {
+      const typeParsed = parseEnum(params.type, MFAType, MFAType.Sms);
+      return service.multifactor(
+        {
+          type: typeParsed,
+          codeOrAssertion: String(params.codeOrAssertion ?? ''),
+          phoneOrEmail: String(params.phoneOrEmail ?? ''),
+        },
+        response
+      );
+    },
+    reset_password_request: async (params: Record<string, unknown>) => {
+      return service.resetPasswordRequest({
+        studentId: String(params.studentId ?? ''),
+      });
+    },
+    reset_password: async (params: Record<string, unknown>) => {
+      const reasonParsed = parseEnum(
+        params.reason,
+        ResetReason,
+        ResetReason.WeakPassword
+      );
+      return service.resetPassword({
+        studentId: String(params.studentId ?? ''),
+        newPassword: String(params.newPassword ?? ''),
+        reason: reasonParsed,
+        resetToken: String((params as any).resetToken ?? ''),
+      });
+    },
+    enter: async (
+      params: Record<string, unknown>,
+      _request: Request,
+      response: Response
+    ) =>
+      service.enter(
+        {
+          state: String(params.state ?? ''),
+          redirectMode:
+            typeof params.redirectMode === 'string'
+              ? (params.redirectMode as string)
+              : undefined,
+        },
+        response
+      ),
+    mfa_methods: async (_params: Record<string, unknown>, request: Request) => {
+      type IdpRequest = Request & { idpSession?: string };
+      const sid = (request as IdpRequest).idpSession;
+      const list = await service.mfaMethodsBySession(sid);
+      return new MfaMethodsResult({ multifactor: list });
+    },
+    forgot_init: async (params: Record<string, unknown>) =>
+      service.forgotInit({ studentId: String(params.studentId ?? '') }),
+    forgot_challenge: async (params: Record<string, unknown>) =>
+      service.forgotChallenge({
+        type: String(params.type ?? ''),
+        studentId: String(params.studentId ?? ''),
+      }),
+    forgot_verify: async (params: Record<string, unknown>) =>
+      service.forgotVerify({
+        type: String(params.type ?? ''),
+        studentId: String(params.studentId ?? ''),
+        code: String(params.code ?? ''),
+      }),
+    session: async (
+      params: Record<string, unknown>,
+      request: Request,
+      response: Response
+    ) => {
+      type IdpRequest = Request & { idpUserId?: number; idpSession?: string };
+      const req = request as IdpRequest;
+      const logout = !!params?.logout;
+      const sid = req.idpSession;
+      if (logout && sid) {
+        try {
+          await redisDel(`idp:sess:${sid}`);
+        } catch {}
+        response.clearCookie?.('idp_session');
+        return new SessionResult({ logged: false });
+      }
+      const uid = req.idpUserId;
+      return service.session(uid);
+    },
+  } as any;
+}
 
 // 控制器说明：
 // - 统一接收 JSON-RPC 风格的请求体，通过 RpcRequestPipe 校验并解析 { id, params }
@@ -34,7 +153,7 @@ import { AuthService } from './auth.service';
 @Controller('auth')
 @UseGuards(IdpSessionGuard)
 export class AuthController {
-  constructor(private readonly svc: AuthService) {}
+  constructor(private readonly service: AuthService) {}
 
   @Post(':action')
   async handle(
@@ -44,7 +163,6 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Req() req: Request
   ) {
-    const logger = getIdpLogger('auth-controller');
     // 入口日志（不记录敏感信息）
     logger.info(
       { action, id: body.id, hasParams: !!body.params },
@@ -54,112 +172,7 @@ export class AuthController {
     const params = body.params || {};
     type AuthActions = (typeof IdlAuth.methodNames)[number];
 
-    const dispatch: Record<
-      AuthActions,
-      (
-        params: Record<string, unknown>,
-        request: Request,
-        response: Response
-      ) => Promise<
-        RSATokenResult | LoginResult | Next | MfaMethodsResult | SessionResult
-      >
-    > = {
-      rsatoken: async _params => this.svc.rsatoken({}),
-      login: async (params, _request, response) =>
-        this.svc.login(
-          {
-            studentId: String(params.studentId ?? ''),
-            password: String(params.password ?? ''),
-          },
-          response
-        ),
-      multifactor: async (params, _request, response) => {
-        let typeParsed: MFAType;
-        if (typeof params.type === 'string' && params.type in MFAType) {
-          typeParsed = (MFAType as any)[params.type as keyof typeof MFAType];
-        } else if (typeof params.type === 'number') {
-          typeParsed = params.type as MFAType;
-        } else {
-          typeParsed = MFAType.Sms;
-        }
-        return this.svc.multifactor(
-          {
-            type: typeParsed,
-            codeOrAssertion: String(params.codeOrAssertion ?? ''),
-            phoneOrEmail: String(params.phoneOrEmail ?? ''),
-          },
-          response
-        );
-      },
-      reset_password_request: async params => {
-        return this.svc.resetPasswordRequest({
-          studentId: String(params.studentId ?? ''),
-        });
-      },
-      reset_password: async params => {
-        let reasonParsed: ResetReason;
-        if (typeof params.reason === 'string' && params.reason in ResetReason) {
-          reasonParsed = (ResetReason as any)[
-            params.reason as keyof typeof ResetReason
-          ];
-        } else if (typeof params.reason === 'number') {
-          reasonParsed = params.reason as ResetReason;
-        } else {
-          reasonParsed = ResetReason.WeakPassword;
-        }
-        return this.svc.resetPassword({
-          studentId: String(params.studentId ?? ''),
-          newPassword: String(params.newPassword ?? ''),
-          reason: reasonParsed,
-          resetToken: String(params.resetToken ?? ''),
-        });
-      },
-      enter: async (params, _request, response) =>
-        this.svc.enter(
-          {
-            state: String(params.state ?? ''),
-            redirectMode:
-              typeof params.redirectMode === 'string'
-                ? (params.redirectMode as string)
-                : undefined,
-          },
-          response
-        ),
-      mfa_methods: async (_params, request) => {
-        type IdpRequest = Request & { idpSession?: string };
-        const sid = (request as IdpRequest).idpSession;
-        const list = await this.svc.mfaMethodsBySession(sid);
-        return new MfaMethodsResult({ multifactor: list });
-      },
-      forgot_init: async params =>
-        this.svc.forgotInit({ studentId: String(params.studentId ?? '') }),
-      forgot_challenge: async params =>
-        this.svc.forgotChallenge({
-          type: String(params.type ?? ''),
-          studentId: String(params.studentId ?? ''),
-        }),
-      forgot_verify: async params =>
-        this.svc.forgotVerify({
-          type: String(params.type ?? ''),
-          studentId: String(params.studentId ?? ''),
-          code: String(params.code ?? ''),
-        }),
-      session: async (params, request, response) => {
-        type IdpRequest = Request & { idpUserId?: number; idpSession?: string };
-        const req = request as IdpRequest;
-        const logout = !!params?.logout;
-        const sid = req.idpSession;
-        if (logout && sid) {
-          try {
-            await redisDel(`idp:sess:${sid}`);
-          } catch {}
-          response.clearCookie?.('idp_session');
-          return new SessionResult({ logged: false });
-        }
-        const uid = req.idpUserId;
-        return this.svc.session(uid);
-      },
-    };
+    const dispatch = makeAuthDispatch(this.service);
     const handler = dispatch[action as AuthActions];
     if (!handler) {
       logger.warn({ action }, 'method not found');

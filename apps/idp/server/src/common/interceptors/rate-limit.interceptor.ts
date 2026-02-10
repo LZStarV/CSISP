@@ -11,11 +11,13 @@ const bucket = new Map<string, { count: number; resetAt: number }>();
 const WINDOW_MS = 60_000;
 const MAX_REQ = 60;
 
+// 从 HTTP 请求中提取唯一键，用于速率限制
 function keyOf(req: any): string {
   const ip = (req.ip as string) || req.headers['x-forwarded-for'] || 'unknown';
   return `${ip}:${req.method}:${req.path || req.url}`;
 }
 
+// 速率限制拦截器，限制每个 IP 地址在 60 秒内的请求次数
 @Injectable()
 export class RateLimitInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {

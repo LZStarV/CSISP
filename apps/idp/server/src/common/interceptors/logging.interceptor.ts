@@ -9,6 +9,7 @@ import { tap } from 'rxjs/operators';
 
 import { getIdpLogger } from '../../infra/logger';
 
+// 从 HTTP 请求路径和 JSON-RPC 请求体中提取 RPC 方法名和 ID
 function deriveRpc(
   path: string,
   body: any
@@ -28,6 +29,7 @@ function deriveRpc(
   return { rpcId: body.id };
 }
 
+// 日志拦截器，记录 HTTP 请求和 JSON-RPC 请求的开始和结束时间
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {

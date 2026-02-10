@@ -3,6 +3,7 @@ import type { Request } from 'express';
 
 import { get as redisGet } from '../../infra/redis';
 
+// IDP 会话守卫，检查 HTTP 请求是否包含有效的会话 ID
 @Injectable()
 export class IdpSessionGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
