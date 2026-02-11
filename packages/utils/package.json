@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "@csisp/types": "workspace:*",
-    "dotenv": "^16.4.5"
-  },
-  "devDependencies": {}
+    "dotenv": "^16.4.5",
+    "pino": "^10.3.1",
+    "pino-pretty": "^13.1.3"
+  }
 }

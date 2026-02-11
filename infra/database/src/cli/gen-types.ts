@@ -9,9 +9,6 @@ async function main(): Promise<void> {
   loadRootEnv();
   const logger = getInfraDbLogger();
 
-  // 代码生成脚本无需落文件日志，避免进程退出的文件流冲突
-  process.env.LOG_TO_FILE = process.env.LOG_TO_FILE ?? 'false';
-
   // 1. 获取数据库连接字符串 (参考 run-kanel.ts 的逻辑)
   const host = process.env.DB_HOST || 'localhost';
   const port = process.env.DB_PORT || '5433';

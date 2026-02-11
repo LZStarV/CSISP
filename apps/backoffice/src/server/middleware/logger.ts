@@ -1,6 +1,6 @@
-import pino from 'pino';
+import { createLogger } from '@csisp/utils';
 
-const base = pino();
+const base = createLogger('backoffice');
 
 export function getLogger(child: Record<string, any> = {}) {
   return base.child(child);
