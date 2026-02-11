@@ -131,4 +131,20 @@ infra/database/
 
 ---
 
-如需新增迁移或基础种子，推荐参考已有 `create-*` 与 `seed-base-*` 文件的写法，保持事务包裹、幂等性与命名规范的一致。
+## 如需新增迁移或基础种子，推荐参考已有 `create-*` 与 `seed-base-*` 文件的写法，保持事务包裹、幂等性与命名规范的一致。
+
+## 6. 目标态（单一事实源）与一致性检查
+
+- 本仓库采用 DB-first：迁移文件是数据库结构的唯一事实源；同时在 `src/spec/` 目录维护一份基于 `sequelize-typescript` 的“目标态”模型，用于展示与校验目标结构。
+- 目录说明：
+  - `src/spec/tables/`：每张表一个文件，声明表名、主键、字段、索引与外键（逐步补齐）。
+  - `src/spec/register.ts`：聚合并注册所有目标态模型（仅注册，不执行 sync）。
+  - `src/spec/check/schema-check.ts`：一致性检查脚本，比对“目标态模型”与“迁移后的实际结构”。
+  - `src/spec/cli/check-schema.ts`：CLI 入口，先执行所有 pending 迁移，再进行一致性检查。
+- 本地使用：
+  ```bash
+  pnpm -F @csisp/infra-database tsx infra/database/src/spec/cli/check-schema.ts
+  ```
+- CI 集成：
+  - `.github/workflows/db-schema-consistency.yml` 在 push / PR 变更命中 `infra/database/src/migrations/**` 或 `infra/database/src/spec/**` 时运行；
+  - 启动临时 Postgres，运行迁移，再执行一致性检查；检查失败则阻止合入。
