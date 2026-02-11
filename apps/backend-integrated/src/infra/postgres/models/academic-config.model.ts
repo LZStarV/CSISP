@@ -1,51 +1,55 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import type AcademicConfigRow from '@csisp/infra-database/public/AcademicConfig';
+import type {
+  AcademicConfigId,
+  AcademicConfigInitializer,
+} from '@csisp/infra-database/public/AcademicConfig';
+import {
+  Column,
+  DataType,
+  Model,
+  Table,
+  PrimaryKey,
+  AutoIncrement,
+  AllowNull,
+  Default,
+} from 'sequelize-typescript';
 
-@Table
-export class AcademicConfigModel extends Model {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
-  id!: number;
+@Table({
+  tableName: 'academic_config',
+  timestamps: false,
+  underscored: true,
+})
+export class AcademicConfigModel
+  extends Model<AcademicConfigRow, AcademicConfigInitializer>
+  implements AcademicConfigRow
+{
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
+  id!: AcademicConfigId;
 
-  @Column({
-    type: DataType.STRING(10),
-    allowNull: false,
-  })
+  @AllowNull(false)
+  @Column(DataType.STRING(10))
   year!: string;
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
   semester!: number;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: false,
-    field: 'start_date',
-  })
-  startDate!: Date;
+  @AllowNull(false)
+  @Column(DataType.DATE)
+  start_date!: Date;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: false,
-    field: 'end_date',
-  })
-  endDate!: Date;
+  @AllowNull(false)
+  @Column(DataType.DATE)
+  end_date!: Date;
 
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-    field: 'is_current',
-  })
-  isCurrent!: boolean;
+  @Default(false)
+  @AllowNull(false)
+  @Column(DataType.BOOLEAN)
+  is_current!: boolean;
 
-  @Column({
-    type: DataType.INTEGER,
-    defaultValue: 1,
-  })
+  @Default(1)
+  @Column(DataType.INTEGER)
   status!: number;
 }

@@ -1,5 +1,6 @@
+import type UserType from '@csisp/infra-database/public/User';
+
 import { models, initModels } from '@/src/infra/postgres';
-import type UserType from '@/src/infra/postgres/generated/public/User';
 
 export async function getByIdOrUsername(
   id?: number,

@@ -21,11 +21,10 @@
   - middleware/\*：通用中间件（errorWrapper/logger/trace/jwtAuth/roles/rateLimit/responseValidation）
   - config/\*：环境配置与 RPC 常量
 - src/infra：基础设施与依赖封装
-  - postgres/：Sequelize + 只读模型注册；generated/public/\* 为 Kanel 生成的类型（作为字段参照）
+  - postgres/：Sequelize 模型注册；数据库类型直接通过 `@csisp/infra-database/public/*` 引用
   - redis/：连接封装与统一限流实现（滑窗，支持阈值配置与内存回退）
   - mongo/：Mongoose 连接与占位 schemas（i18n/log）
 - src/shared/config/jsonrpc：JSON-RPC 辅助（codes/helpers/types）
-- scripts/run-kanel.ts：类型生成脚本，输出到 src/infra/postgres/generated/public
 
 **客户端路由与守卫**
 
@@ -124,7 +123,7 @@
   - build：生产构建
   - format：代码格式化（eslint + prettier）
 - 类型生成脚本：
-  - run-kanel：基于数据库生成类型到 src/infra/postgres/generated/public
+  - db:types：统一调用 `@csisp/infra-database` 生成类型
   - 说明：生成类型用于编译期约束与字段对齐，模型仍由 Sequelize 定义
 
 **维护建议**

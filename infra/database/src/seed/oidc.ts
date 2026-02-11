@@ -1,8 +1,9 @@
 import crypto from 'crypto';
 
 import { loadRootEnv } from '@csisp/utils';
+import type OidcClients from '@pgtype/OidcClients';
+import type OidcKeys from '@pgtype/OidcKeys';
 import type { QueryInterface } from 'sequelize';
-import { literal } from 'sequelize';
 
 import { getInfraDbLogger } from '../logger';
 import { getSequelize, closeSequelize } from '../sequelize-client';
@@ -51,13 +52,15 @@ export async function seedOidc(): Promise<void> {
   }
 
   await sequelize.transaction(async transaction => {
-    const existingKeys: Array<{ kid: string; status: string }> =
-      (await sequelize.query('SELECT kid, status FROM "oidc_keys";', {
+    const existingKeys: Array<Partial<OidcKeys>> = (await sequelize.query(
+      'SELECT kid FROM "oidc_keys";',
+      {
         type: 'SELECT',
         transaction,
-      })) as any;
-    const hasActive = existingKeys.some(k => k.status === 'active');
-    if (!hasActive) {
+      }
+    )) as any;
+    const hasKeys = existingKeys.length > 0;
+    if (!hasKeys) {
       const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
         modulusLength: 2048,
         publicKeyEncoding: { type: 'pkcs1', format: 'pem' },
@@ -74,9 +77,8 @@ export async function seedOidc(): Promise<void> {
             alg: 'RS256',
             use: 'sig',
             public_pem: publicKey,
-            private_pem_enc: enc,
+            private_pem_enc: enc.toString('base64'),
             status: 'active',
-            activated_at: new Date(),
             created_at: new Date(),
           },
         ],
@@ -84,10 +86,10 @@ export async function seedOidc(): Promise<void> {
       );
       logger.info({ kid }, 'seed oidc key inserted');
     } else {
-      logger.info('active oidc key exists, skip insert');
+      logger.info('oidc key exists, skip insert');
     }
 
-    const existingClient: Array<{ client_id: string }> = (await sequelize.query(
+    const existingClient: Array<Partial<OidcClients>> = (await sequelize.query(
       'SELECT client_id FROM "oidc_clients" WHERE client_id = :cid;',
       {
         type: 'SELECT',
@@ -104,12 +106,12 @@ export async function seedOidc(): Promise<void> {
           {
             client_id: defaultClientId,
             client_secret: null,
-            name: 'CSISP BFF Client',
-            allowed_redirect_uris: literal(`'${redirectsJson}'::jsonb`),
-            scopes: literal(`'${scopesJson}'::jsonb`),
+            name: 'CSISP BFF',
+            allowed_redirect_uris: redirectsJson,
+            scopes: scopesJson,
             status: 'active',
-            created_by: 'seed',
             created_at: new Date(),
+            updated_at: new Date(),
           },
         ],
         { transaction }

@@ -16,6 +16,18 @@ services:
       retries: 3
     restart: unless-stopped
 
+  atlas:
+    image: arigaio/atlas:latest
+    working_dir: /work
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      DEV_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/csisp_dev?sslmode=disable
+    volumes:
+      - ../..:/work
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   redis:
     image: redis:7-alpine
     ports:

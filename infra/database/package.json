@@ -3,22 +3,21 @@
   "version": "1.0.0",
   "private": true,
   "main": "dist/index.js",
+  "exports": {
+    "./public/*": "./dist/public/*.ts"
+  },
   "scripts": {
-    "db:migrate": "tsx src/cli/db-migrate.ts",
-    "db:rollback": "tsx src/cli/db-rollback.ts",
-    "db:status": "tsx src/cli/db-status.ts",
-    "db:reset:dev": "tsx src/cli/db-reset-dev.ts",
-    "db:seed:mongo": "tsx src/cli/db-seed-mongo.ts",
     "db:seed": "tsx src/seed/index.ts",
-    "reset": "tsx src/cli/db-reset-dev.ts",
-    "db:check:schema": "tsx src/cli/db-check-schema.ts",
     "db:init:mac": "bash scripts/init_mac.sh",
     "db:init:linux": "bash scripts/init_linux.sh",
     "db:init:win": "scripts/init_windows.bat",
     "db:init": "bash scripts/init_mac.sh",
-    "build": "tsc -p tsconfig.json",
-    "lint": "eslint .",
-    "format": "pnpm exec prettier --write ."
+    "atlas:diff": "docker compose -f docker-compose.db.yml --env-file ../../.env run --rm atlas schema diff --config file://infra/database/atlas.hcl --env local --from env://url --to file://infra/database/src/schema/",
+    "atlas:migrate:diff": "docker compose -f docker-compose.db.yml --env-file ../../.env run --rm atlas migrate diff --config file://infra/database/atlas.hcl --env local",
+    "atlas:migrate:apply": "docker compose -f docker-compose.db.yml --env-file ../../.env run --rm atlas migrate apply --config file://infra/database/atlas.hcl --env local",
+    "atlas:migrate:status": "docker compose -f docker-compose.db.yml --env-file ../../.env run --rm atlas migrate status --config file://infra/database/atlas.hcl --env local",
+    "atlas:inspect": "docker compose -f docker-compose.db.yml --env-file ../../.env run --rm atlas schema inspect --config file://infra/database/atlas.hcl --env local",
+    "types:build": "tsx src/cli/gen-types.ts"
   },
   "dependencies": {
     "@csisp/utils": "workspace:*",
@@ -35,6 +34,7 @@
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^20.19.25",
+    "kanel": "^3.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.9.3"
   }

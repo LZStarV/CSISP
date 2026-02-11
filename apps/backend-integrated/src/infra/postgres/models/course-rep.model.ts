@@ -1,7 +1,6 @@
+import type CourseRepRow from '@csisp/infra-database/public/CourseRep';
+import type { CourseRepInitializer } from '@csisp/infra-database/public/CourseRep';
 import { Column, DataType, Model, Table } from 'sequelize-typescript';
-
-import type CourseRepRow from '../generated/public/CourseRep';
-import type { CourseRepInitializer } from '../generated/public/CourseRep';
 
 @Table({ tableName: 'course_rep', timestamps: false, underscored: true })
 export class CourseRep extends Model<CourseRepRow, CourseRepInitializer> {

@@ -1,5 +1,5 @@
-import type User from '@pgtype/User';
-import type { UserId } from '@pgtype/User';
+import type User from '@csisp/infra-database/public/User';
+import type { UserId } from '@csisp/infra-database/public/User';
 import {
   Table,
   Column,

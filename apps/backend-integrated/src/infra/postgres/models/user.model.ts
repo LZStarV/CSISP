@@ -1,9 +1,18 @@
+import type UserRow from '@csisp/infra-database/public/User';
+import type {
+  UserId,
+  UserInitializer,
+} from '@csisp/infra-database/public/User';
 import {
   BelongsToMany,
   Column,
   DataType,
   Model,
   Table,
+  PrimaryKey,
+  AutoIncrement,
+  AllowNull,
+  Default,
 } from 'sequelize-typescript';
 
 import { Role } from './role.model';
@@ -13,52 +22,63 @@ import { UserRole } from './user-role.model';
   tableName: 'user',
   timestamps: true,
   underscored: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
 })
-export class User extends Model {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
-  id!: number;
+export class User extends Model<UserRow, UserInitializer> implements UserRow {
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
+  id!: UserId;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
+  @AllowNull(false)
+  @Column(DataType.STRING(50))
   username!: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
+  @AllowNull(false)
+  @Column(DataType.STRING(255))
   password!: string;
 
-  @Column({
-    type: DataType.STRING(11),
-    allowNull: false,
-    unique: true,
-    field: 'student_id',
-  })
-  studentId!: string;
+  @AllowNull(false)
+  @Column(DataType.STRING(255))
+  real_name!: string;
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    field: 'enrollment_year',
-  })
-  enrollmentYear!: number;
+  @AllowNull(false)
+  @Column(DataType.STRING(11))
+  student_id!: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  enrollment_year!: number;
+
+  @AllowNull(false)
+  @Column(DataType.STRING(100))
   major!: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, field: 'real_name' })
-  realName!: string;
+  @Default(1)
+  @Column(DataType.INTEGER)
+  status!: number;
 
-  @Column({ type: DataType.STRING(255), allowNull: true, unique: true })
+  @Default(false)
+  @AllowNull(false)
+  @Column(DataType.BOOLEAN)
+  weak_password_flag!: boolean;
+
+  @AllowNull(true)
+  @Column(DataType.STRING(255))
   email!: string | null;
 
-  @Column({ type: DataType.STRING(20), allowNull: true, unique: true })
+  @AllowNull(true)
+  @Column(DataType.STRING(20))
   phone!: string | null;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 1 })
-  status!: number;
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 
   @BelongsToMany(() => Role, () => UserRole)
   roles?: Role[];

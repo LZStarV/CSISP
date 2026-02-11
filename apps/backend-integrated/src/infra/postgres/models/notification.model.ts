@@ -1,25 +1,67 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import type NotificationRow from '@csisp/infra-database/public/Notification';
+import type {
+  NotificationId,
+  NotificationInitializer,
+} from '@csisp/infra-database/public/Notification';
+import type { UserId } from '@csisp/infra-database/public/User';
+import {
+  Column,
+  DataType,
+  Model,
+  Table,
+  PrimaryKey,
+  AutoIncrement,
+  AllowNull,
+  Default,
+} from 'sequelize-typescript';
 
-@Table
-export class Notification extends Model {
-  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id!: number;
+@Table({
+  tableName: 'notification',
+  timestamps: true,
+  underscored: true,
+})
+export class Notification
+  extends Model<NotificationRow, NotificationInitializer>
+  implements NotificationRow
+{
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
+  id!: NotificationId;
 
-  @Column({ type: DataType.STRING(50), allowNull: false })
+  @AllowNull(false)
+  @Default('system')
+  @Column(DataType.STRING(50))
   type!: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
+  @AllowNull(false)
+  @Column(DataType.STRING(255))
   title!: string;
 
-  @Column({ type: DataType.TEXT, allowNull: false })
+  @AllowNull(false)
+  @Column(DataType.TEXT)
   content!: string;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, field: 'target_user_id' })
-  targetUserId!: number;
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  target_user_id!: UserId;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, field: 'sender_id' })
-  senderId!: number;
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  sender_id!: number;
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'unread' })
+  @Default('unread')
+  @AllowNull(false)
+  @Column(DataType.STRING(20))
   status!: string;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 }

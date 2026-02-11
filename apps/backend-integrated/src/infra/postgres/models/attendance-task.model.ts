@@ -1,25 +1,65 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import type AttendanceTaskRow from '@csisp/infra-database/public/AttendanceTask';
+import type {
+  AttendanceTaskId,
+  AttendanceTaskInitializer,
+} from '@csisp/infra-database/public/AttendanceTask';
+import type { CourseId } from '@csisp/infra-database/public/Course';
+import {
+  Column,
+  DataType,
+  Model,
+  Table,
+  PrimaryKey,
+  AutoIncrement,
+  AllowNull,
+  Default,
+} from 'sequelize-typescript';
 
 @Table({
   tableName: 'attendance_task',
   timestamps: true,
   underscored: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
 })
-export class AttendanceTask extends Model {
-  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id!: number;
+export class AttendanceTask
+  extends Model<AttendanceTaskRow, AttendanceTaskInitializer>
+  implements AttendanceTaskRow
+{
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
+  id!: AttendanceTaskId;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, field: 'course_id' })
-  courseId!: number;
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  course_id!: CourseId;
 
-  @Column({ type: DataType.DATE, allowNull: false, field: 'start_time' })
-  startTime!: Date;
+  @AllowNull(false)
+  @Column(DataType.STRING(255))
+  title!: string;
 
-  @Column({ type: DataType.DATE, allowNull: false, field: 'end_time' })
-  endTime!: Date;
+  @AllowNull(false)
+  @Column(DataType.DATE)
+  start_time!: Date;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 1 })
+  @AllowNull(false)
+  @Column(DataType.DATE)
+  end_time!: Date;
+
+  @AllowNull(true)
+  @Column(DataType.STRING(10))
+  code!: string | null;
+
+  @Default(1)
+  @Column(DataType.INTEGER)
   status!: number;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 }

@@ -1,5 +1,5 @@
-import type OidcClients from '@pgtype/OidcClients';
-import type { OidcClientsClientId } from '@pgtype/OidcClients';
+import type OidcClients from '@csisp/infra-database/public/OidcClients';
+import type { OidcClientsClientId } from '@csisp/infra-database/public/OidcClients';
 import {
   Table,
   Column,
@@ -49,4 +49,9 @@ export class OidcClientModel extends Model implements OidcClients {
   @Default(DataType.NOW)
   @Column(DataType.DATE)
   created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 }

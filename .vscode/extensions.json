@@ -8,6 +8,7 @@
     "stylelint.vscode-stylelint",
     "dariofuzinato.vue-peek",
     "bradlc.vscode-tailwindcss",
-    "byted-ferry-team.thrift-language-support"
+    "byted-ferry-team.thrift-language-support",
+    "hashicorp.hcl"
   ]
 }

@@ -1,5 +1,5 @@
-import type RefreshTokens from '@pgtype/RefreshTokens';
-import type { RefreshTokensId } from '@pgtype/RefreshTokens';
+import type RefreshTokens from '@csisp/infra-database/public/RefreshTokens';
+import type { RefreshTokensId } from '@csisp/infra-database/public/RefreshTokens';
 import {
   Table,
   Column,

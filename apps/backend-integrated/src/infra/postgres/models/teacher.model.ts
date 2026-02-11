@@ -1,34 +1,69 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import type TeacherRow from '@csisp/infra-database/public/Teacher';
+import type {
+  TeacherId,
+  TeacherInitializer,
+} from '@csisp/infra-database/public/Teacher';
+import type { UserId } from '@csisp/infra-database/public/User';
+import {
+  Column,
+  DataType,
+  Model,
+  Table,
+  PrimaryKey,
+  AutoIncrement,
+  AllowNull,
+  Default,
+} from 'sequelize-typescript';
 
 @Table({
   tableName: 'teacher',
   timestamps: true,
   underscored: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
 })
-export class Teacher extends Model {
-  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id!: number;
+export class Teacher
+  extends Model<TeacherRow, TeacherInitializer>
+  implements TeacherRow
+{
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
+  id!: TeacherId;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, field: 'user_id' })
-  userId!: number;
+  @AllowNull(true)
+  @Column(DataType.INTEGER)
+  user_id!: UserId | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: false, field: 'real_name' })
-  realName!: string;
+  @AllowNull(false)
+  @Column(DataType.STRING(255))
+  real_name!: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false, unique: true })
+  @AllowNull(false)
+  @Column(DataType.STRING(255))
   email!: string;
 
-  @Column({ type: DataType.STRING(20), allowNull: false })
+  @AllowNull(false)
+  @Column(DataType.STRING(20))
   phone!: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
+  @AllowNull(false)
+  @Column(DataType.STRING(255))
   department!: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  title!: string;
+  @AllowNull(true)
+  @Column(DataType.STRING(50))
+  title!: string | null;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 1 })
+  @Default(1)
+  @Column(DataType.INTEGER)
   status!: number;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 }

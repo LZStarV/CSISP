@@ -7,7 +7,7 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
-    "kanel": "tsx scripts/run-kanel.ts",
+    "db:types": "pnpm -F @csisp/infra-database types:build",
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
@@ -38,11 +38,11 @@
   },
   "devDependencies": {
     "@csisp/utils": "workspace:*",
+    "@csisp/infra-database": "workspace:*",
     "@nestjs/cli": "^10.4.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^4.17.21",
     "@types/node": "^20.19.25",
-    "kanel": "^3.0.0",
     "nodemon": "^3.0.0",
     "tsx": "^4.0.0"
   }

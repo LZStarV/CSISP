@@ -1,40 +1,77 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import type CourseRow from '@csisp/infra-database/public/Course';
+import type {
+  CourseId,
+  CourseInitializer,
+} from '@csisp/infra-database/public/Course';
+import {
+  Column,
+  DataType,
+  Model,
+  Table,
+  PrimaryKey,
+  AutoIncrement,
+  AllowNull,
+  Default,
+} from 'sequelize-typescript';
 
 @Table({
   tableName: 'course',
   timestamps: true,
   underscored: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
 })
-export class Course extends Model {
-  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id!: number;
+export class Course
+  extends Model<CourseRow, CourseInitializer>
+  implements CourseRow
+{
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
+  id!: CourseId;
 
-  @Column({
-    type: DataType.STRING(255),
-    allowNull: false,
-    field: 'course_name',
-  })
-  courseName!: string;
+  @AllowNull(false)
+  @Column(DataType.STRING(50))
+  course_code!: string;
 
-  @Column({
-    type: DataType.STRING(50),
-    allowNull: false,
-    unique: true,
-    field: 'course_code',
-  })
-  courseCode!: string;
+  @AllowNull(false)
+  @Column(DataType.STRING(255))
+  course_name!: string;
 
-  @Column({ type: DataType.INTEGER, allowNull: false })
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
   semester!: number;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, field: 'academic_year' })
-  academicYear!: number;
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  academic_year!: number;
 
-  @Column({ type: DataType.JSON, allowNull: true, field: 'available_majors' })
-  availableMajors!: unknown;
+  @AllowNull(true)
+  @Column(DataType.JSONB)
+  available_majors!: unknown;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 1 })
+  @AllowNull(true)
+  @Column(DataType.TEXT)
+  description!: string | null;
+
+  @AllowNull(false)
+  @Default(0)
+  @Column(DataType.DECIMAL(3, 1))
+  credit!: string;
+
+  @AllowNull(true)
+  @Column(DataType.STRING(255))
+  department!: string | null;
+
+  @Default(1)
+  @Column(DataType.INTEGER)
   status!: number;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 }

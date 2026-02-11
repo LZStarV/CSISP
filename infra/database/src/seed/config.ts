@@ -1,31 +1,23 @@
-export type BaseRoleSeed = {
-  name: string;
-  code: string;
-  description: string;
-};
+import type Role from '@pgtype/Role';
+import type User from '@pgtype/User';
 
-export const BASE_ROLES: BaseRoleSeed[] = [
+/**
+ * 基础角色定义
+ */
+export const BASE_ROLES: Array<Partial<Role>> = [
   { name: 'admin', code: 'admin', description: '管理员' },
   { name: 'student', code: 'student', description: '学生' },
   { name: 'teacher', code: 'teacher', description: '教师' },
 ];
 
-export type AdminUserSeed = {
-  username: string;
-  realName: string;
-  studentId: string;
-  enrollmentYear: number;
-  major: string;
-  email: string;
-  phone: string;
-  password: string;
-};
-
-export const ADMIN_USER_SEED: AdminUserSeed = {
+/**
+ * 管理员账号定义
+ */
+export const ADMIN_USER_SEED: Partial<User> = {
   username: 'LZStarV',
-  realName: '管理员',
-  studentId: '20232131082',
-  enrollmentYear: 2023,
+  real_name: '管理员',
+  student_id: '20232131082',
+  enrollment_year: 2023,
   major: '计算机科学与技术',
   email: '3654498270@qq.com',
   phone: '13702501230',

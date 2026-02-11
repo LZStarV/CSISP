@@ -7,7 +7,7 @@
     "dev": "next dev",
     "start": "next start",
     "build": "next build",
-    "db:types": "tsx scripts/run-kanel.ts",
+    "db:types": "pnpm -F @csisp/infra-database types:build",
     "format": "eslint . --fix && pnpm prettier --write ."
   },
   "dependencies": {
@@ -28,11 +28,11 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@csisp/infra-database": "workspace:*",
     "@types/node": "^20.11.28",
     "@types/pg": "^8.6.6",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
-    "kanel": "^3.16.0",
     "sass": "^1.69.5",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

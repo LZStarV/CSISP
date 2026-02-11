@@ -1,22 +1,61 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import type { ClassId } from '@csisp/infra-database/public/Class';
+import type HomeworkRow from '@csisp/infra-database/public/Homework';
+import type {
+  HomeworkId,
+  HomeworkInitializer,
+} from '@csisp/infra-database/public/Homework';
+import {
+  Column,
+  DataType,
+  Model,
+  Table,
+  PrimaryKey,
+  AutoIncrement,
+  AllowNull,
+  Default,
+} from 'sequelize-typescript';
 
-@Table
-export class Homework extends Model {
-  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id!: number;
+@Table({
+  tableName: 'homework',
+  timestamps: true,
+  underscored: true,
+})
+export class Homework
+  extends Model<HomeworkRow, HomeworkInitializer>
+  implements HomeworkRow
+{
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
+  id!: HomeworkId;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, field: 'class_id' })
-  classId!: number;
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  class_id!: ClassId;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
+  @AllowNull(false)
+  @Column(DataType.STRING(255))
   title!: string;
 
-  @Column({ type: DataType.TEXT, allowNull: false })
-  content!: string;
+  @AllowNull(true)
+  @Column(DataType.TEXT)
+  content!: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: false })
+  @AllowNull(false)
+  @Column(DataType.DATE)
   deadline!: Date;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 1 })
+  @Default(1)
+  @Column(DataType.INTEGER)
   status!: number;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 }

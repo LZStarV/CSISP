@@ -20,11 +20,11 @@ import {
   OIDCScope,
   OIDCClaim,
 } from '@csisp/idl/idp';
+import type OidcClients from '@csisp/infra-database/public/OidcClients';
+import type OidcKeys from '@csisp/infra-database/public/OidcKeys';
+import type RefreshTokens from '@csisp/infra-database/public/RefreshTokens';
+import type User from '@csisp/infra-database/public/User';
 import { Injectable, BadRequestException } from '@nestjs/common';
-import type OidcClients from '@pgtype/OidcClients';
-import type OidcKeys from '@pgtype/OidcKeys';
-import type RefreshTokens from '@pgtype/RefreshTokens';
-import type User from '@pgtype/User';
 
 import { signRS256, parseDurationToSeconds } from '../../infra/crypto/jwt';
 import { OidcClientModel } from '../../infra/postgres/models/oidc-client.model';

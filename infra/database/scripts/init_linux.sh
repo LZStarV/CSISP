@@ -83,7 +83,9 @@ done
 log_info "创建应用用户与数据库"
 $DC_CMD -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres psql -U "$POSTGRES_USER" -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD' CREATEDB;" >/dev/null 2>&1 || true
 $DC_CMD -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres psql -U "$POSTGRES_USER" -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" >/dev/null 2>&1 || true
+$DC_CMD -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres psql -U "$POSTGRES_USER" -c "CREATE DATABASE csisp_dev OWNER $DB_USER;" >/dev/null 2>&1 || true
 $DC_CMD -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres psql -U "$POSTGRES_USER" -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" >/dev/null 2>&1 || true
+$DC_CMD -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres psql -U "$POSTGRES_USER" -d "csisp_dev" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" >/dev/null 2>&1 || true
 
 log_info "检查数据库是否已初始化"
 HAS_USER_TABLE=$($DC_CMD -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres \
@@ -96,23 +98,10 @@ HAS_RESET_TABLE=$($DC_CMD -f "$ROOT_DIR/infra/database/docker-compose.db.yml" ex
 if [ "$HAS_USER_TABLE" = "1" ] && [ "$HAS_MFA_TABLE" = "1" ] && [ "$HAS_RESET_TABLE" = "1" ]; then
   log_info "检测到核心表已存在（user/mfa_settings/password_resets），跳过迁移步骤"
 else
-  log_info "执行数据库迁移（@csisp/infra-database db:migrate）"
+  log_info "执行数据库迁移（Atlas migrate apply）"
   if command -v pnpm >/dev/null 2>&1; then
-    (cd "$ROOT_DIR" && pnpm -F @csisp/infra-database db:migrate) || {
+    (cd "$ROOT_DIR" && pnpm -F @csisp/infra-database atlas:migrate:apply) || {
       log_error "数据库迁移执行失败，请检查日志"
-      exit 1
-    }
-  else
-    log_error "未检测到 pnpm，请先安装 pnpm 后再重试"
-    exit 1
-  fi
-fi
-
-if [ "${MONGODB_ENABLED:-true}" != "false" ]; then
-  log_info "执行 MongoDB 内容种子（@csisp/infra-database db:seed:mongo）"
-  if command -v pnpm >/dev/null 2>&1; then
-    (cd "$ROOT_DIR" && pnpm -F @csisp/infra-database db:seed:mongo) || {
-      log_error "MongoDB 种子执行失败，请检查日志"
       exit 1
     }
   else

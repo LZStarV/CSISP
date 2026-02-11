@@ -1,150 +1,84 @@
 # @csisp/infra-database
 
-CSISP 项目中的数据库基础设施子包，负责数据库的初始化、迁移和基础种子数据管理，并为后续的多语言类型 Codegen 预留入口。
+CSISP 项目中的数据库基础设施子包，负责数据库的声明式管理、自动化迁移和集中类型生成。
 
-> 核心定位：**DB-first 的数据库生命周期管理**，不承载业务逻辑，不提供 HTTP 服务。
+> 核心定位：**基于 Atlas 的声明式模块化数据库生命周期管理**，维护数据库的单一事实源（SSOT）。
 
 ---
 
-## 1. 快速使用
+## 1. 核心架构：声明式 & 模块化
 
-在仓库根目录下，通过 pnpm 和脚本完成数据库相关操作：
+本项目已全面切换为 **基于 Atlas 的声明式模块化管理** 架构。
+
+- **单一事实源 (SSOT)**：[src/schema/](./src/schema/) 目录是数据库结构的唯一标准。
+- **模块化设计**：按领域拆分 `.hcl` 文件（如 `user.hcl`, `course.hcl`），避免单文件庞大难以维护。
+- **原生注释**：HCL 中包含详细的字段 `comment`，这些注释会自动同步到数据库及生成的 TS 类型中。
+- **自动化同步**：通过 `atlas schema apply` 确保本地开发数据库与 HCL 定义保持绝对同步。
+
+---
+
+## 2. 快速使用
+
+### 2.1 初始化环境
+
+在仓库根目录下执行，自动启动容器并应用迁移：
 
 ```bash
-# macOS / Linux / Windows：启动 Postgres/Redis/Mongo，执行 Postgres 迁移 + 基础种子 + Mongo 索引
+# macOS / Linux / Windows
 bash infra/database/scripts/init_[os].[ext]
-
-# 仅执行 PostgreSQL 迁移（结构 + 基础种子）
-pnpm -F @csisp/infra-database db:migrate
-
-# 查看迁移状态
-pnpm -F @csisp/infra-database db:status
-
-# 回滚最近一条迁移
-pnpm -F @csisp/infra-database db:rollback
-
-# 开发环境重置 PostgreSQL（down to 0 + up）
-pnpm -F @csisp/infra-database db:reset:dev
-
-# 为 MongoDB content 集合创建索引（不插入示例文档）
-pnpm -F @csisp/infra-database db:seed:mongo
 ```
 
-说明：
+### 2.2 数据库变更流程 (SOP)
 
-- `init_[os].ext` 会自动：
-  - 启动 `docker-compose.db.yml` 中的 Postgres/Redis/Mongo
-  - 创建应用用户与数据库
-  - 在数据库尚未初始化时执行 `db:migrate`，完成 PostgreSQL 迁移与基础种子
-  - 在 `MONGODB_ENABLED` 未显式设为 `false` 时执行 `db:seed:mongo`，为 Mongo content 集合创建索引
-- 所有 CLI 内部都会通过 `loadRootEnv()` 自动加载根 `.env`，并使用 `@csisp/logger` 输出结构化日志。
+如果你需要修改数据库结构，请遵循以下流程：
+
+1. **修改设计**：在 [src/schema/](./src/schema/) 下找到对应的表文件（或新建文件）进行编辑。
+2. **应用变更**：在 `infra/database` 目录下运行 `pnpm db:init`（或手动运行 `atlas schema apply`）将变更同步到本地数据库。
+3. **生成类型**：运行 `pnpm types:build`。该脚本会基于当前数据库状态，在 `dist/public/` 下生成最新的 TS 类型。
+4. **业务对齐**：根据生成的类型更新业务模块中的 Sequelize 模型或 Service 逻辑。
 
 ---
 
-## 2. 目录结构概览
+## 3. 常用脚本 (CLI)
+
+| 命令                 | 说明                                                           |
+| :------------------- | :------------------------------------------------------------- |
+| `pnpm db:init`       | **核心同步**：调用 Atlas 将 `src/schema/` 中的定义同步到数据库 |
+| `pnpm types:build`   | **核心生成**：基于当前数据库状态生成 TS 类型包到 `dist/`       |
+| `pnpm db:seed`       | **基础填充**：执行基础种子数据注入（TS 编写，已对齐最新架构）  |
+| `pnpm atlas:diff`    | 检查当前库与 HCL 定义的差异（漂移校验）                        |
+| `pnpm atlas:inspect` | 查看当前数据库结构的 HCL 表示（输出到控制台）                  |
+
+---
+
+## 4. 目录结构
 
 ```text
 infra/database/
-├── docker-compose.db.yml       # 本地开发用的 Postgres/Redis/Mongo 容器编排
-├── scripts/                    # 本地初始化数据库环境的 shell 脚本
-│   ├── common.sh
-│   ├── init_linux.sh
-│   ├── init_mac.sh
-│   └── init_windows.bat
 ├── src/
-│   ├── cli/                    # 数据库相关 CLI 命令入口（tsx 执行）
-│   │   ├── db-migrate.ts       # 执行所有 pending 迁移（结构 + 基础种子）
-│   │   ├── db-rollback.ts      # 回滚最近一条迁移
-│   │   ├── db-status.ts        # 查看已执行/待执行迁移
-│   │   ├── db-reset-dev.ts     # 开发环境重置数据库（down to 0 + up）
-│   │   └── db-seed-mongo.ts    # 初始化 Mongo content 集合索引
-│   ├── config/
-│   │   ├── db-env.ts           # 从 .env 解析 DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD
-│   │   └── load-env.ts         # 从仓库根目录加载 .env（供 CLI 使用）
-│   ├── migrations/             # 所有 PostgreSQL 迁移（DB-first，事实源）
-│   │   └── 2026xxxxxxxxxxxx-*.ts # 示例：时间戳前缀 + 描述（create-/seed-base- 等）
-│   ├── seed/                   # 基础种子数据定义（角色、管理员账号等内容配置）
-│   │   └── base.ts             # 示例：基础角色列表、管理员账号模板等
-│   ├── logger.ts               # 基于 @csisp/logger 的子包级日志封装
-│   ├── migration-runner.ts     # Umzug + SequelizeStorage 封装（up/down/status）
-│   └── sequelize-client.ts     # 专用于迁移/种子的 Sequelize 实例
-├── package.json                # @csisp/infra-database 子包配置
-└── tsconfig.json               # 继承根 tsconfig，编译为 CommonJS
+│   ├── schema/          # 目标态定义目录 (按表拆分的 .hcl 文件)
+│   ├── cli/             # 维护脚本入口 (如 gen-types.ts)
+│   ├── seed/            # 基础种子数据定义 (已适配最新架构)
+│   └── sequelize-client.ts # 基础设施层通用的 DB 连接客户端
+├── dist/                # 自动生成的 TS 数据库类型包 (Monorepo 消费端入口)
+├── atlas.hcl            # Atlas 全局配置
+├── docker-compose.db.yml # 开发环境基础设施 (PG/Redis/Mongo)
+└── package.json         # 脚本定义与子包导出配置
 ```
 
 ---
 
-## 3. 职责划分
+## 5. 类型消费 (Monorepo)
 
-- **infra/database（本子包）**
-  - 负责数据库生命周期管理：
-    - 启动本地数据库容器（Postgres/Redis/Mongo）
-    - 管理 PostgreSQL schema 迁移（所有业务表结构）
-    - 管理所有环境必需的基础种子数据（角色、管理员账号等）
-  - 暴露统一的 CLI 命令供本地开发和 CI/CD 使用
-  - 为 DB introspect + 多语言 Codegen 预留入口和目录
+本项目通过 `package.json` 的 `exports` 字段对外暴露生成的类型。其他子包（如 `idp-server`, `backoffice`）应直接通过包名引用：
 
-- **backend-integrated**
-  - 使用 `@nestjs/sequelize` + `sequelize-typescript` 挂载 ORM 模型
-  - 通过 Service 实现业务逻辑
-  - 未来会承载 Dev 环境的大量假数据注入（DevSeed 模块），但不再负责结构迁移
+```typescript
+// 推荐引用方式（直接从包内 public 目录引入）
+import type User from '@csisp/infra-database/public/User';
+import type { UserId } from '@csisp/infra-database/public/User';
+```
 
----
-
-## 4. 迁移与基础种子
-
-### 4.1 迁移设计
-
-- 采用 **DB-first** 思路：
-  - 所有表结构与索引演化由 `src/migrations/*.ts` 定义，是 PostgreSQL 的唯一结构事实源
-  - 迁移通过 Umzug 顺序执行，并记录在 `schema_migrations` 表中
-- 迁移文件分三类：
-  - `*-create-*.ts`：创建/修改表结构与约束
-  - `*-seed-base-*.ts`：插入所有环境都需要的**基础种子数据**（例：角色/管理员）
-  - 未来如有需要，可新增 `*-alter-*.ts`、`*-drop-*.ts` 作为演化历史
-- 所有迁移中：
-  - 统一使用 `getSequelize()` 获取连接
-  - 在 `sequelize.transaction` 中执行 `createTable`/`dropTable`/`addConstraint` 等操作
-  - 时间字段（`created_at`/`updated_at` 等）使用 `sequelize.fn('NOW')` 作为默认值
-
-### 4.2 基础种子
-
-- 通过 `*-seed-base-*.ts` 这类迁移文件注入所有环境都需要的基础数据（如角色、初始账号等）。
-- 具体种子内容随业务演进调整，可在对应迁移中查阅实现。
-
-> 注意：大量开发/演示用假数据（课程、班级、学生批量样本等）**不会**放在 migrations 中，后续将由 backend-integrated 内部的 DevSeed 模块负责。
-
----
-
-## 5. 注意事项
-
-- 任何对 PostgreSQL 结构的新增/修改：
-  - 必须通过 `infra/database/src/migrations` 提交新的迁移文件
-  - 禁止直接在数据库中手动修改结构
-- 当迁移影响实体字段时，需要同步更新：
-  - `@csisp/types` 对应类型
-  - backend-integrated 中的 `sequelize-typescript` 模型与 Service 逻辑
-  - 如影响前端/BFF 接口，需更新 `docs/src/` 中相关文档
-- 业务层（backend-integrated/BFF）访问数据库时：
-  - 不直接使用 Sequelize 原始连接或 SQL 字符串
-  - 统一通过 ORM 模型 + Service 完成
-
----
-
-## 如需新增迁移或基础种子，推荐参考已有 `create-*` 与 `seed-base-*` 文件的写法，保持事务包裹、幂等性与命名规范的一致。
-
-## 6. 目标态（单一事实源）与一致性检查
-
-- 本仓库采用 DB-first：迁移文件是数据库结构的唯一事实源；同时在 `src/spec/` 目录维护一份基于 `sequelize-typescript` 的“目标态”模型，用于展示与校验目标结构。
-- 目录说明：
-  - `src/spec/tables/`：每张表一个文件，声明表名、主键、字段、索引与外键（逐步补齐）。
-  - `src/spec/register.ts`：聚合并注册所有目标态模型（仅注册，不执行 sync）。
-  - `src/spec/check/schema-check.ts`：一致性检查脚本，比对“目标态模型”与“迁移后的实际结构”。
-  - `src/spec/cli/check-schema.ts`：CLI 入口，先执行所有 pending 迁移，再进行一致性检查。
-- 本地使用：
-  ```bash
-  pnpm -F @csisp/infra-database tsx infra/database/src/spec/cli/check-schema.ts
-  ```
-- CI 集成：
-  - `.github/workflows/db-schema-consistency.yml` 在 push / PR 变更命中 `infra/database/src/migrations/**` 或 `infra/database/src/spec/**` 时运行；
-  - 启动临时 Postgres，运行迁移，再执行一致性检查；检查失败则阻止合入。
+> **注意**：
+>
+> 1. 请勿直接在业务包中运行 `kanel`，应统一调用 `pnpm -F @csisp/infra-database types:build`。
+> 2. 消费端项目需配置 `moduleResolution: "NodeNext"` 或 `Bundler` 以正确识别子包导出。

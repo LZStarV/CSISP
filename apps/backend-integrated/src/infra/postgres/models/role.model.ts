@@ -1,13 +1,19 @@
+import type RoleRow from '@csisp/infra-database/public/Role';
+import type {
+  RoleId,
+  RoleInitializer,
+} from '@csisp/infra-database/public/Role';
 import {
   BelongsToMany,
   Column,
   DataType,
   Model,
   Table,
+  PrimaryKey,
+  AutoIncrement,
+  AllowNull,
+  Default,
 } from 'sequelize-typescript';
-
-import type RoleRow from '../generated/public/Role';
-import type { RoleInitializer } from '../generated/public/Role';
 
 import { UserRole } from './user-role.model';
 import { User } from './user.model';
@@ -16,24 +22,38 @@ import { User } from './user.model';
   tableName: 'role',
   timestamps: true,
   underscored: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
 })
-export class Role extends Model<RoleRow, RoleInitializer> {
-  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  id!: number;
+export class Role extends Model<RoleRow, RoleInitializer> implements RoleRow {
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
+  id!: RoleId;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
+  @AllowNull(false)
+  @Column(DataType.STRING(50))
   name!: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
+  @AllowNull(false)
+  @Column(DataType.STRING(50))
   code!: string;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string;
+  @AllowNull(true)
+  @Column(DataType.TEXT)
+  description!: string | null;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 1 })
+  @Default(1)
+  @Column(DataType.INTEGER)
   status!: number;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  created_at!: Date;
+
+  @AllowNull(false)
+  @Default(DataType.NOW)
+  @Column(DataType.DATE)
+  updated_at!: Date;
 
   @BelongsToMany(() => User, () => UserRole)
   users?: User[];

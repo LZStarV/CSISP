@@ -1,5 +1,5 @@
-import type OidcKeys from '@pgtype/OidcKeys';
-import type { OidcKeysKid } from '@pgtype/OidcKeys';
+import type OidcKeys from '@csisp/infra-database/public/OidcKeys';
+import type { OidcKeysKid } from '@csisp/infra-database/public/OidcKeys';
 import {
   Table,
   Column,
@@ -37,28 +37,16 @@ export class OidcKeyModel extends Model implements OidcKeys {
   public_pem!: string;
 
   @AllowNull(false)
-  @Column(DataType.BLOB)
-  private_pem_enc!: Buffer;
+  @Column(DataType.TEXT)
+  private_pem_enc!: string;
 
   @Default('active')
   @AllowNull(false)
   @Column(DataType.STRING)
   status!: string;
 
-  @AllowNull(true)
-  @Column(DataType.DATE)
-  activated_at!: Date | null;
-
-  @AllowNull(true)
-  @Column(DataType.DATE)
-  expires_at!: Date | null;
-
   @AllowNull(false)
   @Default(DataType.NOW)
   @Column(DataType.DATE)
   created_at!: Date;
-
-  @AllowNull(true)
-  @Column(DataType.DATE)
-  rotated_at!: Date | null;
 }

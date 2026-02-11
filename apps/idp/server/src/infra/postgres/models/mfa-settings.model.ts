@@ -1,6 +1,6 @@
-import type MfaSettings from '@pgtype/MfaSettings';
-import type { MfaSettingsId } from '@pgtype/MfaSettings';
-import type { UserId } from '@pgtype/User';
+import type MfaSettings from '@csisp/infra-database/public/MfaSettings';
+import type { MfaSettingsId } from '@csisp/infra-database/public/MfaSettings';
+import type { UserId } from '@csisp/infra-database/public/User';
 import {
   Table,
   Column,
@@ -29,6 +29,15 @@ export class MfaSettingsModel extends Model implements MfaSettings {
   @Column(DataType.INTEGER)
   user_id!: UserId;
 
+  @AllowNull(true)
+  @Column(DataType.STRING)
+  otp_secret!: string | null;
+
+  @Default(false)
+  @AllowNull(false)
+  @Column(DataType.BOOLEAN)
+  otp_enabled!: boolean;
+
   @Default(false)
   @AllowNull(false)
   @Column(DataType.BOOLEAN)
@@ -44,16 +53,11 @@ export class MfaSettingsModel extends Model implements MfaSettings {
   @Column(DataType.BOOLEAN)
   fido2_enabled!: boolean;
 
-  @Default(false)
-  @AllowNull(false)
-  @Column(DataType.BOOLEAN)
-  otp_enabled!: boolean;
-
   @AllowNull(true)
   @Column(DataType.STRING)
   phone_number!: string | null;
 
-  @Default(true)
+  @Default(false)
   @AllowNull(false)
   @Column(DataType.BOOLEAN)
   required!: boolean;

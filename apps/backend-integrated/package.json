@@ -8,13 +8,10 @@
     "build": "nest build",
     "start": "node dist/main.js",
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write .",
-    "db:types": "tsx scripts/run-kanel.ts"
+    "db:types": "pnpm -F @csisp/infra-database types:build"
   },
   "dependencies": {
     "@csisp/utils": "workspace:*",
-    "redis": "^4.6.7",
-    "pino": "^9.3.0",
-    "pino-pretty": "^11.2.2",
     "@nestjs/common": "^10.4.0",
     "@nestjs/core": "^10.4.0",
     "@nestjs/mongoose": "^11.0.4",
@@ -26,18 +23,21 @@
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.0.2",
+    "pino": "^9.3.0",
+    "pino-pretty": "^11.2.2",
+    "redis": "^4.6.7",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sequelize": "^6.35.0",
     "sequelize-typescript": "^2.1.6"
   },
   "devDependencies": {
+    "@csisp/infra-database": "workspace:*",
     "@nestjs/cli": "^10.4.0",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^20.19.25",
     "@types/pg": "^8.16.0",
     "esbuild": "^0.19.0",
-    "kanel": "^3.0.0",
     "nodemon": "^3.0.0",
     "pg": "^8.11.3",
     "tsx": "^4.0.0"

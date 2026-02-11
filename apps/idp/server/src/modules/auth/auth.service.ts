@@ -14,10 +14,10 @@ import {
   VerifyResult,
   RecoveryUnavailableReason,
 } from '@csisp/idl/idp';
+import type MfaSettings from '@csisp/infra-database/public/MfaSettings';
+import type User from '@csisp/infra-database/public/User';
 import { Injectable, HttpException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import type MfaSettings from '@pgtype/MfaSettings';
-import type User from '@pgtype/User';
 import { plainToInstance } from 'class-transformer';
 import { IsString, Length, validateSync } from 'class-validator';
 import type { Response } from 'express';

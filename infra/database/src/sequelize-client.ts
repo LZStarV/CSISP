@@ -1,31 +1,38 @@
-import { Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
 
 import { getDbConfig } from './config/db-env';
+import { getInfraDbLogger } from './logger';
 
-let sequelizeInstance: Sequelize | null = null;
+let sequelize: Sequelize | null = null;
 
 export function getSequelize(): Sequelize {
-  if (sequelizeInstance) return sequelizeInstance;
+  if (sequelize) return sequelize;
 
   const cfg = getDbConfig();
+  const logger = getInfraDbLogger();
 
-  sequelizeInstance = new Sequelize({
+  sequelize = new Sequelize({
     dialect: 'postgres',
     host: cfg.host,
     port: cfg.port,
     database: cfg.database,
     username: cfg.username,
     password: cfg.password,
-    logging: false,
-    define: { underscored: true },
-    timezone: '+08:00',
+    logging: (msg: string) => logger.debug(msg),
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
   });
 
-  return sequelizeInstance;
+  return sequelize;
 }
 
 export async function closeSequelize(): Promise<void> {
-  if (!sequelizeInstance) return;
-  await sequelizeInstance.close();
-  sequelizeInstance = null;
+  if (sequelize) {
+    await sequelize.close();
+    sequelize = null;
+  }
 }

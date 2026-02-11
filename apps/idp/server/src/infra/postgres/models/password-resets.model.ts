@@ -1,6 +1,6 @@
-import type PasswordResets from '@pgtype/PasswordResets';
-import type { PasswordResetsId } from '@pgtype/PasswordResets';
-import type { UserId } from '@pgtype/User';
+import type PasswordResets from '@csisp/infra-database/public/PasswordResets';
+import type { PasswordResetsId } from '@csisp/infra-database/public/PasswordResets';
+import type { UserId } from '@csisp/infra-database/public/User';
 import {
   Table,
   Column,

@@ -54,9 +54,9 @@ export async function seedBaseData(): Promise<void> {
       {
         username: ADMIN_USER_SEED.username,
         password: ADMIN_USER_SEED.password,
-        real_name: ADMIN_USER_SEED.realName,
-        student_id: ADMIN_USER_SEED.studentId,
-        enrollment_year: ADMIN_USER_SEED.enrollmentYear,
+        real_name: ADMIN_USER_SEED.real_name,
+        student_id: ADMIN_USER_SEED.student_id,
+        enrollment_year: ADMIN_USER_SEED.enrollment_year,
         major: ADMIN_USER_SEED.major,
         status: 1,
         email: ADMIN_USER_SEED.email,
