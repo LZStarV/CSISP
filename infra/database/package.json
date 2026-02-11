@@ -21,21 +21,21 @@
   },
   "dependencies": {
     "@csisp/utils": "workspace:*",
-    "dotenv": "^16.4.5",
-    "mongodb": "^6.8.0",
-    "pg": "^8.11.3",
-    "pg-hstore": "^2.3.4",
-    "pino": "^9.3.2",
-    "pino-pretty": "^11.2.2",
-    "sequelize": "^6.35.0",
-    "sequelize-typescript": "^2.1.6",
+    "dotenv": "catalog:",
+    "mongodb": "catalog:node",
+    "pg": "catalog:node",
+    "pg-hstore": "catalog:node",
+    "pino": "catalog:",
+    "sequelize": "catalog:node",
+    "sequelize-typescript": "catalog:node",
     "umzug": "^3.8.0"
   },
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
-    "@types/node": "^20.19.25",
+    "@types/bcrypt": "catalog:dev",
+    "@types/node": "catalog:dev",
     "kanel": "^3.0.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.9.3"
+    "pino-pretty": "catalog:",
+    "tsx": "catalog:dev",
+    "typescript": "catalog:"
   }
 }

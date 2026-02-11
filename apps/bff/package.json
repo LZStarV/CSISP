@@ -16,22 +16,22 @@
   },
   "dependencies": {
     "@csisp/utils": "workspace:*",
-    "@csisp/types": "workspace:^1.0.0",
-    "koa": "^3.1.1",
-    "@koa/router": "^14.0.0",
-    "koa-bodyparser": "^4.4.1",
-    "undici": "^6.19.8",
-    "zod": "^3.23.8",
-    "dotenv": "^16.4.5",
-    "pino": "^9.3.2",
-    "pino-pretty": "^11.2.2",
-    "redis": "^4.6.10"
+    "@csisp/types": "workspace:*",
+    "koa": "catalog:node",
+    "@koa/router": "catalog:node",
+    "koa-bodyparser": "catalog:node",
+    "undici": "catalog:node",
+    "zod": "catalog:node",
+    "dotenv": "catalog:",
+    "pino": "catalog:",
+    "redis": "catalog:node"
   },
   "devDependencies": {
-    "esbuild": "^0.19.0",
-    "nodemon": "^3.0.0",
-    "tsx": "^4.0.0",
-    "@types/koa": "^3.0.1",
-    "@types/koa-bodyparser": "^4.3.13"
+    "esbuild": "catalog:dev",
+    "nodemon": "catalog:dev",
+    "pino-pretty": "catalog:",
+    "tsx": "catalog:dev",
+    "@types/koa": "catalog:dev",
+    "@types/koa-bodyparser": "catalog:dev"
   }
 }

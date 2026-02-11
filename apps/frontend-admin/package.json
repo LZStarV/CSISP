@@ -12,20 +12,20 @@
   },
   "dependencies": {
     "@csisp/types": "workspace:*",
-    "@vicons/ionicons5": "^0.13.0",
-    "axios": "^1.6.0",
-    "echarts": "^5.5.0",
-    "naive-ui": "^2.38.1",
-    "pinia": "^2.1.7",
-    "vue": "^3.5.24",
-    "vue-echarts": "^6.6.1",
-    "vue-router": "^4.3.0"
+    "@vicons/ionicons5": "catalog:frontend",
+    "axios": "catalog:frontend",
+    "echarts": "catalog:frontend",
+    "naive-ui": "catalog:frontend",
+    "pinia": "catalog:frontend",
+    "vue": "catalog:frontend",
+    "vue-echarts": "catalog:frontend",
+    "vue-router": "catalog:frontend"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.0",
-    "@vue/tsconfig": "^0.8.1",
-    "sass": "^1.69.5",
-    "vite": "5.4.8",
-    "vue-tsc": "^3.1.3"
+    "@vitejs/plugin-vue": "catalog:frontend",
+    "@vue/tsconfig": "catalog:dev",
+    "sass": "catalog:frontend",
+    "vite": "catalog:frontend",
+    "vue-tsc": "catalog:dev"
   }
 }

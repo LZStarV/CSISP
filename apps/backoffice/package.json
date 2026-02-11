@@ -11,31 +11,31 @@
     "format": "eslint . --fix && pnpm prettier --write ."
   },
   "dependencies": {
-    "@ant-design/icons": "^5.5.1",
+    "@ant-design/icons": "catalog:frontend",
     "@csisp/idl": "workspace:*",
-    "@csisp/rpc": "workspace:^1.0.0",
+    "@csisp/rpc": "workspace:*",
     "@csisp/utils": "workspace:*",
-    "antd": "^5.18.4",
-    "dayjs": "^1.11.13",
-    "ioredis": "^5.3.2",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.7.0",
+    "antd": "catalog:frontend",
+    "dayjs": "catalog:node",
+    "ioredis": "catalog:node",
+    "jsonwebtoken": "catalog:node",
+    "mongoose": "catalog:node",
     "next": "^15.0.3",
-    "pg": "^8.12.0",
-    "pino": "^9.5.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "sequelize": "^6.37.3",
-    "zod": "^3.23.8"
+    "pg": "catalog:node",
+    "pino": "catalog:",
+    "react": "catalog:frontend",
+    "react-dom": "catalog:frontend",
+    "sequelize": "catalog:node",
+    "zod": "catalog:node"
   },
   "devDependencies": {
     "@csisp/infra-database": "workspace:*",
-    "@types/node": "^20.11.28",
-    "@types/pg": "^8.6.6",
-    "@types/react": "^18.2.66",
-    "@types/react-dom": "^18.2.22",
-    "sass": "^1.69.5",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "@types/node": "catalog:dev",
+    "@types/pg": "catalog:dev",
+    "@types/react": "catalog:dev",
+    "@types/react-dom": "catalog:dev",
+    "sass": "catalog:frontend",
+    "tsx": "catalog:dev",
+    "typescript": "catalog:"
   }
 }

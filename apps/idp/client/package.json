@@ -10,24 +10,23 @@
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
-    "@ant-design/icons": "^5.5.1",
-    "antd": "^5.18.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@ant-design/icons": "catalog:frontend",
+    "antd": "catalog:frontend",
+    "react": "catalog:frontend",
+    "react-dom": "catalog:frontend",
+    "@csisp/rpc": "workspace:*",
+    "@hookform/resolvers": "catalog:frontend",
+    "lucide-react": "catalog:frontend",
+    "react-hook-form": "catalog:frontend",
+    "react-router-dom": "catalog:frontend",
+    "zod": "catalog:frontend"
   },
   "devDependencies": {
-    "@csisp/utils": "workspace:*",
-    "@csisp/rpc": "workspace:*",
-    "@hookform/resolvers": "^3.10.0",
-    "@types/react": "^18.2.67",
-    "@types/react-dom": "^18.2.19",
-    "@vitejs/plugin-react": "^4.2.1",
-    "lucide-react": "^0.563.0",
-    "react-hook-form": "^7.56.3",
-    "react-router-dom": "^7.13.0",
-    "sass": "^1.97.3",
-    "typescript": "^5.4.5",
-    "vite": "^5.4.8",
-    "zod": "^3.25.76"
+    "@types/react": "catalog:dev",
+    "@types/react-dom": "catalog:dev",
+    "@vitejs/plugin-react": "catalog:frontend",
+    "sass": "catalog:frontend",
+    "typescript": "catalog:",
+    "vite": "catalog:frontend"
   }
 }

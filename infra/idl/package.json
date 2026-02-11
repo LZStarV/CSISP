@@ -66,11 +66,11 @@
   "dependencies": {
     "@creditkarma/thrift-server-core": "^1.0.4",
     "@csisp/utils": "workspace:*",
-    "pino": "^9.3.1"
+    "pino": "catalog:"
   },
   "devDependencies": {
     "@creditkarma/thrift-typescript": "^3.7.6",
-    "pino-pretty": "^10.3.1",
-    "tsx": "^4.19.2"
+    "pino-pretty": "catalog:",
+    "tsx": "catalog:dev"
   }
 }
