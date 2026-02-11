@@ -19,7 +19,7 @@ import type User from '@csisp/infra-database/public/User';
 import { Injectable, HttpException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { plainToInstance } from 'class-transformer';
-import { IsString, Length, validateSync } from 'class-validator';
+import { IsOptional, IsString, Length, validateSync } from 'class-validator';
 import type { Response } from 'express';
 
 import {
@@ -541,22 +541,46 @@ export class AuthService {
    * - 若已存在授权请求，颁发一次性 code 并返回 redirectTo 或执行 302
    * - 同时建立 SSO 会话（Cookie）
    */
-  async enter(_params: RpcParams, res?: Response): Promise<Next> {
+  async enter(params: RpcParams, res?: Response): Promise<Next> {
     // 完成登录：建立 SSO 会话；如存在授权态则颁发一次性授权码并返回回调指令
     class EnterParamsDto {
+      @IsOptional()
       @IsString()
       @Length(1, 256)
-      state!: string;
+      state?: string;
+      @IsOptional()
+      @IsString()
+      @Length(1, 128)
+      ticket?: string;
+      @IsOptional()
       @IsString()
       @Length(0, 16)
       redirectMode?: string;
+      @IsOptional()
       @IsString()
       @Length(1, 128)
       studentId?: string;
     }
-    const dto = plainToInstance(EnterParamsDto, _params);
+    const dto = plainToInstance(EnterParamsDto, params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new HttpException('Invalid params', 400);
+
+    const ticket = params.ticket;
+    let state = dto.state;
+    let auth: string | null = null;
+
+    if (ticket) {
+      auth = await redisGet(`oidc:ticket:${ticket}`);
+      if (auth) {
+        const obj = JSON.parse(auth);
+        state = obj.state;
+      }
+    }
+
+    if (!auth && state) {
+      auth = await redisGet(`oidc:authreq:${state}`);
+    }
+
     const studentId = dto.studentId;
     type UserPick = Pick<User, 'id' | 'username' | 'student_id' | 'status'>;
     const user = studentId
@@ -575,7 +599,7 @@ export class AuthService {
         sameSite: 'lax',
       });
     }
-    const auth = await redisGet(`oidc:authreq:${dto.state}`);
+
     if (!auth) {
       return new Next({ next: [AuthNextStep.Finish] });
     }
@@ -597,7 +621,7 @@ export class AuthService {
       }),
       600
     );
-    const redirectTo = `${obj.redirect_uri}?code=${code}&state=${encodeURIComponent(dto.state)}`;
+    const redirectTo = `${obj.redirect_uri}?code=${code}&state=${encodeURIComponent(String(state || ''))}`;
     if (res && dto.redirectMode === 'http') {
       res.redirect(302, redirectTo);
       return new Next({ next: [AuthNextStep.Finish] });

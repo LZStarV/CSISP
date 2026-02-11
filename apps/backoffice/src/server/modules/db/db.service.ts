@@ -1,8 +1,10 @@
+import type { IQueryTableResponse } from '@csisp/idl/backoffice';
+
 import { initModels, models } from '@/src/infra/postgres';
 
-export async function listModels(): Promise<{ models: string[] }> {
+export async function listModels(): Promise<string[]> {
   await initModels();
-  return { models: Object.keys(models) };
+  return Object.keys(models);
 }
 
 export async function queryTable(params: {
@@ -12,12 +14,7 @@ export async function queryTable(params: {
   size?: number;
   orderBy?: string;
   orderDir?: 'asc' | 'desc';
-}): Promise<{
-  items: Record<string, unknown>[];
-  page: number;
-  size: number;
-  total: number;
-}> {
+}): Promise<IQueryTableResponse> {
   await initModels();
   const table = String(params?.table || '');
   const model = (models as any)[table] || (models as any)[capitalize(table)];
@@ -50,7 +47,12 @@ export async function queryTable(params: {
     offset,
     order: [[orderBy, orderDir]],
   });
-  return { items: rows.map((r: any) => r.toJSON()), page, size, total: count };
+  return {
+    items: rows.map((r: any) => r.toJSON()) as any,
+    page,
+    size,
+    total: BigInt(count) as any,
+  };
 }
 
 function capitalize(s: string) {

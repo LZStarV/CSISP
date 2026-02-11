@@ -1,10 +1,10 @@
-import type { LoginResult } from '@csisp/idl/idp';
-import { AuthNextStep, auth } from '@csisp/idl/idp';
+import type { AuthorizationRequestInfo, LoginResult } from '@csisp/idl/idp';
+import { AuthNextStep } from '@csisp/idl/idp';
 import { Form, Input, Button, Typography, Alert } from 'antd';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { authCall, hasError } from '@/api/rpc';
+import { authCall, oidcCall, hasError } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   ROUTE_MFA_SELECT,
@@ -15,7 +15,28 @@ import {
 export function Login() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [authInfo, setAuthInfo] = useState<AuthorizationRequestInfo | null>(
+    null
+  );
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const ticket = searchParams.get('ticket');
+  const state = searchParams.get('state');
+
+  useEffect(() => {
+    if (ticket) {
+      oidcCall<AuthorizationRequestInfo>('getAuthorizationRequest', { ticket })
+        .then(res => {
+          if (!hasError(res)) {
+            setAuthInfo(res.result);
+          }
+        })
+        .catch(err => {
+          console.error('Fetch auth info failed:', err);
+        });
+    }
+  }, [ticket]);
 
   const onFinish = async (values: { studentId: string; password: string }) => {
     setLoading(true);
@@ -24,12 +45,22 @@ export function Login() {
       const res = await authCall<LoginResult>('login', values);
       if (hasError(res)) throw new Error(res.error.message || '登录失败');
       const next = (res.result?.next ?? []) as AuthNextStep[];
+
+      // 登录成功后，如果存在授权请求，需要透传 ticket 或 state 供后续 enter 阶段使用
+      const flowState = {
+        ...res.result,
+        ticket,
+        state: authInfo?.state || state,
+      };
+
       if (next.includes(AuthNextStep.Multifactor)) {
-        navigate(ROUTE_MFA_SELECT, { state: res.result });
+        navigate(ROUTE_MFA_SELECT, { state: flowState });
         return;
       }
       if (next.includes(AuthNextStep.Enter)) {
-        navigate(ROUTE_FINISH, { state: { fromNormalFlow: true } });
+        navigate(ROUTE_FINISH, {
+          state: { ...flowState, fromNormalFlow: true },
+        });
         return;
       }
     } catch (e) {
@@ -42,8 +73,16 @@ export function Login() {
   return (
     <AuthLayout>
       <Typography.Title level={3} style={{ textAlign: 'center' }}>
-        统一身份认证登录
+        {authInfo ? `登录到 ${authInfo.client_name}` : '统一身份认证登录'}
       </Typography.Title>
+      {authInfo && (
+        <Typography.Paragraph
+          type='secondary'
+          style={{ textAlign: 'center', marginTop: -8 }}
+        >
+          该应用申请访问您的基本信息
+        </Typography.Paragraph>
+      )}
       {errorMsg && (
         <Alert
           type='error'

@@ -1,11 +1,11 @@
-import type UserType from '@csisp/infra-database/public/User';
+import type { IUserRecord } from '@csisp/idl/backoffice';
 
 import { models, initModels } from '@/src/infra/postgres';
 
 export async function getByIdOrUsername(
   id?: number,
   username?: string
-): Promise<Pick<UserType, 'id' | 'username' | 'status'>> {
+): Promise<IUserRecord> {
   await initModels();
   const where: Record<string, any> = {};
   if (id) where.id = id;
@@ -27,7 +27,12 @@ export async function list(params: {
   size: number;
   orderBy?: string;
   orderDir?: 'asc' | 'desc';
-}) {
+}): Promise<{
+  items: IUserRecord[];
+  page: number;
+  size: number;
+  total: number;
+}> {
   await initModels();
   const page = Math.max(1, Number(params?.page ?? 1));
   const size = Math.min(100, Math.max(1, Number(params?.size ?? 20)));
@@ -44,5 +49,10 @@ export async function list(params: {
     offset,
     order: [[orderBy, orderDir]],
   });
-  return { items: rows.map((r: any) => r.toJSON()), page, size, total: count };
+  return {
+    items: rows.map((r: any) => r.toJSON()) as any,
+    page,
+    size,
+    total: count,
+  };
 }

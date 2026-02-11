@@ -61,6 +61,7 @@ export async function seedBaseData(): Promise<void> {
         status: 1,
         email: ADMIN_USER_SEED.email,
         phone: ADMIN_USER_SEED.phone,
+        roles: JSON.stringify(['admin']),
         created_at: now,
         updated_at: now,
       },
@@ -74,6 +75,15 @@ export async function seedBaseData(): Promise<void> {
     )) as Array<{ id: number }>;
     userId = createdRows.length ? createdRows[0].id : null;
     logger.info({ userId }, '创建 admin 用户成功');
+  } else {
+    // 确保已存在的 admin 用户也有 roles 字段
+    await sequelize.query(
+      'UPDATE "user" SET roles = :roles WHERE id = :userId AND (roles IS NULL OR roles = \'[]\'::jsonb)',
+      {
+        replacements: { userId, roles: JSON.stringify(['admin']) },
+        type: QueryTypes.UPDATE,
+      }
+    );
   }
 
   const adminRoleRows = (await sequelize.query(

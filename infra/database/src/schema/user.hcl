@@ -58,6 +58,12 @@ table "user" {
     type = character_varying(20)
     comment = "手机号"
   }
+  column "roles" {
+    null    = false
+    type    = jsonb
+    default = sql("'[]'::jsonb")
+    comment = "用户角色列表"
+  }
   column "created_at" {
     null    = false
     type    = timestamptz

@@ -24,6 +24,11 @@ export function defineUserModel(models: Record<string, any>) {
       },
       email: { type: DataTypes.STRING, allowNull: true, unique: true },
       phone: { type: DataTypes.STRING, allowNull: true, unique: true },
+      roles: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: [],
+      },
       created_at: {
         type: DataTypes.DATE,
         allowNull: false,

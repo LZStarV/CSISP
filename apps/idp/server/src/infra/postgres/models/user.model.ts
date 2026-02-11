@@ -65,6 +65,11 @@ export class UserModel extends Model implements User {
   phone!: string | null;
 
   @AllowNull(false)
+  @Default([])
+  @Column(DataType.JSONB)
+  roles!: string[];
+
+  @AllowNull(false)
   @Default(DataType.NOW)
   @Column(DataType.DATE)
   created_at!: Date;

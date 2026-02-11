@@ -13,6 +13,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.5.1",
     "@csisp/idl": "workspace:*",
+    "@csisp/rpc": "workspace:^1.0.0",
     "@csisp/utils": "workspace:*",
     "antd": "^5.18.4",
     "dayjs": "^1.11.13",

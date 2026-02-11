@@ -1,3 +1,5 @@
+import { RpcError } from '@csisp/rpc';
+
 import { registry } from './registry';
 
 import { Domain, I18N_ACTION_ALIAS } from '@/src/server/config/rpc';
@@ -11,7 +13,7 @@ export async function dispatch(
   const d = registry[domain];
   if (!d) {
     const err = new Error('Unknown domain');
-    (err as any).code = -32601;
+    (err as any).code = RpcError.MethodNotFound;
     throw err;
   }
   let resolvedAction = action;
@@ -21,7 +23,7 @@ export async function dispatch(
   const fn = (d as any)[resolvedAction];
   if (typeof fn !== 'function') {
     const err = new Error('Unknown action');
-    (err as any).code = -32601;
+    (err as any).code = RpcError.MethodNotFound;
     throw err;
   }
   return await fn(params, ctx);

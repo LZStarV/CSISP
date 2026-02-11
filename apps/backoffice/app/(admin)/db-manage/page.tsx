@@ -12,9 +12,7 @@ import {
 } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 
-import { rpcCall } from '@/src/client/utils/rpc-client';
-
-type ListModelsResult = { models: string[] };
+import { dbCall, hasError } from '@/src/client/utils/rpc-client';
 
 type QueryTableParams = {
   table: string;
@@ -37,20 +35,22 @@ export default function DbPage() {
   const [size, setSize] = useState<number>(20);
   const [data, setData] = useState<QueryTableResult | null>(null);
   useEffect(() => {
-    rpcCall<ListModelsResult>('db', 'listModels', {}).then(res => {
-      setTables(res.models);
-      if (!current && res.models.length) setCurrent(res.models[0]);
+    dbCall<string[]>('listModels', {}).then(res => {
+      if (!hasError(res)) {
+        setTables(res.result);
+        if (!current && res.result.length) setCurrent(res.result[0]);
+      }
     });
   }, []);
   useEffect(() => {
     if (!current) return;
-    rpcCall<{ columns: string[] }>('db', 'queryTable', {
+    dbCall<{ columns: string[] }>('queryTable', {
       table: current,
       page: 1,
       size: 1,
     } as QueryTableParams)
       .then(() => {
-        return rpcCall<QueryTableResult>('db', 'queryTable', {
+        return dbCall<QueryTableResult>('queryTable', {
           table: current,
           page,
           size,
@@ -59,10 +59,12 @@ export default function DbPage() {
         } as QueryTableParams);
       })
       .then(res => {
-        setData(res);
-        const cols = Object.keys(res.items?.[0] ?? {});
-        setColumns(cols);
-        if (!orderBy && cols.length) setOrderBy(cols[0]);
+        if (!hasError(res)) {
+          setData(res.result);
+          const cols = Object.keys(res.result.items?.[0] ?? {});
+          setColumns(cols);
+          if (!orderBy && cols.length) setOrderBy(cols[0]);
+        }
       });
   }, [current, page, size, orderBy, orderDir]);
   const tableColumns = useMemo(

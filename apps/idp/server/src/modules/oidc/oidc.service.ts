@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import {
   AuthorizationRequest,
   AuthorizationInitResult,
+  AuthorizationRequestInfo,
   TokenRequest,
   TokenResponse,
   JWK,
@@ -193,22 +194,62 @@ export class OidcService {
             .filter((x: unknown) => typeof x === 'string')
             .join(' ')
         : 'openid';
+    const ticket = crypto.randomUUID();
+    const ticketKey = `oidc:ticket:${ticket}`;
+    const requestData = {
+      client_id,
+      redirect_uri,
+      response_type,
+      state,
+      code_challenge,
+      code_challenge_method,
+      scope: scopeStr,
+      ts: Date.now(),
+    };
+
+    await redisSet(ticketKey, JSON.stringify(requestData), 600);
+
+    // 同时也保留 state 索引，以便兼容老的 enter 逻辑
     const key = `oidc:authreq:${state}`;
-    await redisSet(
-      key,
-      JSON.stringify({
-        client_id,
-        redirect_uri,
-        response_type,
-        state,
-        code_challenge,
-        code_challenge_method,
-        scope: scopeStr,
-        ts: Date.now(),
-      }),
-      600
-    );
-    return new AuthorizationInitResult({ ok: true, state });
+    await redisSet(key, JSON.stringify(requestData), 600);
+
+    return new AuthorizationInitResult({ ok: true, state, ticket });
+  }
+
+  /**
+   * 获取授权请求详情
+   * - 用于 IdP 登录页展示：哪个应用正在申请权限，申请哪些权限
+   */
+  async getAuthorizationRequest(
+    ticket: string
+  ): Promise<AuthorizationRequestInfo> {
+    const data = await redisGet(`oidc:ticket:${ticket}`);
+    if (!data) {
+      throw new BadRequestException('Invalid or expired ticket');
+    }
+    const req = JSON.parse(data);
+
+    // 获取 client 名称
+    const client = await OidcClientModel.findOne({
+      where: { client_id: req.client_id },
+      attributes: ['name'],
+      raw: true,
+    });
+
+    return new AuthorizationRequestInfo({
+      client_id: req.client_id,
+      client_name: client?.name || 'Unknown Client',
+      scope: String(req.scope ?? '')
+        .split(' ')
+        .filter(Boolean)
+        .map(s => {
+          if (s === 'profile') return OIDCScope.Profile;
+          if (s === 'email') return OIDCScope.Email;
+          return OIDCScope.Openid;
+        }),
+      redirect_uri: req.redirect_uri,
+      state: req.state,
+    });
   }
 
   /**
@@ -221,6 +262,10 @@ export class OidcService {
   ): Promise<TokenResponse> {
     const client_id = 'client_id' in params ? params.client_id : '';
     const grant_type = 'grant_type' in params ? params.grant_type : undefined;
+    console.log('exchangeToken started', {
+      client_id,
+      grant_type,
+    });
     if (!client_id || grant_type === undefined)
       throw new BadRequestException('Invalid token request');
     const isAuthCode = (
@@ -333,6 +378,7 @@ export class OidcService {
     preferred_username?: string,
     scope?: string
   ): Promise<TokenResponse> {
+    console.log('issueTokens started', { client_id, sub, scope });
     type KeyPick = Pick<
       OidcKeys,
       'kid' | 'public_pem' | 'private_pem_enc' | 'status'
@@ -342,65 +388,92 @@ export class OidcService {
       attributes: ['kid', 'public_pem', 'private_pem_enc'],
       raw: true,
     })) as Omit<KeyPick, 'status'> | null;
-    if (!keyRow) throw new BadRequestException('No active signing key');
-    const enc = Buffer.isBuffer(keyRow.private_pem_enc)
-      ? keyRow.private_pem_enc
-      : Buffer.from(String(keyRow.private_pem_enc));
-    const privatePem = this.decryptPrivatePem(enc);
-    const kid = keyRow.kid;
-    const accessExp = parseDurationToSeconds(
-      process.env.JWT_EXPIRES_IN || '1h',
-      3600
-    );
-    const refreshExp = parseDurationToSeconds(
-      process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-      604800
-    );
-    const access_token = signRS256(
-      { iss: baseUrl(), aud: client_id, scope: scope || 'openid', sub },
-      privatePem,
-      accessExp,
-      kid
-    );
-    const id_token = signRS256(
-      {
-        iss: baseUrl(),
-        aud: client_id,
-        sub,
-        nonce: nonce ?? crypto.randomUUID(),
-        acr: acr,
-        amr: amr,
-        preferred_username: preferred_username,
-      },
-      privatePem,
-      accessExp,
-      kid
-    );
-    const refresh_token = signRS256(
-      { aud: client_id, sub, t: 'refresh' },
-      privatePem,
-      refreshExp,
-      kid
-    );
-    // 记录 refresh token
-    const rtHash = crypto
-      .createHash('sha256')
-      .update(refresh_token)
-      .digest('hex');
-    await RefreshTokenModel.create({
-      client_id,
-      sub_hash: sub,
-      rt_hash: rtHash,
-      status: 'active',
-      created_at: new Date(),
-    });
-    return new TokenResponse({
-      access_token,
-      id_token,
-      refresh_token,
-      token_type: 'bearer',
-      expires_in: accessExp,
-    });
+    if (!keyRow) {
+      console.error('No active signing key found');
+      throw new BadRequestException('No active signing key');
+    }
+    console.log('Active key found', { kid: keyRow.kid });
+    try {
+      const enc = Buffer.isBuffer(keyRow.private_pem_enc)
+        ? keyRow.private_pem_enc
+        : Buffer.from(String(keyRow.private_pem_enc), 'base64');
+      const privatePem = this.decryptPrivatePem(enc);
+      const kid = keyRow.kid;
+      const accessExp = parseDurationToSeconds(
+        process.env.JWT_EXPIRES_IN || '1h',
+        3600
+      );
+      const refreshExp = parseDurationToSeconds(
+        process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+        604800
+      );
+      console.log('Signing tokens...');
+      const access_token = signRS256(
+        { iss: baseUrl(), aud: client_id, scope: scope || 'openid', sub },
+        privatePem,
+        accessExp,
+        kid
+      );
+
+      // 获取用户角色
+      const idNum = Number(sub);
+      console.log('Fetching user roles', { sub, idNum });
+      const user =
+        Number.isFinite(idNum) && idNum > 0
+          ? await UserModel.findOne({
+              where: { id: idNum },
+              attributes: ['roles'],
+              raw: true,
+            })
+          : null;
+      const roles = user?.roles || [];
+
+      const id_token = signRS256(
+        {
+          iss: baseUrl(),
+          aud: client_id,
+          sub,
+          nonce: nonce ?? crypto.randomUUID(),
+          acr: acr,
+          amr: amr,
+          preferred_username: preferred_username,
+          roles, // 注入角色信息
+        },
+        privatePem,
+        accessExp,
+        kid
+      );
+      const refresh_token = signRS256(
+        { aud: client_id, sub, t: 'refresh' },
+        privatePem,
+        refreshExp,
+        kid
+      );
+      console.log('Tokens signed successfully');
+      // 记录 refresh token
+      const rtHash = crypto
+        .createHash('sha256')
+        .update(refresh_token)
+        .digest('hex');
+      await RefreshTokenModel.create({
+        client_id,
+        sub_hash: sub,
+        rt_hash: rtHash,
+        status: 'active',
+        created_at: new Date(),
+      });
+      console.log('Refresh token recorded');
+      return new TokenResponse({
+        access_token,
+        id_token,
+        refresh_token,
+        token_type: 'bearer',
+        expires_in: accessExp,
+      });
+    } catch (err: any) {
+      console.error('issueTokens error:', err);
+      throw err;
+    }
   }
 
   /**
@@ -450,18 +523,22 @@ export class OidcService {
     const sub = payload.sub;
     const scope = payload.scope as string | undefined;
     const idNum = Number(sub);
-    type UserPick = Pick<User, 'id' | 'username' | 'real_name' | 'email'>;
+    type UserPick = Pick<
+      User,
+      'id' | 'username' | 'real_name' | 'email' | 'roles'
+    >;
     const user =
       Number.isFinite(idNum) && idNum > 0
         ? ((await UserModel.findOne({
             where: { id: idNum },
-            attributes: ['id', 'username', 'real_name', 'email'],
+            attributes: ['id', 'username', 'real_name', 'email', 'roles'],
             raw: true,
           })) as UserPick | null)
         : null;
     const claims: any = { sub };
     if (user) {
       claims.preferred_username = user.username;
+      claims.roles = user.roles || [];
       if (scope && scope.includes('profile')) {
         claims.name = user.real_name;
       }

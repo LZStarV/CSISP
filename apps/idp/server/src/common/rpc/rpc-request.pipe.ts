@@ -83,16 +83,29 @@ export class RpcRequestPipe implements PipeTransform {
     }
     // OIDC.authorize：response_type/code_challenge_method
     if (has('response_type')) {
-      const rt = strField('response_type', 1, 16)?.toLowerCase();
+      const val = params.response_type;
+      let rt: string | undefined;
+      if (typeof val === 'number') {
+        if (val === OIDCResponseType.Code) rt = 'code';
+      } else if (typeof val === 'string') {
+        rt = val.trim().toLowerCase();
+      }
+
       if (rt !== 'code') throw new BadRequestException('Invalid response_type');
       params.response_type = 'code';
-      // IDL 枚举同步
       params._idl = params._idl ?? {};
       (params._idl as any).response_type_enum =
         OIDCResponseType.Code as OIDCResponseType;
     }
     if (has('code_challenge_method')) {
-      const cm = strField('code_challenge_method', 3, 8);
+      const val = params.code_challenge_method;
+      let cm: string | undefined;
+      if (typeof val === 'number') {
+        if (val === OIDCPKCEMethod.S256) cm = 'S256';
+      } else if (typeof val === 'string') {
+        cm = val.trim();
+      }
+
       if (cm !== 'S256') throw new BadRequestException('PKCE S256 required');
       params.code_challenge_method = 'S256';
       params._idl = params._idl ?? {};
@@ -101,7 +114,15 @@ export class RpcRequestPipe implements PipeTransform {
     }
     // OIDC.token：grant_type/code_verifier/code
     if (has('grant_type')) {
-      const gt = strField('grant_type', 6, 32)?.toLowerCase();
+      const val = params.grant_type;
+      let gt: string | undefined;
+      if (typeof val === 'number') {
+        if (val === OIDCGrantType.AuthorizationCode) gt = 'authorization_code';
+        if (val === OIDCGrantType.RefreshToken) gt = 'refresh_token';
+      } else if (typeof val === 'string') {
+        gt = val.trim().toLowerCase();
+      }
+
       if (gt !== 'authorization_code' && gt !== 'refresh_token')
         throw new BadRequestException('Invalid grant_type');
       params.grant_type = gt;
@@ -120,12 +141,29 @@ export class RpcRequestPipe implements PipeTransform {
       params.redirect_uri = strField('redirect_uri', 1, 1024);
     // OIDC.scope：空格分隔 + 白名单
     if (has('scope')) {
-      const s = strField('scope', 0, 1024) ?? '';
+      const val = params.scope;
+      let tokens: string[] = [];
+      if (Array.isArray(val)) {
+        tokens = val.map(v => {
+          if (typeof v === 'number') {
+            if (v === OIDCScope.Openid) return 'openid';
+            if (v === OIDCScope.Profile) return 'profile';
+            if (v === OIDCScope.Email) return 'email';
+          }
+          return String(v).toLowerCase().trim();
+        });
+      } else if (typeof val === 'string') {
+        tokens = val
+          .split(' ')
+          .map(t => t.trim().toLowerCase())
+          .filter(Boolean);
+      } else if (typeof val === 'number') {
+        if (val === OIDCScope.Openid) tokens = ['openid'];
+        if (val === OIDCScope.Profile) tokens = ['profile'];
+        if (val === OIDCScope.Email) tokens = ['email'];
+      }
+
       const allowed = new Set(['openid', 'profile', 'email']);
-      const tokens = s
-        .split(' ')
-        .map(t => t.trim())
-        .filter(Boolean);
       for (const t of tokens) {
         if (!allowed.has(t))
           throw new BadRequestException(`Invalid scope: ${t}`);

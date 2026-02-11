@@ -137,17 +137,15 @@ export function SmsVerify() {
           codeOrAssertion: codeValue,
         });
         if (hasError(res)) throw new Error(res.error.message || '校验失败');
-        const state = sessionStorage.getItem('idp_state');
-        if (state) {
-          const enterRes = await authCall<Next>('enter', { state });
-          if (hasError(enterRes)) throw new Error('进入失败');
-          const redirectTo = enterRes.result?.redirectTo;
-          if (redirectTo) {
-            window.location.href = redirectTo;
-            return;
-          }
-        }
-        navigate(ROUTE_FINISH, { state: { fromNormalFlow: true } });
+
+        // 校验成功，跳转到 Finish 页面完成授权流程
+        const flowState = (location.state as any) || {};
+        navigate(ROUTE_FINISH, {
+          state: {
+            ...flowState,
+            fromNormalFlow: true,
+          },
+        });
       }
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '校验失败，请重试');

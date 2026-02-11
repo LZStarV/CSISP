@@ -98,6 +98,8 @@ function makeAuthDispatch(
       service.enter(
         {
           state: String(params.state ?? ''),
+          ticket: params.ticket ? String(params.ticket) : undefined,
+          studentId: params.studentId ? String(params.studentId) : undefined,
           redirectMode:
             typeof params.redirectMode === 'string'
               ? (params.redirectMode as string)

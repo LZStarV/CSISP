@@ -123,6 +123,43 @@ export async function seedOidc(): Promise<void> {
         'oidc client exists, skip insert'
       );
     }
+
+    const backofficeClientId = 'backoffice';
+    const existingBackoffice: Array<Partial<OidcClients>> =
+      (await sequelize.query(
+        'SELECT client_id FROM "oidc_clients" WHERE client_id = :cid;',
+        {
+          type: 'SELECT',
+          transaction,
+          replacements: { cid: backofficeClientId },
+        }
+      )) as any;
+    if (existingBackoffice.length === 0) {
+      const redirectsJson = JSON.stringify([
+        'http://localhost:3000/api/auth/callback',
+      ]);
+      const scopesJson = JSON.stringify(['openid', 'profile', 'email']);
+      await qi.bulkInsert(
+        'oidc_clients',
+        [
+          {
+            client_id: backofficeClientId,
+            client_secret: null,
+            name: 'CSISP Backoffice',
+            allowed_redirect_uris: redirectsJson,
+            scopes: scopesJson,
+            status: 'active',
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+        ],
+        { transaction }
+      );
+      logger.info(
+        { client_id: backofficeClientId },
+        'seed oidc client backoffice inserted'
+      );
+    }
   });
 
   await closeSequelize();

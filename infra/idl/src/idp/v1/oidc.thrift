@@ -66,6 +66,7 @@ struct Configuration {
   12: list<OIDCScope> scopes_supported,                                // 支持的 scopes
   13: list<OIDCClaim> claims_supported                                 // 支持的 claims
 }
+
 // 授权请求（支持 PKCE）
 struct AuthorizationRequest {
   1: string client_id,         // 客户端 ID
@@ -76,11 +77,23 @@ struct AuthorizationRequest {
   6: string code_challenge,    // PKCE 挑战
   7: OIDCPKCEMethod code_challenge_method // PKCE 方法
 }
+
 // 授权请求创建结果
 struct AuthorizationInitResult {
   1: bool ok,    // 是否创建成功
-  2: string state // 授权会话标识
+  2: string state, // 授权会话标识
+  3: optional string ticket // 临时票据，用于换取请求详情
 }
+
+// 授权请求详情（用于登录页展示）
+struct AuthorizationRequestInfo {
+  1: string client_id,       // 客户端 ID
+  2: string client_name,     // 客户端名称（用于展示）
+  3: list<OIDCScope> scope,  // 申请的权限列表
+  4: string redirect_uri,    // 授权后的回调地址
+  5: string state            // 客户端传递的状态值
+}
+
 // 令牌请求
 struct TokenRequest {
   1: OIDCGrantType grant_type, // 授权类型
@@ -89,6 +102,7 @@ struct TokenRequest {
   4: string client_id,     // 客户端 ID
   5: string code_verifier  // PKCE 校验值（当为 authorization_code）
 }
+
 // 令牌响应
 struct TokenResponse {
   1: string access_token,          // 访问令牌
@@ -97,6 +111,7 @@ struct TokenResponse {
   4: i32 expires_in,               // 访问令牌过期时间（秒）
   5: string token_type             // 令牌类型（bearer）
 }
+
 // JWK（公钥）
 struct JWK {
   1: string kty, // 密钥类型（RSA）
@@ -106,10 +121,12 @@ struct JWK {
   5: string e,   // 指数（base64url）
   6: string alg  // 算法（RS256）
 }
+
 // 公钥集合
 struct JWKSet {
   1: list<JWK> keys // 公钥列表
 }
+
 // 用户信息
 struct UserInfo {
   1: string sub,                       // 主体标识（用户 ID 或哈希）
@@ -118,12 +135,15 @@ struct UserInfo {
   4: optional string email,            // 邮箱（需要 scope:email）
   5: optional string phone,            // 电话（可选）
   6: optional string acr,              // 认证上下文（如 mfa）
-  7: optional list<string> amr         // 认证方法（如 ['sms']）
+  7: optional list<string> amr,        // 认证方法（如 ['sms']）
+  8: optional list<string> roles       // 用户角色列表
 }
+
 // 撤销结果
 struct RevocationResult {
   1: bool ok // 是否成功
 }
+
 // 客户端信息
 struct ClientInfo {
   1: string client_id,                 // 客户端 ID
@@ -131,6 +151,7 @@ struct ClientInfo {
   3: optional string default_redirect_uri, // 默认回调地址
   4: optional list<OIDCScope> scopes   // 支持的 scopes
 }
+
 service oidc {
   AuthorizationInitResult authorize(1: AuthorizationRequest req), // 发起授权请求
   TokenResponse token(1: TokenRequest req),                       // 令牌交换/刷新
@@ -139,5 +160,6 @@ service oidc {
   RevocationResult revocation(1: string token),                   // 撤销刷新令牌
   RevocationResult backchannel_logout(1: string logout_token),    // 后通道登出
   list<ClientInfo> clients(),                                     // 列出客户端
-  Configuration configuration()                                   // 发现配置
+  Configuration configuration(),                                   // 发现配置
+  AuthorizationRequestInfo getAuthorizationRequest(1: string ticket) // 获取授权请求详情
 }

@@ -1,3 +1,4 @@
+import type { IUserRecord } from '@csisp/idl/backoffice';
 import { z } from 'zod';
 
 import { requireAdmin } from '@/src/server/modules/auth/auth.service';
@@ -14,7 +15,7 @@ export const getUserResult = z.object({
   id: z.number(),
   username: z.string(),
   status: z.number(),
-});
+}) as z.ZodType<IUserRecord>;
 
 export async function get(params: unknown, ctx: Record<string, any>) {
   requireAdmin(ctx);

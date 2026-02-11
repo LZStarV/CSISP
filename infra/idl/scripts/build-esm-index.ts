@@ -1,4 +1,4 @@
-import { writeFileSync, mkdirSync, readdirSync } from 'fs';
+import { writeFileSync, mkdirSync, readdirSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
 function ensureDir(p: string) {
@@ -31,18 +31,23 @@ function buildAll() {
       const versionDir = resolve(versionsRoot, version);
       const modules = listThriftModules(versionDir);
       for (const mod of modules) {
-        const modOutDir = resolve(esmTsRoot, projectName, version, mod);
-        // 优先导出模块 index.js
+        // 仅导出模块 index.js，避免同名 Service 元数据冲突
         lines.push(
           `export * from './ts/${projectName}/${version}/${mod}/index.js';`
         );
-        // 逐文件补充导出，避免模块 index 未覆盖全部成员
-        for (const f of readdirSync(modOutDir, { withFileTypes: true })) {
-          if (f.isFile() && f.name.endsWith('.js') && f.name !== 'index.js') {
-            lines.push(
-              `export * from './ts/${projectName}/${version}/${mod}/${f.name}';`
-            );
-          }
+        // 如果存在与模块同名的文件（通常包含 Service 定义），则导出命名空间对象
+        const modFile = resolve(
+          esmTsRoot,
+          projectName,
+          version,
+          mod,
+          `${mod}.js`
+        );
+        if (existsSync(modFile)) {
+          lines.push(
+            `import * as ${mod} from './ts/${projectName}/${version}/${mod}/${mod}.js';`,
+            `export { ${mod} };`
+          );
         }
       }
     }

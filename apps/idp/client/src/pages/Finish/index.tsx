@@ -41,6 +41,34 @@ export function Finish() {
     new URLSearchParams(window.location.search).get('fromGuard') === '1';
 
   useEffect(() => {
+    if (fromNormalFlow) {
+      const flowState = location.state as any;
+      const ticket = flowState?.ticket;
+      const state = flowState?.state;
+      if (ticket || state) {
+        setLoading(true);
+        authCall<Next>('enter', { ticket, state })
+          .then(res => {
+            if (!hasError(res)) {
+              const redirectTo = res.result?.redirectTo;
+              if (redirectTo) {
+                window.location.href = redirectTo;
+              }
+            } else {
+              setErrorMsg(res.error.message || '进入失败');
+            }
+          })
+          .catch(() => {
+            setErrorMsg('进入系统请求失败');
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }
+    }
+  }, [fromNormalFlow, location.state]);
+
+  useEffect(() => {
     (async () => {
       try {
         const res = await oidcCall<ClientInfo[]>('clients', {});

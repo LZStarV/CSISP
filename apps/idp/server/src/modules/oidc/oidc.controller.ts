@@ -1,5 +1,6 @@
 import type {
   AuthorizationInitResult,
+  AuthorizationRequestInfo,
   TokenResponse,
   JWKSet,
   UserInfo,
@@ -28,6 +29,7 @@ type OidcActions = (typeof IdlOIDC.methodNames)[number];
 // OIDC JSON‑RPC 结果类型
 type RpcResult =
   | AuthorizationInitResult
+  | AuthorizationRequestInfo
   | TokenResponse
   | JWKSet
   | UserInfo
@@ -61,26 +63,41 @@ export class OidcController {
       (p: Record<string, unknown>) => Promise<RpcResult>
     > = {
       authorize: async p => {
-        const req = new AuthorizationRequest({
-          client_id: String(p.client_id ?? ''),
-          redirect_uri: String(p.redirect_uri ?? ''),
-          response_type: OIDCResponseType.Code,
-          scope: String(p.scope ?? '')
+        const rawScope = p.scope;
+        let scopes: OIDCScope[] = [];
+
+        if (Array.isArray(rawScope)) {
+          // 如果已经是数组（可能是枚举值数组或字符串数组）
+          scopes = rawScope
+            .map(s => {
+              if (typeof s === 'number') return s as OIDCScope;
+              const str = String(s).toLowerCase();
+              if (str === 'openid') return OIDCScope.Openid;
+              if (str === 'profile') return OIDCScope.Profile;
+              if (str === 'email') return OIDCScope.Email;
+              return OIDCScope.Openid;
+            })
+            .filter((v): v is OIDCScope => v !== undefined);
+        } else {
+          // 如果是空格分隔的字符串
+          scopes = String(rawScope ?? '')
             .split(' ')
             .map(s => s.trim())
             .filter(Boolean)
             .map(s => {
-              switch (s) {
-                case 'openid':
-                  return OIDCScope.Openid;
-                case 'profile':
-                  return OIDCScope.Profile;
-                case 'email':
-                  return OIDCScope.Email;
-                default:
-                  return OIDCScope.Openid;
-              }
-            }),
+              const str = s.toLowerCase();
+              if (str === 'openid') return OIDCScope.Openid;
+              if (str === 'profile') return OIDCScope.Profile;
+              if (str === 'email') return OIDCScope.Email;
+              return OIDCScope.Openid;
+            });
+        }
+
+        const req = new AuthorizationRequest({
+          client_id: String(p.client_id ?? ''),
+          redirect_uri: String(p.redirect_uri ?? ''),
+          response_type: OIDCResponseType.Code,
+          scope: scopes,
           state: String(p.state ?? ''),
           code_challenge: String(p.code_challenge ?? ''),
           code_challenge_method: OIDCPKCEMethod.S256,
@@ -107,6 +124,8 @@ export class OidcController {
         this.svc.backchannelLogout(String(p.logout_token ?? '')),
       clients: async _p => this.svc.listClients(),
       configuration: async _p => this.svc.getConfiguration(),
+      getAuthorizationRequest: async p =>
+        this.svc.getAuthorizationRequest(String(p.ticket ?? '')),
     };
     const finalHandler = dispatch[action as OidcActions];
     if (!finalHandler) {

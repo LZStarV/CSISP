@@ -77,7 +77,12 @@ export function MFASelect() {
 
     try {
       if (method.type === MFAType.Sms) {
-        navigate('/mfa/sms', { state: { phone: method.extra } });
+        navigate('/mfa/sms', {
+          state: {
+            phone: method.extra,
+            ...(location.state as any), // 透传 ticket, state 等流程状态
+          },
+        });
         return;
       }
       setErrorMsg('该验证方式暂未实现');

@@ -1,3 +1,4 @@
+import type { IQueryTableResponse } from '@csisp/idl/backoffice';
 import { z } from 'zod';
 
 import { requireAdmin } from '@/src/server/modules/auth/auth.service';
@@ -21,7 +22,7 @@ export const queryTableResult = z.object({
   page: z.number(),
   size: z.number(),
   total: z.number(),
-});
+}) as unknown as z.ZodType<IQueryTableResponse>;
 
 export async function queryTable(params: unknown, ctx: Record<string, any>) {
   requireAdmin(ctx);

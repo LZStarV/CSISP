@@ -1,6 +1,9 @@
-import { createLogger } from '@csisp/utils';
+import pino from 'pino';
 
-const base = createLogger('backoffice');
+// Backoffice 服务端日志：不使用通用工具库以避免 Next.js 15 环境下的 worker 冲突
+const base = pino({
+  level: process.env.LOG_LEVEL || 'info',
+}).child({ service: 'backoffice', env: process.env.NODE_ENV });
 
 export function getLogger(child: Record<string, any> = {}) {
   return base.child(child);
