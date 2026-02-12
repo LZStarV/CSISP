@@ -1,3 +1,4 @@
+import { generatePKCE, generateRandomString } from '@csisp/auth/browser';
 import { OIDCScope } from '@csisp/idl/idp';
 import type {
   SessionResult,
@@ -9,7 +10,6 @@ import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { randomString, s256 } from '@/api/pkce';
 import { authCall, oidcCall, hasError } from '@/api/rpc';
 
 // 将 OIDCScope 枚举值转换为字符串
@@ -102,9 +102,9 @@ export function Finish() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const state = randomString(32);
-      const verifier = randomString(64);
-      const challenge = await s256(verifier);
+      const state = generateRandomString(32);
+      const { verifier, challenge } = await generatePKCE();
+      // 使用生成的 verifier
       sessionStorage.setItem('idp_state', state);
       sessionStorage.setItem(`cv:${state}`, verifier);
       const authRes = await oidcCall<AuthorizationInitResult>('authorize', {
@@ -115,7 +115,7 @@ export function Finish() {
         state,
         code_challenge_method: 'S256',
         code_challenge: challenge,
-        nonce: randomString(16),
+        nonce: generateRandomString(16),
       });
       if (hasError(authRes) || !authRes.result?.ok)
         throw new Error('授权态创建失败');

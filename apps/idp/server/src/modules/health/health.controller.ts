@@ -1,8 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
+import { Get } from '@nestjs/common';
+
+import { ApiIdpController } from '../../common/decorators/controller.decorator';
 
 import { HealthService } from './health.service';
 
-@Controller('health')
+@ApiIdpController('health')
 export class HealthController {
   constructor(private readonly service: HealthService) {}
 

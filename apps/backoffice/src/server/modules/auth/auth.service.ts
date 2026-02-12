@@ -1,11 +1,16 @@
-import { sign, verify } from '@/src/server/auth/jwt';
+import {
+  signToken as sdkSignToken,
+  verifyToken as sdkVerifyToken,
+} from '@csisp/auth/server';
+
+import { getJwtSecret, jwtExpiresIn } from '@/src/server/config/env';
 
 export function signToken(payload: Record<string, any>) {
-  return sign(payload);
+  return sdkSignToken(payload, getJwtSecret(), { expiresIn: jwtExpiresIn });
 }
 
 export function verifyToken(token: string) {
-  return verify(token);
+  return sdkVerifyToken(token, getJwtSecret());
 }
 
 export function requireAdmin(ctx: Record<string, any>) {

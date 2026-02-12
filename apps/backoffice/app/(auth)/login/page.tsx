@@ -1,8 +1,8 @@
 'use client';
+import { generatePKCE, generateState } from '@csisp/auth/browser';
 import { AuthorizationInitResult, OIDCPKCEMethod } from '@csisp/idl/idp';
 import { Button, Card, Typography, Space } from 'antd';
 
-import { generatePKCE, generateState } from '@/src/client/utils/pkce';
 import { authCall, hasError } from '@/src/client/utils/rpc-client';
 
 export default function LoginPage() {

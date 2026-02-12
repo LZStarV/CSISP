@@ -15,6 +15,7 @@
     "react": "catalog:frontend",
     "react-dom": "catalog:frontend",
     "@csisp/rpc": "workspace:*",
+    "@csisp/auth": "workspace:*",
     "@hookform/resolvers": "catalog:frontend",
     "lucide-react": "catalog:frontend",
     "react-hook-form": "catalog:frontend",

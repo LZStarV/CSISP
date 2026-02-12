@@ -8,17 +8,10 @@ import {
   MFAType,
   ResetReason,
 } from '@csisp/idl/idp';
-import {
-  Body,
-  Controller,
-  Param,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
 import type { Response, Request } from 'express';
 
+import { ApiIdpController } from '../../common/decorators/controller.decorator';
 import { IdpSessionGuard } from '../../common/guards/idp-session.guard';
 import { makeRpcError, makeRpcResponse } from '../../common/rpc/jsonrpc';
 import { RpcRequestPipe } from '../../common/rpc/rpc-request.pipe';
@@ -152,7 +145,7 @@ function makeAuthDispatch(
 // - 统一接收 JSON-RPC 风格的请求体，通过 RpcRequestPipe 校验并解析 { id, params }
 // - 路由格式：POST /api/idp/auth/:action，其中 :action 为 rsatoken/login/multifactor/reset_password/enter
 // - 使用 passthrough 响应以便在 enter 阶段设置 Cookie 后仍返回 JSON-RPC 响应
-@Controller('auth')
+@ApiIdpController('auth')
 @UseGuards(IdpSessionGuard)
 export class AuthController {
   constructor(private readonly service: AuthService) {}

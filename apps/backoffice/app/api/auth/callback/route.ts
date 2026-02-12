@@ -1,17 +1,15 @@
-import {
-  IUserInfo,
-  ITokenResponse,
-  TokenRequest,
-  OIDCGrantType,
-  oidc,
-} from '@csisp/idl/idp';
-import { call, hasError } from '@csisp/rpc/client-fetch';
-import jwt from 'jsonwebtoken';
+import { IdpClient, decodeToken } from '@csisp/auth/server';
+import { IUserInfo, TokenRequest, OIDCGrantType } from '@csisp/idl/idp';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createSession } from '@/src/server/auth/session';
+import { idpConfig } from '@/src/server/config/env';
+import { getLogger } from '@/src/server/middleware/logger';
 import { signToken } from '@/src/server/modules/auth/auth.service';
+
+const idpClient = new IdpClient(idpConfig);
+const logger = getLogger({ context: 'auth-callback' });
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -35,11 +33,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    console.log('Callback started', { code, state, savedState });
+    logger.info({ code, state, savedState }, 'Callback started');
     // 2. 向 IdP 换取 Token
-    // 注意：服务端调用需要使用绝对路径
-    const IDP_RPC_URL = 'http://localhost:4001/api/idp';
-
     const tokenReq = new TokenRequest({
       grant_type: OIDCGrantType.AuthorizationCode,
       code,
@@ -48,24 +43,13 @@ export async function GET(req: NextRequest) {
       code_verifier: verifier,
     });
 
-    console.log('Requesting token from IdP', tokenReq);
-    const response = await call<ITokenResponse>(
-      IDP_RPC_URL,
-      oidc.serviceName,
-      'token',
-      tokenReq
-    );
+    logger.info({ tokenReq }, 'Requesting token from IdP');
+    const tokens = await idpClient.exchangeToken(tokenReq, {
+      headers: req.headers,
+    });
 
-    if (hasError(response)) {
-      console.error('IdP token error', response.error);
-      return NextResponse.json(
-        { error: response.error.message },
-        { status: 500 }
-      );
-    }
-
-    const { id_token } = response.result;
-    console.log('Received id_token', id_token ? 'EXISTS' : 'MISSING');
+    const { id_token } = tokens;
+    logger.info({ hasIdToken: !!id_token }, 'Received id_token');
     if (!id_token) {
       return NextResponse.json(
         { error: 'IdP returned no id_token' },
@@ -73,14 +57,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 3. 解析 id_token (此处简化，生产环境应验证签名)
-    const decoded = jwt.decode(id_token) as any;
-    console.log('Decoded id_token', decoded);
+    // 3. 解析 id_token
+    const decoded = decodeToken(id_token) as any;
+    logger.info({ decoded }, 'Decoded id_token');
     if (!decoded) {
       return NextResponse.json({ error: 'Invalid ID Token' }, { status: 500 });
     }
 
-    // 提取用户信息和角色 (对应 IDL 中的 UserInfo 结构)
+    // 提取用户信息和角色
     const user: IUserInfo = {
       sub: decoded.sub,
       preferred_username: decoded.preferred_username || decoded.sub,
@@ -88,17 +72,17 @@ export async function GET(req: NextRequest) {
     };
 
     // 4. 建立 Backoffice 本地会话
-    console.log('Signing local token', user);
+    logger.info({ user }, 'Signing local token');
     const localToken = signToken({
       username: user.preferred_username,
       roles: user.roles,
       sub: user.sub,
     });
-    console.log('Creating session', localToken);
+    logger.info({ localToken }, 'Creating session');
     await createSession(localToken, user);
 
     // 5. 写入 Cookie 并重定向
-    console.log('Redirecting to /');
+    logger.info('Redirecting to /');
     const res = NextResponse.redirect(new URL('/', req.url));
     res.cookies.set('token', localToken, {
       path: '/',
@@ -112,7 +96,7 @@ export async function GET(req: NextRequest) {
 
     return res;
   } catch (err: any) {
-    console.error('Callback error stack:', err.stack);
+    logger.error(err, 'Callback error');
     return NextResponse.json(
       { error: err.message, stack: err.stack },
       { status: 500 }

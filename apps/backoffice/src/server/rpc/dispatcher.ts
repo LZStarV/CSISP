@@ -1,4 +1,4 @@
-import { RpcError } from '@csisp/rpc';
+import { RpcError } from '@csisp/rpc/core';
 
 import { registry } from './registry';
 

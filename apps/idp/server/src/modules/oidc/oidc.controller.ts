@@ -1,24 +1,25 @@
 import type {
-  AuthorizationInitResult,
-  AuthorizationRequestInfo,
-  TokenResponse,
-  JWKSet,
-  UserInfo,
-  RevocationResult,
-  ClientInfo,
-  Configuration,
+  IAuthorizationInitResult,
+  IAuthorizationRequestInfo,
+  ITokenResponse,
+  IJWKSet,
+  IUserInfo,
+  IRevocationResult,
+  IClientInfo,
+  IConfiguration,
 } from '@csisp/idl/idp';
 import {
   AuthorizationRequest,
   TokenRequest,
   OIDCResponseType,
-  OIDCScope,
   OIDCPKCEMethod,
   OIDCGrantType,
+  OIDCScope,
 } from '@csisp/idl/idp';
 import { oidc as IdlOIDC } from '@csisp/idl/idp';
-import { Controller, Post, Body, Param } from '@nestjs/common';
+import { Post, Body, Param } from '@nestjs/common';
 
+import { ApiIdpController } from '../../common/decorators/controller.decorator';
 import { makeRpcError, makeRpcResponse } from '../../common/rpc/jsonrpc';
 import { RpcRequestPipe } from '../../common/rpc/rpc-request.pipe';
 
@@ -28,16 +29,16 @@ import { OidcService } from './oidc.service';
 type OidcActions = (typeof IdlOIDC.methodNames)[number];
 // OIDC JSON‑RPC 结果类型
 type RpcResult =
-  | AuthorizationInitResult
-  | AuthorizationRequestInfo
-  | TokenResponse
-  | JWKSet
-  | UserInfo
-  | RevocationResult
-  | ClientInfo[]
-  | Configuration;
+  | IAuthorizationInitResult
+  | IAuthorizationRequestInfo
+  | ITokenResponse
+  | IJWKSet
+  | IUserInfo
+  | IRevocationResult
+  | IClientInfo[]
+  | IConfiguration;
 
-@Controller('oidc')
+@ApiIdpController('oidc')
 export class OidcController {
   constructor(private readonly svc: OidcService) {}
 

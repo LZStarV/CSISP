@@ -1,5 +1,7 @@
-import { verify } from '@/src/server/auth/jwt';
+import { verifyToken } from '@csisp/auth/server';
+
 import { getSession } from '@/src/server/auth/session';
+import { getJwtSecret } from '@/src/server/config/env';
 
 export function withAuth(ctx: Record<string, any>) {
   const auth = ctx.headers?.get?.('authorization') || '';
@@ -14,7 +16,7 @@ export function withAuth(ctx: Record<string, any>) {
   }
   if (token) {
     try {
-      const decoded = verify(token);
+      const decoded = verifyToken(token, getJwtSecret());
       ctx.state = ctx.state || {};
       ctx.state.user = decoded;
       // optional: ensure session exists (supports revocation)

@@ -4,29 +4,51 @@ import {
   Catch,
   ExceptionFilter,
   Injectable,
+  NestMiddleware,
   PipeTransform,
   UnauthorizedException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 import { makeRpcError, type JsonRpcId, RpcError } from './core';
 
 /**
+ * Thrift 原始主体解析中间件
+ * - 自动识别 application/x-thrift 或 application/octet-stream
+ * - 仅对 Thrift 请求进行 raw body 解析，不干扰普通 JSON 请求
+ */
+@Injectable()
+export class ThriftRawBodyMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: NextFunction) {
+    const contentType = req.headers['content-type'];
+    if (
+      contentType === 'application/x-thrift' ||
+      contentType === 'application/octet-stream'
+    ) {
+      return express.raw({ type: contentType, limit: '10mb' })(req, res, next);
+    }
+    next();
+  }
+}
+
+/**
  * 全局异常过滤器（Nest 适配）
  * - 将框架异常统一映射为 JSON‑RPC 错误码并封装响应
- * - 透传请求头中的 x-trace-id 到响应头，便于链路追踪
+ * - 支持多协议识别：如果是 THRIFT 协议，跳过 JSON-RPC 封装
  */
 @Catch()
 export class RpcExceptionFilter implements ExceptionFilter {
   /**
    * 处理异常并输出统一 JSON‑RPC 错误响应
-   * - 根据异常类型映射 HTTP 状态与 RPC 错误码
    */
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<any>();
     const request = ctx.getRequest<any>();
+
     const id: JsonRpcId = request.body?.id ?? null;
     const traceId: string | undefined = request.headers?.['x-trace-id'];
     let status = 500;
@@ -73,9 +95,7 @@ export class RpcExceptionFilter implements ExceptionFilter {
 export class RpcRequestPipe implements PipeTransform {
   /**
    * 解析并校验 JSON‑RPC 请求体
-   * - 支持字符串 JSON 的解析
-   * - 校验 jsonrpc 版本为 2.0
-   * - 仅返回 { id, params } 结构供控制器使用
+   * - 仅对 JSON_RPC 接口生效，严格要求 jsonrpc 2.0 格式
    */
   transform(
     value:
@@ -91,6 +111,7 @@ export class RpcRequestPipe implements PipeTransform {
         throw new BadRequestException('Invalid JSON');
       }
     }
+
     const ver = body?.jsonrpc;
     if (ver !== '2.0' && String(ver) !== '2.0') {
       throw new BadRequestException('Invalid JSON-RPC version');

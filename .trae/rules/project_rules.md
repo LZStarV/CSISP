@@ -17,3 +17,6 @@ CSISP 项目规则（Trae）
 如果有修改接口的需求，则需要先前往 infra/idl 中修改对应 IDL 文件并重新 idl:gen 一次，然后再更新对应的服务端代码与前端代码。
 写数据库操作时，必须通过 Sequelize 模型与 Service 层完成，不直接访问数据库连接或原生 SQL。
 避免在为参数命名时只使用单字母，而是尽量使用变量全称或简称，以提高代码的可读性和可维护性。
+
+- 浏览器 -- 服务端之间统一采用 JSON-RPC 协议（路由前缀：/api/:sub-project-name/:domain/:action）
+- 服务端 -- 服务端之间采用 Thrift RPC 协议（路由前缀：/thrift/:sub-project-name）

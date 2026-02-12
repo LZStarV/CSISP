@@ -1,6 +1,21 @@
 import crypto from 'crypto';
 
 import {
+  signToken,
+  verifyToken,
+  parseDurationToSeconds,
+} from '@csisp/auth/server';
+import {
+  IAuthorizationRequest,
+  IAuthorizationInitResult,
+  ITokenRequest,
+  ITokenResponse,
+  IUserInfo,
+  IRevocationResult,
+  IClientInfo,
+  IConfiguration,
+  IAuthorizationRequestInfo,
+  IJWKSet,
   AuthorizationRequest,
   AuthorizationInitResult,
   AuthorizationRequestInfo,
@@ -27,7 +42,7 @@ import type RefreshTokens from '@csisp/infra-database/public/RefreshTokens';
 import type User from '@csisp/infra-database/public/User';
 import { Injectable, BadRequestException } from '@nestjs/common';
 
-import { signRS256, parseDurationToSeconds } from '../../infra/crypto/jwt';
+import { getIdpLogger } from '../../infra/logger';
 import { OidcClientModel } from '../../infra/postgres/models/oidc-client.model';
 import { OidcKeyModel } from '../../infra/postgres/models/oidc-key.model';
 import { RefreshTokenModel } from '../../infra/postgres/models/refresh-token.model';
@@ -37,6 +52,8 @@ import {
   set as redisSet,
   del as redisDel,
 } from '../../infra/redis';
+
+const logger = getIdpLogger('oidc-service');
 
 function baseUrl(): string {
   const port = Number(process.env.PORT ?? 4001);
@@ -55,7 +72,7 @@ export class OidcService {
    * 获取 OIDC 发现配置（Well‑Known）
    * - issuer/authorization_endpoint/token_endpoint/userinfo/jwks_uri 等
    */
-  getConfiguration(): Configuration {
+  getConfiguration(): IConfiguration {
     const issuer = baseUrl();
     return new Configuration({
       issuer,
@@ -102,7 +119,7 @@ export class OidcService {
    * 获取用于验证签名的公钥集合（JWKS）
    * - 仅返回状态为 active/retired 的密钥
    */
-  async getJwks(): Promise<JWKSet> {
+  async getJwks(): Promise<IJWKSet> {
     type KeyPick = Pick<
       OidcKeys,
       'kid' | 'kty' | 'alg' | 'use' | 'public_pem' | 'status'
@@ -139,8 +156,8 @@ export class OidcService {
    * - 在 Redis 记录授权态，返回 ok/state
    */
   async startAuthorization(
-    params: AuthorizationRequest
-  ): Promise<AuthorizationInitResult> {
+    params: IAuthorizationRequest
+  ): Promise<IAuthorizationInitResult> {
     const {
       client_id,
       redirect_uri,
@@ -217,19 +234,15 @@ export class OidcService {
   }
 
   /**
-   * 获取授权请求详情
-   * - 用于 IdP 登录页展示：哪个应用正在申请权限，申请哪些权限
+   * 获取授权请求详情 (Ticket 模式)
    */
   async getAuthorizationRequest(
     ticket: string
-  ): Promise<AuthorizationRequestInfo> {
-    const data = await redisGet(`oidc:ticket:${ticket}`);
-    if (!data) {
-      throw new BadRequestException('Invalid or expired ticket');
-    }
-    const req = JSON.parse(data);
+  ): Promise<IAuthorizationRequestInfo> {
+    const raw = await redisGet(`oidc:ticket:${ticket}`);
+    if (!raw) throw new BadRequestException('Invalid ticket');
+    const req = JSON.parse(raw) as IAuthorizationRequest;
 
-    // 获取 client 名称
     const client = await OidcClientModel.findOne({
       where: { client_id: req.client_id },
       attributes: ['name'],
@@ -258,19 +271,16 @@ export class OidcService {
    * - 刷新模式进行 RT 轮换与防重放
    */
   async exchangeToken(
-    params: TokenRequest | TokenRefreshRequest
-  ): Promise<TokenResponse> {
+    params: ITokenRequest | TokenRefreshRequest
+  ): Promise<ITokenResponse> {
     const client_id = 'client_id' in params ? params.client_id : '';
     const grant_type = 'grant_type' in params ? params.grant_type : undefined;
-    console.log('exchangeToken started', {
-      client_id,
-      grant_type,
-    });
+    logger.info({ client_id, grant_type }, 'exchangeToken started');
     if (!client_id || grant_type === undefined)
       throw new BadRequestException('Invalid token request');
     const isAuthCode = (
-      p: TokenRequest | TokenRefreshRequest
-    ): p is TokenRequest => (p as TokenRequest).code_verifier !== undefined;
+      p: ITokenRequest | TokenRefreshRequest
+    ): p is ITokenRequest => (p as ITokenRequest).code_verifier !== undefined;
     if (isAuthCode(params)) {
       const { code_verifier, code, redirect_uri } = params;
       if (!code_verifier || !code || !redirect_uri)
@@ -308,7 +318,7 @@ export class OidcService {
       );
     }
     const isRefresh = (
-      p: TokenRequest | TokenRefreshRequest
+      p: ITokenRequest | TokenRefreshRequest
     ): p is TokenRefreshRequest =>
       (p as TokenRefreshRequest).refresh_token !== undefined;
     if (isRefresh(params)) {
@@ -378,7 +388,7 @@ export class OidcService {
     preferred_username?: string,
     scope?: string
   ): Promise<TokenResponse> {
-    console.log('issueTokens started', { client_id, sub, scope });
+    logger.info({ client_id, sub, scope }, 'issueTokens started');
     type KeyPick = Pick<
       OidcKeys,
       'kid' | 'public_pem' | 'private_pem_enc' | 'status'
@@ -389,10 +399,10 @@ export class OidcService {
       raw: true,
     })) as Omit<KeyPick, 'status'> | null;
     if (!keyRow) {
-      console.error('No active signing key found');
+      logger.error('No active signing key found');
       throw new BadRequestException('No active signing key');
     }
-    console.log('Active key found', { kid: keyRow.kid });
+    logger.info({ kid: keyRow.kid }, 'Active key found');
     try {
       const enc = Buffer.isBuffer(keyRow.private_pem_enc)
         ? keyRow.private_pem_enc
@@ -407,17 +417,16 @@ export class OidcService {
         process.env.JWT_REFRESH_EXPIRES_IN || '7d',
         604800
       );
-      console.log('Signing tokens...');
-      const access_token = signRS256(
+      logger.info('Signing tokens...');
+      const access_token = signToken(
         { iss: baseUrl(), aud: client_id, scope: scope || 'openid', sub },
         privatePem,
-        accessExp,
-        kid
+        { algorithm: 'RS256', expiresIn: accessExp, keyid: kid }
       );
 
       // 获取用户角色
       const idNum = Number(sub);
-      console.log('Fetching user roles', { sub, idNum });
+      logger.info({ sub, idNum }, 'Fetching user roles');
       const user =
         Number.isFinite(idNum) && idNum > 0
           ? await UserModel.findOne({
@@ -428,7 +437,7 @@ export class OidcService {
           : null;
       const roles = user?.roles || [];
 
-      const id_token = signRS256(
+      const id_token = signToken(
         {
           iss: baseUrl(),
           aud: client_id,
@@ -440,16 +449,14 @@ export class OidcService {
           roles, // 注入角色信息
         },
         privatePem,
-        accessExp,
-        kid
+        { algorithm: 'RS256', expiresIn: accessExp, keyid: kid }
       );
-      const refresh_token = signRS256(
+      const refresh_token = signToken(
         { aud: client_id, sub, t: 'refresh' },
         privatePem,
-        refreshExp,
-        kid
+        { algorithm: 'RS256', expiresIn: refreshExp, keyid: kid }
       );
-      console.log('Tokens signed successfully');
+      logger.info('Tokens signed successfully');
       // 记录 refresh token
       const rtHash = crypto
         .createHash('sha256')
@@ -462,7 +469,7 @@ export class OidcService {
         status: 'active',
         created_at: new Date(),
       });
-      console.log('Refresh token recorded');
+      logger.info('Refresh token recorded');
       return new TokenResponse({
         access_token,
         id_token,
@@ -471,7 +478,7 @@ export class OidcService {
         expires_in: accessExp,
       });
     } catch (err: any) {
-      console.error('issueTokens error:', err);
+      logger.error(err, 'issueTokens error');
       throw err;
     }
   }
@@ -480,12 +487,14 @@ export class OidcService {
    * 撤销 refresh_token
    * - 根据传入 token 的哈希匹配记录并标记为 revoked
    */
-  async revokeToken(token: string): Promise<RevocationResult> {
+  async revokeToken(token: string): Promise<IRevocationResult> {
     const rtHash = crypto.createHash('sha256').update(token).digest('hex');
-    const cur = await RefreshTokenModel.findOne({
+    type RtPick = Pick<RefreshTokens, 'id'>;
+    const cur = (await RefreshTokenModel.findOne({
       where: { rt_hash: rtHash },
       attributes: ['id'],
-    });
+      raw: true,
+    })) as RtPick | null;
     if (!cur) return new RevocationResult({ ok: true });
     await RefreshTokenModel.update(
       { status: 'revoked' },
@@ -498,9 +507,9 @@ export class OidcService {
    * 用户信息查询（验证 RS256 签名）
    * - 验证 access_token 的签名后返回用户声明
    */
-  async userinfo(token: string): Promise<UserInfo> {
-    const [h, p, s] = token.split('.');
-    if (!h || !p || !s) throw new BadRequestException('Invalid token');
+  async userinfo(token: string): Promise<IUserInfo> {
+    const [h] = token.split('.');
+    if (!h) throw new BadRequestException('Invalid token');
     const header = JSON.parse(
       Buffer.from(h.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()
     );
@@ -511,15 +520,8 @@ export class OidcService {
     });
     if (!row) throw new BadRequestException('Unknown key');
     const pubPem = String(row.public_pem);
-    const data = `${h}.${p}`;
-    const sig = Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
-    const verifier = crypto.createVerify('RSA-SHA256');
-    verifier.update(data);
-    const ok = verifier.verify(pubPem, sig);
-    if (!ok) throw new BadRequestException('Invalid signature');
-    const payload = JSON.parse(
-      Buffer.from(p.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()
-    );
+
+    const payload = verifyToken(token, pubPem, { algorithms: ['RS256'] });
     const sub = payload.sub;
     const scope = payload.scope as string | undefined;
     const idNum = Number(sub);
@@ -568,9 +570,9 @@ export class OidcService {
    * 后通道登出
    * - 验证登出令牌签名后批量撤销对应用户的 refresh_token
    */
-  async backchannelLogout(logout_token: string): Promise<RevocationResult> {
-    const [h, p, s] = logout_token.split('.');
-    if (!h || !p || !s) throw new BadRequestException('Invalid token');
+  async backchannelLogout(logout_token: string): Promise<IRevocationResult> {
+    const [h] = logout_token.split('.');
+    if (!h) throw new BadRequestException('Invalid token');
     const header = JSON.parse(
       Buffer.from(h.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()
     );
@@ -581,15 +583,10 @@ export class OidcService {
     });
     if (!row) throw new BadRequestException('Unknown key');
     const pubPem = row.public_pem as string;
-    const data = `${h}.${p}`;
-    const sig = Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
-    const verifier = crypto.createVerify('RSA-SHA256');
-    verifier.update(data);
-    const ok = verifier.verify(pubPem, sig);
-    if (!ok) throw new BadRequestException('Invalid signature');
-    const payload = JSON.parse(
-      Buffer.from(p.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()
-    );
+
+    const payload = verifyToken(logout_token, pubPem, {
+      algorithms: ['RS256'],
+    });
     const sub = payload.sub;
     await RefreshTokenModel.update(
       { status: 'revoked' },
@@ -598,49 +595,30 @@ export class OidcService {
     return new RevocationResult({ ok: true });
   }
 
-  /**
-   * 列出可用客户端
-   * - 返回 client_id/name/default_redirect_uri/scopes
-   */
-  async listClients(): Promise<ClientInfo[]> {
+  async listClients(): Promise<IClientInfo[]> {
     type ClientPick = Pick<
       OidcClients,
       'client_id' | 'name' | 'allowed_redirect_uris' | 'scopes'
     >;
+    logger.info('listClients started');
     const rows = (await OidcClientModel.findAll({
-      where: { status: 'active' },
       attributes: ['client_id', 'name', 'allowed_redirect_uris', 'scopes'],
       raw: true,
     })) as ClientPick[];
+    logger.info({ count: rows.length }, 'Clients fetched');
     return rows.map(r => {
+      let scopes: OIDCScope[] = [];
+      if (Array.isArray(r.scopes)) {
+        scopes = r.scopes as OIDCScope[];
+      }
       const uris = Array.isArray(r.allowed_redirect_uris)
         ? r.allowed_redirect_uris
         : [];
-      const scopesArrStr = Array.isArray(r.scopes)
-        ? (r.scopes as string[])
-        : undefined;
-      const scopesEnums = scopesArrStr
-        ? (scopesArrStr
-            .map(s => {
-              switch (s) {
-                case 'openid':
-                  return OIDCScope.Openid;
-                case 'profile':
-                  return OIDCScope.Profile;
-                case 'email':
-                  return OIDCScope.Email;
-                default:
-                  return undefined;
-              }
-            })
-            .filter(Boolean) as OIDCScope[])
-        : undefined;
       return new ClientInfo({
         client_id: String(r.client_id),
         name: r.name ?? undefined,
-        default_redirect_uri:
-          typeof uris[0] === 'string' ? (uris[0] as string) : undefined,
-        scopes: scopesEnums,
+        default_redirect_uri: uris[0],
+        scopes,
       });
     });
   }

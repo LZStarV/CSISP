@@ -1,9 +1,9 @@
+import { makeRpcResponse } from '@csisp/rpc/core';
 import {
   parseRpcRequest,
   wrapRpcError,
-  makeRpcResponse,
   mapRpcToHttpStatus,
-} from '@csisp/rpc';
+} from '@csisp/rpc/server-node';
 import { NextResponse } from 'next/server';
 
 import { withAuth } from '@/src/server/middleware/jwtAuth';
