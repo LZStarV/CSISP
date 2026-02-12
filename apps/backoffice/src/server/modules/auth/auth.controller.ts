@@ -1,15 +1,14 @@
+import {
+  AUTH_COOKIE_NAME,
+  OIDC_STATE_COOKIE,
+  OIDC_VERIFIER_COOKIE,
+} from '@csisp/auth/common';
 import { IdpClient } from '@csisp/auth/server';
 import type { IUserInfo } from '@csisp/idl/backoffice';
-import {
-  AuthorizationRequest,
-  OIDCResponseType,
-  OIDCScope,
-  OIDCPKCEMethod,
-} from '@csisp/idl/idp';
 import { z } from 'zod';
 
-import { getSession, destroySession } from '@/src/server/auth/session';
-import { getJwtSecret, idpConfig, oidcConfig } from '@/src/server/config/env';
+import { destroySession } from '@/src/server/auth/session';
+import { idpConfig, oidcConfig } from '@/src/server/config/env';
 
 const idpClient = new IdpClient(idpConfig);
 
@@ -47,29 +46,29 @@ export interface AuthorizeParams {
 }
 
 export async function authorize(params: AuthorizeParams, ctx: any) {
-  // 1. 在服务端组装完整的 OIDC 授权请求
-  const authReq = new AuthorizationRequest({
-    client_id: 'backoffice',
-    redirect_uri: oidcConfig.callbackUrl,
-    response_type: OIDCResponseType.Code,
-    scope: [OIDCScope.Openid, OIDCScope.Profile, OIDCScope.Email],
-    state: params.state,
-    code_challenge: params.code_challenge,
-    code_challenge_method: OIDCPKCEMethod.S256,
-  });
+  // 1. 使用 SDK 构造授权跳转地址
+  const result = await idpClient.getAuthorizationUrl(
+    {
+      client_id: 'backoffice',
+      redirect_uri: oidcConfig.callbackUrl,
+      state: params.state,
+      code_challenge: params.code_challenge,
+    },
+    ctx
+  );
 
-  // 2. 将 state 和 verifier 存入 HttpOnly Cookie，提高安全性
+  // 2. 将 state 和 verifier 存入 HttpOnly Cookie
   ctx.resCookies = [
-    { name: 'oidc_state', value: params.state },
-    { name: 'oidc_verifier', value: params.code_verifier },
+    { name: OIDC_STATE_COOKIE, value: params.state },
+    { name: OIDC_VERIFIER_COOKIE, value: params.code_verifier },
   ];
 
-  return idpClient.authorize(authReq, ctx);
+  return result;
 }
 
 export async function logout(_: unknown, ctx: Record<string, any>) {
   const cookie = ctx.headers?.get?.('cookie') || '';
-  const m = cookie.match(/(?:^|;\s*)token=([^;]+)/);
+  const m = cookie.match(new RegExp(`(?:^|;\\s*)${AUTH_COOKIE_NAME}=([^;]+)`));
   const token = m?.[1] || '';
 
   if (token) {
@@ -79,7 +78,7 @@ export async function logout(_: unknown, ctx: Record<string, any>) {
   // 清除本地 Cookie
   ctx.resCookies = [
     {
-      name: 'token',
+      name: AUTH_COOKIE_NAME,
       value: '',
       options: { maxAge: 0, path: '/' },
     },

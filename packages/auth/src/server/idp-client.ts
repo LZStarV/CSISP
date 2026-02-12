@@ -7,9 +7,17 @@ import {
   IUserInfo,
   IRevocationResult,
   IAuthorizationRequestInfo,
+  AuthorizationRequest,
+  OIDCResponseType,
+  OIDCPKCEMethod,
+  TokenRequest,
+  OIDCGrantType,
+  OIDCScope,
 } from '@csisp/idl/idp';
 import { createThriftClient } from '@csisp/rpc/thrift-client';
 import { getSafeContext } from '@csisp/rpc/thrift-server';
+
+import { decodeToken } from './jwt';
 
 // IDP Thrift 客户端选项
 export interface IdpClientOptions {
@@ -43,13 +51,79 @@ export class IdpClient {
   }
 
   /**
-   * 交换或刷新令牌
+   * 获取授权跳转地址
    */
-  async exchangeToken(
-    req: ITokenRequestArgs,
+  async getAuthorizationUrl(
+    params: {
+      state: string;
+      code_challenge: string;
+      client_id: string;
+      redirect_uri: string;
+      scope?: OIDCScope[];
+    },
     ctx?: any
-  ): Promise<ITokenResponse> {
+  ): Promise<IAuthorizationInitResult> {
+    const authReq = new AuthorizationRequest({
+      client_id: params.client_id,
+      redirect_uri: params.redirect_uri,
+      response_type: OIDCResponseType.Code,
+      scope: params.scope || [
+        OIDCScope.Openid,
+        OIDCScope.Profile,
+        OIDCScope.Email,
+      ],
+      state: params.state,
+      code_challenge: params.code_challenge,
+      code_challenge_method: OIDCPKCEMethod.S256,
+    });
+
+    return this.authorize(authReq, ctx);
+  }
+
+  /**
+   * 交换令牌
+   */
+  async token(req: ITokenRequestArgs, ctx?: any): Promise<ITokenResponse> {
     return this.client.token(req, getSafeContext(ctx));
+  }
+
+  /**
+   * 交换并解码用户信息
+   */
+  async exchangeAndDecodeUser(
+    params: {
+      code: string;
+      verifier: string;
+      client_id: string;
+      redirect_uri: string;
+    },
+    ctx?: any
+  ): Promise<{ user: IUserInfo; tokens: ITokenResponse }> {
+    const tokenReq = new TokenRequest({
+      grant_type: OIDCGrantType.AuthorizationCode,
+      code: params.code,
+      redirect_uri: params.redirect_uri,
+      client_id: params.client_id,
+      code_verifier: params.verifier,
+    });
+
+    const tokens = await this.token(tokenReq, ctx);
+    if (!tokens.id_token) {
+      throw new Error('IdP returned no id_token');
+    }
+
+    const decoded = decodeToken(tokens.id_token) as any;
+    if (!decoded) {
+      throw new Error('Invalid ID Token');
+    }
+
+    const user: IUserInfo = {
+      sub: String(decoded.sub),
+      preferred_username: String(decoded.preferred_username || decoded.sub),
+      roles: decoded.roles || [],
+    };
+
+    return { user, tokens };
   }
 
   /**
