@@ -35,7 +35,7 @@ export async function POST(req: Request, context: any) {
 
   try {
     withTraceId(ctx);
-    withAuth(ctx);
+    await withAuth(ctx);
     await limit({ ip: ctx.ip, path: ctx.path });
     const start = Date.now();
 
@@ -62,6 +62,20 @@ export async function POST(req: Request, context: any) {
         path: '/',
         maxAge: 2 * 60 * 60, // 2 hours
       });
+    }
+
+    // 处理控制器设置的额外 Cookie (如 OIDC state/verifier)
+    if (ctx.resCookies && Array.isArray(ctx.resCookies)) {
+      for (const cookie of ctx.resCookies) {
+        res.cookies.set(cookie.name, cookie.value, {
+          path: '/',
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 600,
+          ...cookie.options,
+        });
+      }
     }
 
     if (ctx.state?.traceId) {

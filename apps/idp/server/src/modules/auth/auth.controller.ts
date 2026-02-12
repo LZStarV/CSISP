@@ -85,10 +85,12 @@ function makeAuthDispatch(
     },
     enter: async (
       params: Record<string, unknown>,
-      _request: Request,
+      request: Request,
       response: Response
-    ) =>
-      service.enter(
+    ) => {
+      type IdpRequest = Request & { idpUserId?: number };
+      const uid = (request as IdpRequest).idpUserId;
+      return service.enter(
         {
           state: String(params.state ?? ''),
           ticket: params.ticket ? String(params.ticket) : undefined,
@@ -98,8 +100,10 @@ function makeAuthDispatch(
               ? (params.redirectMode as string)
               : undefined,
         },
-        response
-      ),
+        response,
+        uid
+      );
+    },
     mfa_methods: async (_params: Record<string, unknown>, request: Request) => {
       type IdpRequest = Request & { idpSession?: string };
       const sid = (request as IdpRequest).idpSession;

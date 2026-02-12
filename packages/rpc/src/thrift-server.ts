@@ -47,3 +47,21 @@ export function runThrift(
 
   return middleware(req, res, next);
 }
+
+/**
+ * 提取安全的 RPC 上下文，防止上下文污染
+ * - 仅透传链路追踪相关的 Header
+ * - 严禁透传 url 等可能导致 Thrift 客户端重写请求路径的属性
+ */
+export function getSafeContext(ctx?: any) {
+  const safeCtx: any = { headers: {} };
+  if (ctx?.headers) {
+    // 仅透传 trace 相关 header
+    const traceId =
+      ctx.headers.get?.('x-trace-id') || ctx.headers['x-trace-id'];
+    if (traceId) {
+      safeCtx.headers['x-trace-id'] = traceId;
+    }
+  }
+  return safeCtx;
+}

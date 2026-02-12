@@ -9,6 +9,7 @@ import {
   IAuthorizationRequestInfo,
 } from '@csisp/idl/idp';
 import { createThriftClient } from '@csisp/rpc/thrift-client';
+import { getSafeContext } from '@csisp/rpc/thrift-server';
 
 // IDP Thrift 客户端选项
 export interface IdpClientOptions {
@@ -32,31 +33,13 @@ export class IdpClient {
   }
 
   /**
-   * 提取安全的 RPC 上下文，防止上下文污染
-   * - 仅透传链路追踪相关的 Header
-   * - 严禁透传 url 等可能导致 Thrift 客户端重写请求路径的属性
-   */
-  private getSafeContext(ctx?: any) {
-    const safeCtx: any = { headers: {} };
-    if (ctx?.headers) {
-      // 仅透传 trace 相关 header
-      const traceId =
-        ctx.headers.get?.('x-trace-id') || ctx.headers['x-trace-id'];
-      if (traceId) {
-        safeCtx.headers['x-trace-id'] = traceId;
-      }
-    }
-    return safeCtx;
-  }
-
-  /**
    * 初始化 OIDC 授权
    */
   async authorize(
     req: IAuthorizationRequestArgs,
     ctx?: any
   ): Promise<IAuthorizationInitResult> {
-    return this.client.authorize(req, this.getSafeContext(ctx));
+    return this.client.authorize(req, getSafeContext(ctx));
   }
 
   /**
@@ -66,21 +49,31 @@ export class IdpClient {
     req: ITokenRequestArgs,
     ctx?: any
   ): Promise<ITokenResponse> {
-    return this.client.token(req, this.getSafeContext(ctx));
+    return this.client.token(req, getSafeContext(ctx));
   }
 
   /**
    * 获取用户信息
    */
   async getUserInfo(accessToken: string, ctx?: any): Promise<IUserInfo> {
-    return this.client.userinfo(accessToken, this.getSafeContext(ctx));
+    return this.client.userinfo(accessToken, getSafeContext(ctx));
   }
 
   /**
    * 撤销令牌
    */
   async revokeToken(token: string, ctx?: any): Promise<IRevocationResult> {
-    return this.client.revocation(token, this.getSafeContext(ctx));
+    return this.client.revocation(token, getSafeContext(ctx));
+  }
+
+  /**
+   * 退出登录
+   */
+  async backchannelLogout(
+    logoutToken: string,
+    ctx?: any
+  ): Promise<IRevocationResult> {
+    return this.client.backchannel_logout(logoutToken, getSafeContext(ctx));
   }
 
   /**
@@ -90,9 +83,6 @@ export class IdpClient {
     ticket: string,
     ctx?: any
   ): Promise<IAuthorizationRequestInfo> {
-    return this.client.getAuthorizationRequest(
-      ticket,
-      this.getSafeContext(ctx)
-    );
+    return this.client.getAuthorizationRequest(ticket, getSafeContext(ctx));
   }
 }

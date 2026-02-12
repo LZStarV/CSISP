@@ -11,6 +11,7 @@ type RedisOptions = {
 let client: RedisClientType | undefined;
 let ns = 'csisp';
 
+// 构建 Redis URL
 function buildUrl(opts: RedisOptions): string {
   const host = opts.host ?? process.env.REDIS_HOST ?? 'localhost';
   const port = Number(opts.port ?? process.env.REDIS_PORT ?? 6379);
@@ -18,6 +19,7 @@ function buildUrl(opts: RedisOptions): string {
   return `redis://${host}:${port}/${db}`;
 }
 
+// 连接 Redis 服务器
 export async function connect(
   options: RedisOptions = {}
 ): Promise<RedisClientType> {
@@ -31,6 +33,7 @@ export async function connect(
   return client;
 }
 
+// 获取 Redis 客户端实例
 export function getClient(): RedisClientType {
   if (!client) throw new Error('Redis client not connected');
   return client;
@@ -40,6 +43,7 @@ function k(key: string): string {
   return `${ns}:${key}`;
 }
 
+// 设置键值对
 export async function set(
   key: string,
   value: string,
@@ -53,26 +57,31 @@ export async function set(
   await c.set(k(key), value);
 }
 
+// 获取键值对
 export async function get(key: string): Promise<string | null> {
   const c = getClient();
   return c.get(k(key));
 }
 
+// 删除键值对
 export async function del(key: string): Promise<number> {
   const c = getClient();
   return c.del(k(key));
 }
 
+// 检查键是否存在
 export async function exists(key: string): Promise<number> {
   const c = getClient();
   return c.exists(k(key));
 }
 
+// 获取键的过期时间（TTL）
 export async function ttl(key: string): Promise<number> {
   const c = getClient();
   return c.ttl(k(key));
 }
 
+// 发布消息到频道
 export async function publish(
   channel: string,
   message: string
@@ -81,6 +90,7 @@ export async function publish(
   return c.publish(`${ns}:${channel}`, message);
 }
 
+// 订阅频道并处理消息
 export function subscribe(
   channel: string,
   onMessage: (message: string) => void
@@ -105,6 +115,7 @@ export function subscribe(
   };
 }
 
+// 检查 Redis 连接是否正常
 export async function healthCheck(): Promise<boolean> {
   const c = getClient();
   const pong = await c.ping();

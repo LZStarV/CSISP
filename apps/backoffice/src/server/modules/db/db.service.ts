@@ -51,7 +51,7 @@ export async function queryTable(params: {
     items: rows.map((r: any) => r.toJSON()) as any,
     page,
     size,
-    total: BigInt(count) as any,
+    total: Number(count) as any,
   };
 }
 

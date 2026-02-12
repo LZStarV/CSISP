@@ -3,6 +3,7 @@ import { generatePKCE, generateState } from '@csisp/auth/browser';
 import { AuthorizationInitResult, OIDCPKCEMethod } from '@csisp/idl/idp';
 import { Button, Card, Typography, Space } from 'antd';
 
+import { authConfig } from '@/src/client/config/auth';
 import { authCall, hasError } from '@/src/client/utils/rpc-client';
 
 export default function LoginPage() {
@@ -10,21 +11,18 @@ export default function LoginPage() {
     const state = generateState();
     const { verifier, challenge } = await generatePKCE();
 
-    // 将 verifier 和 state 存入 cookie，供回调时校验
-    document.cookie = `oidc_state=${state}; path=/; max-age=600`;
-    document.cookie = `oidc_verifier=${verifier}; path=/; max-age=600`;
-
     try {
       const response = await authCall<AuthorizationInitResult>('authorize', {
         state,
         code_challenge: challenge,
+        code_verifier: verifier,
         code_challenge_method: OIDCPKCEMethod.S256,
       });
 
       if (!hasError(response)) {
         const target = response.result.ticket
-          ? `http://localhost:5174/login?ticket=${response.result.ticket}`
-          : `http://localhost:5174/login?state=${state}`;
+          ? `${authConfig.idpLoginUrl}?ticket=${response.result.ticket}`
+          : `${authConfig.idpLoginUrl}?state=${state}`;
         window.location.href = target;
       } else {
         const errorMsg = hasError(response)

@@ -16,10 +16,8 @@ import {
   IConfiguration,
   IAuthorizationRequestInfo,
   IJWKSet,
-  AuthorizationRequest,
   AuthorizationInitResult,
   AuthorizationRequestInfo,
-  TokenRequest,
   TokenResponse,
   JWK,
   JWKSet,
@@ -188,12 +186,17 @@ export class OidcService {
       throw new BadRequestException('Unknown or inactive client');
     }
     let whitelist: string[] = [];
-    const ar = client.allowed_redirect_uris as string[] | string | null;
-    if (Array.isArray(ar)) {
-      whitelist = ar.filter((x: unknown) => typeof x === 'string') as string[];
-    } else if (typeof ar === 'string') {
+    const allowed_redirect_uris = client.allowed_redirect_uris as
+      | string[]
+      | string
+      | null;
+    if (Array.isArray(allowed_redirect_uris)) {
+      whitelist = allowed_redirect_uris.filter(
+        (x: unknown) => typeof x === 'string'
+      ) as string[];
+    } else if (typeof allowed_redirect_uris === 'string') {
       try {
-        const parsed = JSON.parse(ar);
+        const parsed = JSON.parse(allowed_redirect_uris);
         if (Array.isArray(parsed)) {
           whitelist = parsed.filter(
             (x: unknown) => typeof x === 'string'
@@ -424,18 +427,20 @@ export class OidcService {
         { algorithm: 'RS256', expiresIn: accessExp, keyid: kid }
       );
 
-      // 获取用户角色
+      // 获取用户信息（角色、用户名等）
       const idNum = Number(sub);
-      logger.info({ sub, idNum }, 'Fetching user roles');
+      logger.info({ sub, idNum }, 'Fetching user details for token');
       const user =
         Number.isFinite(idNum) && idNum > 0
           ? await UserModel.findOne({
               where: { id: idNum },
-              attributes: ['roles'],
+              attributes: ['roles', 'username', 'real_name'],
               raw: true,
             })
           : null;
       const roles = user?.roles || [];
+      const actualPreferredUsername =
+        user?.username || preferred_username || sub;
 
       const id_token = signToken(
         {
@@ -445,7 +450,8 @@ export class OidcService {
           nonce: nonce ?? crypto.randomUUID(),
           acr: acr,
           amr: amr,
-          preferred_username: preferred_username,
+          preferred_username: actualPreferredUsername,
+          name: user?.real_name || undefined,
           roles, // 注入角色信息
         },
         privatePem,

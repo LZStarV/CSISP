@@ -1,6 +1,5 @@
 'use client';
-import { Layout, ConfigProvider } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
+import { Layout } from 'antd';
 import type { ReactNode } from 'react';
 
 import { useAdminGuard } from '@/src/client/hooks/useAdminGuard';
@@ -15,14 +14,12 @@ export default function BackofficeLayout({
 }) {
   useAdminGuard();
   return (
-    <ConfigProvider locale={zhCN}>
-      <Layout style={{ height: '100%' }}>
-        <HeaderBar />
-        <Layout>
-          <Aside />
-          <PageShell>{children}</PageShell>
-        </Layout>
+    <Layout style={{ height: '100%' }}>
+      <HeaderBar />
+      <Layout>
+        <Aside />
+        <PageShell>{children}</PageShell>
       </Layout>
-    </ConfigProvider>
+    </Layout>
   );
 }

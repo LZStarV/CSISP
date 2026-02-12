@@ -34,7 +34,7 @@
 - 守卫 Hook（进入受保护区段时检查登录态）
   - 位置：src/client/hooks/useAdminGuard.ts
   - 用法：在 (admin)/layout.tsx 中调用 useAdminGuard()；未登录会跳转到 /login?next=当前路径
-  - 登录态检查：通过 utils/auth.checkLogin() 调用 /api/backoffice/auth/me，附带 Cookie 验证
+  - 登录态检查：通过内置 checkLogin() 调用 /api/backoffice/auth/me，附带 Cookie 验证
 - 登录页
   - 位置：app/(auth)/login/page.tsx
   - 行为：提交登录后服务端设置 HttpOnly Cookie，并写入 Redis 会话；客户端依赖 auth.me 校验登录态

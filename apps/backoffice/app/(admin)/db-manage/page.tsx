@@ -12,6 +12,7 @@ import {
 } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 
+import { message } from '@/src/client/utils/antd';
 import { dbCall, hasError } from '@/src/client/utils/rpc-client';
 
 type QueryTableParams = {
@@ -39,6 +40,8 @@ export default function DbPage() {
       if (!hasError(res)) {
         setTables(res.result);
         if (!current && res.result.length) setCurrent(res.result[0]);
+      } else {
+        message.error('获取模型列表失败: ' + res.error.message);
       }
     });
   }, []);
@@ -49,7 +52,10 @@ export default function DbPage() {
       page: 1,
       size: 1,
     } as QueryTableParams)
-      .then(() => {
+      .then(res => {
+        if (hasError(res)) {
+          throw new Error(res.error.message);
+        }
         return dbCall<QueryTableResult>('queryTable', {
           table: current,
           page,
@@ -64,7 +70,12 @@ export default function DbPage() {
           const cols = Object.keys(res.result.items?.[0] ?? {});
           setColumns(cols);
           if (!orderBy && cols.length) setOrderBy(cols[0]);
+        } else {
+          message.error('获取表数据失败: ' + res.error.message);
         }
+      })
+      .catch(err => {
+        message.error('请求失败: ' + err.message);
       });
   }, [current, page, size, orderBy, orderDir]);
   const tableColumns = useMemo(
@@ -130,7 +141,10 @@ export default function DbPage() {
           </Space>
           <Divider />
           <Table
-            rowKey={(_, idx) => String(idx)}
+            rowKey={record => {
+              const r = record as any;
+              return r.id || r.student_id || JSON.stringify(record);
+            }}
             dataSource={data?.items || []}
             columns={tableColumns}
             pagination={{

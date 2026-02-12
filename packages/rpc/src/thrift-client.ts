@@ -21,6 +21,7 @@ export function createThriftClient<TClient extends ThriftClient<any>>(
   const { url: urlString, timeout = 5000 } = options;
   const parsedUrl = new URL(urlString);
 
+  // TODO：需要更新此处写法
   const connection = new HttpConnection({
     hostName: parsedUrl.hostname,
     port: parsedUrl.port

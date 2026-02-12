@@ -541,7 +541,11 @@ export class AuthService {
    * - 若已存在授权请求，颁发一次性 code 并返回 redirectTo 或执行 302
    * - 同时建立 SSO 会话（Cookie）
    */
-  async enter(params: RpcParams, res?: Response): Promise<Next> {
+  async enter(
+    params: RpcParams,
+    res?: Response,
+    uidFromSess?: number
+  ): Promise<Next> {
     // 完成登录：建立 SSO 会话；如存在授权态则颁发一次性授权码并返回回调指令
     class EnterParamsDto {
       @IsOptional()
@@ -589,9 +593,26 @@ export class AuthService {
           attributes: ['id', 'username', 'student_id', 'status'],
           raw: true,
         })) as UserPick | null)
-      : null;
+      : uidFromSess
+        ? ((await this.userModel.findOne({
+            where: { id: uidFromSess },
+            attributes: ['id', 'username', 'student_id', 'status'],
+            raw: true,
+          })) as UserPick | null)
+        : null;
+
+    getIdpLogger('auth-service').info(
+      { studentId, uidFromSess, userId: user?.id },
+      'Resolved user in enter'
+    );
+
     const uid = user ? user.id : null;
-    if (res && uid) {
+    getIdpLogger('auth-service').info(
+      { studentId, uidFromSess, userId: user?.id, uid },
+      'Resolved final uid in enter'
+    );
+
+    if (res && uid !== null && uid !== undefined) {
       const sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
       await redisSet(`idp:sess:${sid}`, String(uid), 3600);
       res.cookie('idp_session', sid, {
@@ -603,6 +624,11 @@ export class AuthService {
     if (!auth) {
       return new Next({ next: [AuthNextStep.Finish] });
     }
+
+    if (uid === null || uid === undefined) {
+      throw new HttpException('Unauthorized: session invalid', 401);
+    }
+
     const obj = JSON.parse(auth);
     const code = (
       Math.random().toString(36).slice(2) + Date.now().toString(36)
@@ -613,7 +639,7 @@ export class AuthService {
         client_id: obj.client_id,
         redirect_uri: obj.redirect_uri,
         code_challenge: obj.code_challenge,
-        sub: uid ?? 0,
+        sub: String(uid),
         nonce: obj.nonce,
         acr: 'mfa',
         amr: ['sms'],

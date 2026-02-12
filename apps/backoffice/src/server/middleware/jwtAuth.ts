@@ -3,7 +3,7 @@ import { verifyToken } from '@csisp/auth/server';
 import { getSession } from '@/src/server/auth/session';
 import { getJwtSecret } from '@/src/server/config/env';
 
-export function withAuth(ctx: Record<string, any>) {
+export async function withAuth(ctx: Record<string, any>) {
   const auth = ctx.headers?.get?.('authorization') || '';
   const cookie = ctx.headers?.get?.('cookie') || '';
   const parts = auth.split(' ');
@@ -19,14 +19,13 @@ export function withAuth(ctx: Record<string, any>) {
       const decoded = verifyToken(token, getJwtSecret());
       ctx.state = ctx.state || {};
       ctx.state.user = decoded;
-      // optional: ensure session exists (supports revocation)
-      getSession(token).then(sess => {
-        if (!sess) {
-          ctx.state.user = undefined;
-        }
-      });
+      // 检查会话是否存在（支持吊销）
+      const sess = await getSession(token);
+      if (!sess) {
+        ctx.state.user = undefined;
+      }
     } catch {
-      // ignore invalid tokens; controller/roles will enforce
+      // 忽略无效令牌；控制器/角色将强制实施
     }
   }
   return { user: ctx.state?.user };

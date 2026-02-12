@@ -1,3 +1,4 @@
+import pg from 'pg';
 import { Sequelize } from 'sequelize';
 
 import { getDatabaseUrl } from '@/src/server/config/env';
@@ -10,7 +11,11 @@ export function getSequelize(): Sequelize {
   if (!url) {
     throw new Error('DATABASE_URL is not set');
   }
-  sequelize = new Sequelize(url, { dialect: 'postgres', logging: false });
+  sequelize = new Sequelize(url, {
+    dialect: 'postgres',
+    dialectModule: pg,
+    logging: false,
+  });
   return sequelize;
 }
 

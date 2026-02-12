@@ -30,10 +30,13 @@ export function Login() {
         .then(res => {
           if (!hasError(res)) {
             setAuthInfo(res.result);
+          } else {
+            setErrorMsg(res.error.message || '获取授权信息失败');
           }
         })
         .catch(err => {
           console.error('Fetch auth info failed:', err);
+          setErrorMsg('连接认证服务器失败，请稍后重试');
         });
     }
   }, [ticket]);

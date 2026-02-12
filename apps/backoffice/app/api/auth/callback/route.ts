@@ -66,8 +66,8 @@ export async function GET(req: NextRequest) {
 
     // 提取用户信息和角色
     const user: IUserInfo = {
-      sub: decoded.sub,
-      preferred_username: decoded.preferred_username || decoded.sub,
+      sub: String(decoded.sub),
+      preferred_username: String(decoded.preferred_username || decoded.sub),
       roles: decoded.roles || [],
     };
 
@@ -86,7 +86,9 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.redirect(new URL('/', req.url));
     res.cookies.set('token', localToken, {
       path: '/',
-      httpOnly: false, // 允许前端读取
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       maxAge: 3600 * 2, // 2小时
     });
 
