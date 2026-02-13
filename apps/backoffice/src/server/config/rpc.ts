@@ -1,5 +1,5 @@
 export enum Domain {
-  AUTH = 'auth',
+  OIDC = 'oidc',
   USER = 'user',
   DB = 'db',
   LOGS = 'logs',

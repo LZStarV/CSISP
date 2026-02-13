@@ -81,5 +81,5 @@ export class User extends Model<UserRow, UserInitializer> implements UserRow {
   updated_at!: Date;
 
   @BelongsToMany(() => Role, () => UserRole)
-  roles?: Role[];
+  roles!: Role[];
 }

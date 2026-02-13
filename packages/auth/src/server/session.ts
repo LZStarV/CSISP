@@ -1,4 +1,4 @@
-import { DEFAULT_SESSION_TTL } from '../common/constants';
+import { DEFAULT_SESSION_TTL } from '../core/constants';
 
 export interface SessionStore {
   get(key: string): Promise<any | null>;

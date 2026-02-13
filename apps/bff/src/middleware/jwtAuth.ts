@@ -1,15 +1,13 @@
-import jwt from 'jsonwebtoken';
+import { koaAuth } from '@csisp/auth/server';
 import type { Context, Next } from 'koa';
 
 // JWT 鉴权中间件
 //
 // 作用：
-// - 从 Authorization: Bearer <token> 头中解析并验证 JWT
-// - 将解码后的 userId/username/roles 写入 ctx.state，供后续中间件和路由使用
-// - 支持：
-//   - required=false 时允许匿名访问
-//   - roles 白名单校验，限制仅特定角色可访问
-//   - excludePaths 跳过指定路径（如登录/注册）
+// - 使用 @csisp/auth/server 的 koaAuth 实现标准 JWT 校验
+// - 支持 required=false 时允许匿名访问
+// - 角色白名单校验，限制仅特定角色可访问
+// - excludePaths 跳过指定路径（如登录/注册）
 type JwtAuthOptions = {
   required?: boolean;
   roles?: string[];
@@ -29,54 +27,22 @@ export default function jwtAuth(options: JwtAuthOptions = {}) {
     ],
   } = options;
 
-  return async (ctx: Context, next: Next) => {
-    if (excludePaths.length && excludePaths.includes(ctx.path)) return next();
-    const isRpcPath = /^\/api\/bff\/[^/]+\/[^/]+\/[^/]+$/.test(ctx.path);
-    if (!isRpcPath) return next();
+  const authMiddleware = koaAuth({
+    jwtSecret: process.env.JWT_SECRET || 'default-secret',
+    required,
+    roles,
+    excludePaths,
+  });
 
-    const authHeader = ctx.get('Authorization');
-    if (!authHeader) {
-      if (required) {
-        ctx.status = 401;
-        ctx.body = { code: 401, message: '未提供认证令牌' };
-        return;
-      }
+  return async (ctx: Context, next: Next) => {
+    // 1. 如果是 RPC 路径以外的路径（且不在排除名单内），则直接通过
+    // 注意：BFF 绝大部分业务逻辑在 RPC 路径下
+    const isRpcPath = /^\/api\/bff\/[^/]+\/[^/]+\/[^/]+$/.test(ctx.path);
+    if (!isRpcPath && !excludePaths.includes(ctx.path)) {
       return next();
     }
 
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      ctx.status = 401;
-      ctx.body = { code: 401, message: '认证令牌格式错误' };
-      return;
-    }
-
-    const token = parts[1];
-    const secret = process.env.JWT_SECRET;
-    try {
-      const decoded: any = jwt.verify(token, secret || 'default-secret');
-      (ctx.state as any).userId = decoded.userId;
-      (ctx.state as any).user = {
-        id: decoded.userId,
-        username: decoded.username,
-      };
-      (ctx.state as any).roles = Array.isArray(decoded.roles)
-        ? decoded.roles
-        : [];
-
-      if (roles.length) {
-        const hasRole = roles.some(r => (ctx.state as any).roles.includes(r));
-        if (!hasRole) {
-          ctx.status = 403;
-          ctx.body = { code: 403, message: '权限不足' };
-          return;
-        }
-      }
-
-      await next();
-    } catch {
-      ctx.status = 401;
-      ctx.body = { code: 401, message: '认证令牌无效或已过期' };
-    }
+    // 2. 调用标准认证中间件
+    return authMiddleware(ctx, next);
   };
 }

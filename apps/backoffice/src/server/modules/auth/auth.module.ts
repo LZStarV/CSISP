@@ -1,14 +1,15 @@
 import * as controller from './auth.controller';
 
-export const domain = 'auth';
+export const domain = 'oidc';
 export const handlers = {
-  me: controller.me,
+  userinfo: controller.me,
   authorize: controller.authorize,
   logout: controller.logout,
+  revocation: controller.logout,
 };
 
 export const schemas = {
-  me: {
+  userinfo: {
     summary: '当前用户信息',
     params: '{}',
     result: '{ user: { username, roles[] } }',
@@ -20,6 +21,11 @@ export const schemas = {
   },
   logout: {
     summary: '退出登录',
+    params: '{}',
+    result: '{ ok: true }',
+  },
+  revocation: {
+    summary: '撤销令牌/退出登录',
     params: '{}',
     result: '{ ok: true }',
   },

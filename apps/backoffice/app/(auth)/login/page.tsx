@@ -1,37 +1,15 @@
 'use client';
-import { generatePKCE, generateState } from '@csisp/auth/browser';
-import { AuthorizationInitResult, OIDCPKCEMethod } from '@csisp/idl/idp';
-import { Button, Card, Typography, Space } from 'antd';
-
-import { authConfig } from '@/src/client/config/auth';
-import { authCall, hasError } from '@/src/client/utils/rpc-client';
+import { useAuth } from '@csisp/auth/react';
+import { Button, Card, Typography, Space, message } from 'antd';
 
 export default function LoginPage() {
+  const { login } = useAuth();
+
   const handleLogin = async () => {
-    const state = generateState();
-    const { verifier, challenge } = await generatePKCE();
-
     try {
-      const response = await authCall<AuthorizationInitResult>('authorize', {
-        state,
-        code_challenge: challenge,
-        code_verifier: verifier,
-        code_challenge_method: OIDCPKCEMethod.S256,
-      });
-
-      if (!hasError(response)) {
-        const target = response.result.ticket
-          ? `${authConfig.idpLoginUrl}?ticket=${response.result.ticket}`
-          : `${authConfig.idpLoginUrl}?state=${state}`;
-        window.location.href = target;
-      } else {
-        const errorMsg = hasError(response)
-          ? response.error.message
-          : '响应状态异常';
-        alert('登录初始化失败: ' + errorMsg);
-      }
+      await login();
     } catch (error: any) {
-      alert('登录初始化失败: ' + error.message);
+      message.error('登录初始化失败: ' + error.message);
     }
   };
 

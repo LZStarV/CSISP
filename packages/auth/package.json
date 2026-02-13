@@ -20,24 +20,39 @@
       "import": "./dist/esm/server/index.js",
       "require": "./dist/server/index.js"
     },
-    "./common": {
-      "types": "./dist/common/index.d.ts",
-      "import": "./dist/esm/common/index.js",
-      "require": "./dist/common/index.js"
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/esm/core/index.js",
+      "require": "./dist/core/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/esm/react/index.js",
+      "require": "./dist/react/index.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json"
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json",
+    "format": "prettier --write . && eslint . --fix"
   },
   "dependencies": {
-    "@csisp/rpc": "workspace:*",
     "@csisp/idl": "workspace:*",
-    "jsonwebtoken": "^9.0.2"
+    "@csisp/rpc": "workspace:*",
+    "@nestjs/common": "^11.1.13",
+    "@nestjs/core": "^11.1.13",
+    "jsonwebtoken": "^9.0.2",
+    "react": "catalog:frontend",
+    "react-dom": "catalog:frontend",
+    "react-router-dom": "catalog:frontend",
+    "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.5"
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/koa": "catalog:dev",
+    "@types/react": "catalog:dev",
+    "@types/react-dom": "catalog:dev"
   }
 }

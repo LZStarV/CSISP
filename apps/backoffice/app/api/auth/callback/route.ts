@@ -2,7 +2,7 @@ import {
   AUTH_COOKIE_NAME,
   OIDC_STATE_COOKIE,
   OIDC_VERIFIER_COOKIE,
-} from '@csisp/auth/common';
+} from '@csisp/auth/core';
 import { IdpClient } from '@csisp/auth/server';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';

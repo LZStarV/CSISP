@@ -62,6 +62,10 @@ const unifiedSidebar = [
         text: 'IDL（Thrift）',
         link: '/src/基础设施与基建/IDL（Thrift）',
       },
+      {
+        text: '身份认证与鉴权',
+        link: '/src/基础设施与基建/身份认证与鉴权',
+      },
     ],
   },
 ];

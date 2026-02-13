@@ -1,4 +1,4 @@
-import { AUTH_COOKIE_NAME } from '@csisp/auth/common';
+import { AUTH_COOKIE_NAME } from '@csisp/auth/core';
 import { verifyAuth } from '@csisp/auth/server';
 
 import { sessionManager } from '@/src/server/auth/session';

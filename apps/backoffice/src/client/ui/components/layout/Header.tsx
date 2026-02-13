@@ -1,30 +1,14 @@
 'use client';
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
+import { useAuth } from '@csisp/auth/react';
 import { Layout, Dropdown, Space, Avatar } from 'antd';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 import { message, modal } from '@/src/client/utils/antd';
-import { authCall, hasError } from '@/src/client/utils/rpc-client';
 
 export default function HeaderBar() {
-  const [user, setUser] = useState<{
-    username: string;
-    roles: string[];
-  } | null>(null);
+  const { user, logout: sdkLogout } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    authCall<{ user: { username: string; roles: string[] } }>('me', {}).then(
-      res => {
-        if (!hasError(res)) {
-          setUser(res.result.user);
-        } else {
-          message.error('获取用户信息失败: ' + res.error.message);
-        }
-      }
-    );
-  }, []);
 
   const handleLogout = () => {
     modal?.confirm({
@@ -34,15 +18,11 @@ export default function HeaderBar() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          const res = await authCall('logout', {});
-          if (!hasError(res)) {
-            message.success('已退出登录');
-            router.replace('/login');
-          } else {
-            message.error('退出登录失败');
-          }
-        } catch (err) {
-          message.error('请求失败');
+          await sdkLogout();
+          message.success('已退出登录');
+          router.replace('/login');
+        } catch {
+          message.error('退出登录失败');
         }
       },
     });
@@ -76,7 +56,7 @@ export default function HeaderBar() {
               icon={<UserOutlined />}
               style={{ backgroundColor: '#1890ff' }}
             />
-            <span>{user.username}</span>
+            <span>{user.preferred_username || user.sub}</span>
           </Space>
         </Dropdown>
       )}

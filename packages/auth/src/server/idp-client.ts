@@ -16,6 +16,7 @@ import {
 } from '@csisp/idl/idp';
 import { createThriftClient } from '@csisp/rpc/thrift-client';
 import { getSafeContext } from '@csisp/rpc/thrift-server';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 
 import { decodeToken } from './jwt';
 
@@ -25,15 +26,24 @@ export interface IdpClientOptions {
   timeout?: number;
 }
 
+export const IDP_CLIENT_OPTIONS = 'IDP_CLIENT_OPTIONS';
+
 /**
  * IDP Thrift 客户端 SDK 封装
  * - 内部使用 Thrift RPC 代替 JSON-RPC
  * - 自动处理全链路追踪与强类型契约
  */
+@Injectable()
 export class IdpClient {
   private readonly client: oidc.Client;
 
-  constructor(options: IdpClientOptions) {
+  constructor(
+    @Optional() @Inject(IDP_CLIENT_OPTIONS) options?: IdpClientOptions
+  ) {
+    if (!options) {
+      // Fallback for non-DI usage or default config
+      options = { url: process.env.IDP_THRIFT_URL || 'http://localhost:9090' };
+    }
     this.client = createThriftClient(oidc.Client, {
       url: options.url,
       timeout: options.timeout,

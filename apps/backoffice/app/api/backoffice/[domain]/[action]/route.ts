@@ -1,3 +1,4 @@
+import { AUTH_COOKIE_NAME } from '@csisp/auth/core';
 import { makeRpcResponse } from '@csisp/rpc/core';
 import {
   parseRpcRequest,
@@ -52,10 +53,10 @@ export async function POST(req: Request, context: any) {
     const respBody = makeRpcResponse(id, result);
     const res = NextResponse.json(respBody, { status: 200 });
 
-    if (domain === 'auth' && action === 'login' && (result as any)?.token) {
+    if (domain === 'oidc' && action === 'login' && (result as any)?.token) {
       const token = (result as any).token as string;
       const secure = process.env.NODE_ENV === 'production';
-      res.cookies.set('token', token, {
+      res.cookies.set(AUTH_COOKIE_NAME, token, {
         httpOnly: true,
         secure,
         sameSite: 'lax',

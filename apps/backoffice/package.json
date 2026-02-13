@@ -19,7 +19,6 @@
     "antd": "catalog:frontend",
     "dayjs": "catalog:node",
     "ioredis": "catalog:node",
-    "jsonwebtoken": "catalog:node",
     "mongoose": "catalog:node",
     "next": "^15.0.3",
     "pg": "catalog:node",

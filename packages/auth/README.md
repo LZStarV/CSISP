@@ -6,7 +6,19 @@ CSISP 统一身份认证 SDK，集成了 OIDC 协议、PKCE 安全流程、JWT �
 
 - `browser/`: 浏览器端工具，主要用于登录流程初始化。
 - `server/`: 服务端工具，包含 IDP 客户端、Session 管理、鉴权中间件辅助等。
-- `common/`: 前后端通用的常量、枚举定义。
+- `core/`: 前后端通用的常量、枚举定义。
+- `react/`: React Hooks 与组件支持。
+
+---
+
+## 核心/通用 (`@csisp/auth/core`)
+
+SDK 定义了一系列标准化的 Cookie 名称和配置：
+
+- `AUTH_COOKIE_NAME`: 本地会话 Token 的 Cookie 名称 (`token`)。
+- `OIDC_STATE_COOKIE`: 存储 OIDC State 的 Cookie 名称 (`oidc_state`)。
+- `OIDC_VERIFIER_COOKIE`: 存储 PKCE Verifier 的 Cookie 名称 (`oidc_verifier`)。
+- `DEFAULT_SESSION_TTL`: 默认会话过期时间（2 小时）。
 
 ---
 
@@ -77,22 +89,68 @@ SDK 内置的内存存储实现，适用于开发环境或无 Redis 场景。
 
 ---
 
-## 通用常量 (`@csisp/auth/common`)
+## React 适配层 (`@csisp/auth/react`)
 
-SDK 定义了一系列标准化的 Cookie 名称和配置：
+为 React 应用提供全自动的身份状态管理与路由保护。
 
-- `AUTH_COOKIE_NAME`: 本地会话 Token 的 Cookie 名称 (`token`)。
-- `OIDC_STATE_COOKIE`: 存储 OIDC State 的 Cookie 名称 (`oidc_state`)。
-- `OIDC_VERIFIER_COOKIE`: 存储 PKCE Verifier 的 Cookie 名称 (`oidc_verifier`)。
-- `DEFAULT_SESSION_TTL`: 默认会话过期时间（2 小时）。
+### `AuthProvider`
+
+身份认证上下文提供者，应包裹在应用的根部。
+
+- **Props**:
+  - `clientId`: OIDC 客户端 ID。
+  - `loginUrl`: IDP 登录页面的 URL。
+  - `redirectUri`: 登录成功后的回调地址。
+  - `apiPrefix`: (可选) IDP 接口的前缀，默认为 `/api/idp`。
+
+### `useAuth()`
+
+获取认证状态与操作方法的 Hook。
+
+- **返回对象**:
+  - `user`: 当前用户信息对象。
+  - `isAuthenticated`: 是否已登录。
+  - `loading`: 是否正在加载用户信息或处理回调。
+  - `login()`: 触发跳转至 IDP 登录流程。
+  - `logout()`: 退出登录并清除状态。
+  - `handleCallback(code, state)`: 处理 OIDC 回调。
+
+### `AuthGuard`
+
+路由守卫组件，未登录时自动触发登录跳转。
+
+- **Props**:
+  - `fallback`: (可选) 加载状态时显示的 UI。
 
 ---
 
-## 使用示例 (Next.js Callback 路由)
+## 使用示例
+
+### React 应用集成
+
+```tsx
+import { AuthProvider, AuthGuard } from '@csisp/auth/react';
+
+function App() {
+  return (
+    <AuthProvider
+      clientId='backoffice'
+      loginUrl='http://idp.example.com/login'
+      redirectUri={window.location.origin + '/api/auth/callback'}
+    >
+      <AuthGuard>
+        <Dashboard />
+      </AuthGuard>
+    </AuthProvider>
+  );
+}
+```
+
+### Next.js Callback 路由 (服务端处理)
 
 ```typescript
 import { IdpClient } from '@csisp/auth/server';
-import { OIDC_STATE_COOKIE, OIDC_VERIFIER_COOKIE } from '@csisp/auth/common';
+import { OIDC_STATE_COOKIE, OIDC_VERIFIER_COOKIE } from '@csisp/auth/core';
 
 const idpClient = new IdpClient({ url: '...' });
 

@@ -11,6 +11,7 @@
     "db:types": "pnpm -F @csisp/infra-database types:build"
   },
   "dependencies": {
+    "@csisp/auth": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@nestjs/common": "catalog:node",
     "@nestjs/core": "catalog:node",
@@ -21,7 +22,6 @@
     "class-transformer": "catalog:node",
     "class-validator": "catalog:node",
     "dotenv": "catalog:",
-    "jsonwebtoken": "catalog:node",
     "mongoose": "catalog:node",
     "pino": "catalog:",
     "pino-pretty": "catalog:",

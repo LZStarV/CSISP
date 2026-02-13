@@ -1,21 +1,14 @@
+import { requireRoles } from '@csisp/auth/server';
 import type { Context, Next } from 'koa';
 
 // 角色/权限相关中间件
 //
 // requireRole：
 // - 确保当前用户具备 roles 中至少一个角色，否则返回 403
-// - 依赖 jwtAuth 将 roles 写入 ctx.state.roles
+// - 使用 @csisp/auth/server 的标准实现
 export const requireRole = (roles: string | string[]) => {
   const list = Array.isArray(roles) ? roles : [roles];
-  return async (ctx: Context, next: Next) => {
-    const userRoles: string[] = ((ctx.state as any)?.roles || []) as string[];
-    if (!userRoles.length || !list.some(r => userRoles.includes(r))) {
-      ctx.status = 403;
-      ctx.body = { code: 403, message: '权限不足' };
-      return;
-    }
-    await next();
-  };
+  return requireRoles(list);
 };
 
 // requireAdmin：

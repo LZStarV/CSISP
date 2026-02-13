@@ -12,7 +12,7 @@ export class SelfOrAdminGuard implements CanActivate {
     const req: any = http.getRequest();
 
     const user = req.user;
-    const userId: number | undefined = user?.userId;
+    const userId: number | undefined = user?.sub ? Number(user.sub) : undefined;
     const roles: string[] = user?.roles ?? [];
 
     const paramValue =

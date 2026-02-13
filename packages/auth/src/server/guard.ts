@@ -30,7 +30,7 @@ export async function verifyAuth(
     }
 
     return decoded;
-  } catch (err) {
+  } catch {
     return null;
   }
 }

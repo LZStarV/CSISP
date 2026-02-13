@@ -15,6 +15,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@csisp/auth": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@csisp/types": "workspace:*",
     "koa": "catalog:node",

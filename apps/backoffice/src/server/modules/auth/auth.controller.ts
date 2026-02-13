@@ -2,7 +2,7 @@ import {
   AUTH_COOKIE_NAME,
   OIDC_STATE_COOKIE,
   OIDC_VERIFIER_COOKIE,
-} from '@csisp/auth/common';
+} from '@csisp/auth/core';
 import { IdpClient } from '@csisp/auth/server';
 import type { IUserInfo } from '@csisp/idl/backoffice';
 import { z } from 'zod';
@@ -13,11 +13,10 @@ import { idpConfig, oidcConfig } from '@/src/server/config/env';
 const idpClient = new IdpClient(idpConfig);
 
 export const meResult = z.object({
-  user: z.object({
-    username: z.string(),
-    roles: z.array(z.string()),
-  }),
-}) as z.ZodType<{ user: IUserInfo }>;
+  sub: z.string(),
+  preferred_username: z.string(),
+  roles: z.array(z.string()),
+}) as z.ZodType<any>;
 
 export async function me(_: unknown, ctx: Record<string, any>) {
   // 1. 直接从上下文获取用户信息（由 withAuth 中间件注入）
@@ -29,12 +28,13 @@ export async function me(_: unknown, ctx: Record<string, any>) {
     throw err;
   }
 
-  // 2. 返回符合 Zod Schema 的数据
+  // 2. 返回符合 OIDC UserInfo 规范的数据
   return meResult.parse({
-    user: {
-      username: String(user.username || user.preferred_username || user.sub),
-      roles: user.roles || [],
-    },
+    sub: String(user.sub || user.userId || ''),
+    preferred_username: String(
+      user.username || user.preferred_username || user.sub || ''
+    ),
+    roles: user.roles || [],
   });
 }
 
