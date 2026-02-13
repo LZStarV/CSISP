@@ -1,4 +1,6 @@
-// 解析枚举值，支持字符串和数字
+/**
+ * 解析枚举值，支持字符串和数字
+ */
 export function parseEnum<T extends number>(
   val: unknown,
   enumObj: any,

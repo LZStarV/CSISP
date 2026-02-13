@@ -1,10 +1,6 @@
 import crypto from 'crypto';
 
-import {
-  signToken,
-  verifyToken,
-  parseDurationToSeconds,
-} from '@csisp/auth/server';
+import { verifyToken } from '@csisp/auth/server';
 import {
   IAuthorizationRequest,
   IAuthorizationInitResult,
@@ -38,40 +34,70 @@ import type OidcClients from '@csisp/infra-database/public/OidcClients';
 import type OidcKeys from '@csisp/infra-database/public/OidcKeys';
 import type RefreshTokens from '@csisp/infra-database/public/RefreshTokens';
 import type User from '@csisp/infra-database/public/User';
+import { RedisPrefix } from '@idp-types/redis';
+import { getIdpLogger } from '@infra/logger';
+import { OidcClientModel } from '@infra/postgres/models/oidc-client.model';
+import { OidcKeyModel } from '@infra/postgres/models/oidc-key.model';
+import { RefreshTokenModel } from '@infra/postgres/models/refresh-token.model';
+import { UserModel } from '@infra/postgres/models/user.model';
+import { del as redisDel } from '@infra/redis';
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
+import { getApiBaseUrl } from '@utils/url';
 
-import { getIdpLogger } from '../../infra/logger';
-import { OidcClientModel } from '../../infra/postgres/models/oidc-client.model';
-import { OidcKeyModel } from '../../infra/postgres/models/oidc-key.model';
-import { RefreshTokenModel } from '../../infra/postgres/models/refresh-token.model';
-import { UserModel } from '../../infra/postgres/models/user.model';
-import {
-  get as redisGet,
-  set as redisSet,
-  del as redisDel,
-} from '../../infra/redis';
+import { OidcPolicyHelper } from './helpers/oidc.policy';
+import { OidcTokenSigner } from './helpers/token.signer';
 
 const logger = getIdpLogger('oidc-service');
 
-function baseUrl(): string {
-  const port = Number(process.env.PORT ?? 4001);
-  const host = process.env.IDP_BASE_URL ?? `http://localhost:${port}`;
-  return `${host}/api/idp`;
-}
 type TokenRefreshRequest = {
   grant_type: OIDCGrantType;
   client_id: string;
   refresh_token: string;
 };
 
+interface AuthorizationRequestData {
+  client_id: string;
+  redirect_uri: string;
+  response_type: OIDCResponseType;
+  state: string;
+  code_challenge: string;
+  code_challenge_method: OIDCPKCEMethod;
+  scope: string;
+  ts: number;
+}
+
 @Injectable()
 export class OidcService {
+  private readonly ticketIssuer = new TicketIssuer<AuthorizationRequestData>({
+    prefix: RedisPrefix.OidcTicket,
+    ttl: 600,
+    idType: TicketIdType.UUID,
+  });
+
+  private readonly authReqIssuer = new TicketIssuer<AuthorizationRequestData>({
+    prefix: RedisPrefix.OidcAuthReq,
+    ttl: 600,
+  });
+
+  private readonly codeIssuer = new TicketIssuer<any>({
+    prefix: RedisPrefix.OidcCode,
+    ttl: 600,
+  });
+
+  private readonly tokenSigner = new OidcTokenSigner({
+    issuer: getApiBaseUrl(),
+    expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    kekSecret: process.env.OIDC_KEK_SECRET || 'dev-kek',
+  });
+
   /**
    * 获取 OIDC 发现配置（Well‑Known）
    * - issuer/authorization_endpoint/token_endpoint/userinfo/jwks_uri 等
    */
   getConfiguration(): IConfiguration {
-    const issuer = baseUrl();
+    const issuer = getApiBaseUrl();
     return new Configuration({
       issuer,
       authorization_endpoint: `${issuer}/oidc/authorize`,
@@ -98,19 +124,6 @@ export class OidcService {
         OIDCClaim.Nonce,
       ],
     });
-  }
-
-  // 解密 OIDC 客户端密钥（AES-GCM 256）
-  private decryptPrivatePem(enc: Buffer): string {
-    const kek = process.env.OIDC_KEK_SECRET || 'dev-kek';
-    const key = crypto.createHash('sha256').update(kek).digest();
-    const iv = enc.subarray(0, 12);
-    const tag = enc.subarray(12, 28);
-    const data = enc.subarray(28);
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(tag);
-    const out = Buffer.concat([decipher.update(data), decipher.final()]);
-    return out.toString();
   }
 
   /**
@@ -185,37 +198,17 @@ export class OidcService {
     if (!client || client.status !== 'active') {
       throw new BadRequestException('Unknown or inactive client');
     }
-    let whitelist: string[] = [];
-    const allowed_redirect_uris = client.allowed_redirect_uris as
-      | string[]
-      | string
-      | null;
-    if (Array.isArray(allowed_redirect_uris)) {
-      whitelist = allowed_redirect_uris.filter(
-        (x: unknown) => typeof x === 'string'
-      ) as string[];
-    } else if (typeof allowed_redirect_uris === 'string') {
-      try {
-        const parsed = JSON.parse(allowed_redirect_uris);
-        if (Array.isArray(parsed)) {
-          whitelist = parsed.filter(
-            (x: unknown) => typeof x === 'string'
-          ) as string[];
-        }
-      } catch {}
-    }
-    if (!whitelist.includes(redirect_uri)) {
+
+    if (
+      !OidcPolicyHelper.isRedirectUriAllowed(
+        redirect_uri,
+        client.allowed_redirect_uris as string[] | string | null
+      )
+    ) {
       throw new BadRequestException('redirect_uri not allowed');
     }
-    const scopeStr =
-      Array.isArray(scope) && scope.length > 0
-        ? scope
-            .map(s => (OIDCScope as any)[s])
-            .filter((x: unknown) => typeof x === 'string')
-            .join(' ')
-        : 'openid';
-    const ticket = crypto.randomUUID();
-    const ticketKey = `oidc:ticket:${ticket}`;
+
+    const scopeStr = OidcPolicyHelper.stringifyScopes(scope);
     const requestData = {
       client_id,
       redirect_uri,
@@ -227,11 +220,11 @@ export class OidcService {
       ts: Date.now(),
     };
 
-    await redisSet(ticketKey, JSON.stringify(requestData), 600);
+    // 使用 TicketIssuer 发放票据
+    const ticket = await this.ticketIssuer.issue(requestData);
 
     // 同时也保留 state 索引，以便兼容老的 enter 逻辑
-    const key = `oidc:authreq:${state}`;
-    await redisSet(key, JSON.stringify(requestData), 600);
+    await this.authReqIssuer.issue(requestData, state);
 
     return new AuthorizationInitResult({ ok: true, state, ticket });
   }
@@ -242,9 +235,8 @@ export class OidcService {
   async getAuthorizationRequest(
     ticket: string
   ): Promise<IAuthorizationRequestInfo> {
-    const raw = await redisGet(`oidc:ticket:${ticket}`);
-    if (!raw) throw new BadRequestException('Invalid ticket');
-    const req = JSON.parse(raw) as IAuthorizationRequest;
+    const req = await this.ticketIssuer.verify(ticket);
+    if (!req) throw new BadRequestException('Invalid ticket');
 
     const client = await OidcClientModel.findOne({
       where: { client_id: req.client_id },
@@ -288,9 +280,11 @@ export class OidcService {
       const { code_verifier, code, redirect_uri } = params;
       if (!code_verifier || !code || !redirect_uri)
         throw new BadRequestException('Invalid token request');
-      const auth = await redisGet(`oidc:code:${code}`);
-      if (!auth) throw new BadRequestException('Invalid or expired code');
-      const authObj = JSON.parse(auth);
+
+      // 使用 TicketIssuer 消费授权码
+      const authObj = await this.codeIssuer.consume(code);
+      if (!authObj) throw new BadRequestException('Invalid or expired code');
+
       if (
         authObj.client_id !== client_id ||
         authObj.redirect_uri !== redirect_uri
@@ -410,22 +404,8 @@ export class OidcService {
       const enc = Buffer.isBuffer(keyRow.private_pem_enc)
         ? keyRow.private_pem_enc
         : Buffer.from(String(keyRow.private_pem_enc), 'base64');
-      const privatePem = this.decryptPrivatePem(enc);
+      const privatePem = this.tokenSigner.decryptPrivatePem(enc);
       const kid = keyRow.kid;
-      const accessExp = parseDurationToSeconds(
-        process.env.JWT_EXPIRES_IN || '1h',
-        3600
-      );
-      const refreshExp = parseDurationToSeconds(
-        process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-        604800
-      );
-      logger.info('Signing tokens...');
-      const access_token = signToken(
-        { iss: baseUrl(), aud: client_id, scope: scope || 'openid', sub },
-        privatePem,
-        { algorithm: 'RS256', expiresIn: accessExp, keyid: kid }
-      );
 
       // 获取用户信息（角色、用户名等）
       const idNum = Number(sub);
@@ -438,35 +418,27 @@ export class OidcService {
               raw: true,
             })
           : null;
-      const roles = user?.roles || [];
-      const actualPreferredUsername =
-        user?.username || preferred_username || sub;
 
-      const id_token = signToken(
-        {
-          iss: baseUrl(),
-          aud: client_id,
-          sub,
-          nonce: nonce ?? crypto.randomUUID(),
-          acr: acr,
-          amr: amr,
-          preferred_username: actualPreferredUsername,
-          name: user?.real_name || undefined,
-          roles, // 注入角色信息
-        },
+      logger.info('Signing tokens...');
+      const tokens = this.tokenSigner.sign({
+        sub,
+        clientId: client_id,
+        kid,
         privatePem,
-        { algorithm: 'RS256', expiresIn: accessExp, keyid: kid }
-      );
-      const refresh_token = signToken(
-        { aud: client_id, sub, t: 'refresh' },
-        privatePem,
-        { algorithm: 'RS256', expiresIn: refreshExp, keyid: kid }
-      );
+        nonce,
+        acr,
+        amr,
+        preferredUsername: user?.username || preferred_username || sub,
+        name: user?.real_name || undefined,
+        roles: user?.roles || [],
+        scope,
+      });
+
       logger.info('Tokens signed successfully');
       // 记录 refresh token
       const rtHash = crypto
         .createHash('sha256')
-        .update(refresh_token)
+        .update(tokens.refresh_token)
         .digest('hex');
       await RefreshTokenModel.create({
         client_id,
@@ -477,11 +449,8 @@ export class OidcService {
       });
       logger.info('Refresh token recorded');
       return new TokenResponse({
-        access_token,
-        id_token,
-        refresh_token,
+        ...tokens,
         token_type: 'bearer',
-        expires_in: accessExp,
       });
     } catch (err: any) {
       logger.error(err, 'issueTokens error');

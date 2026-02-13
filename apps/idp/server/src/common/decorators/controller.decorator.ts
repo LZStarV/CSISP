@@ -5,10 +5,7 @@ import {
   Controller,
   SetMetadata,
   UseFilters,
-  UsePipes,
 } from '@nestjs/common';
-
-import { RpcRequestPipe } from '../rpc/rpc-request.pipe';
 
 /**
  * IDP JSON-RPC 控制器装饰器

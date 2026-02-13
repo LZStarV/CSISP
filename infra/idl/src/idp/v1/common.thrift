@@ -46,3 +46,28 @@ struct ResetPasswordFlags {
   1: bool forget_password, // 是否因忘记密码触发
   2: bool weak_password    // 是否因弱口令触发
 }
+
+/**
+ * 敏感字段列表，用于日志脱敏
+ * 对齐 IDL 定义中的凭据、令牌、验证码等字段
+ */
+const list<string> SENSITIVE_FIELDS = [
+  "password",
+  "newPassword",
+  "oldPassword",
+  "code",
+  "codeOrAssertion",
+  "token",
+  "accessToken",
+  "refreshToken",
+  "access_token",
+  "refresh_token",
+  "id_token",
+  "logout_token",
+  "resetToken",
+  "reset_token",
+  "ticket",
+  "code_verifier",
+  "private_pem",
+  "private_pem_enc"
+]

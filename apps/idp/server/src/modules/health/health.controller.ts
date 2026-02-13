@@ -1,6 +1,5 @@
+import { ApiIdpController } from '@common/decorators/controller.decorator';
 import { Get } from '@nestjs/common';
-
-import { ApiIdpController } from '../../common/decorators/controller.decorator';
 
 import { HealthService } from './health.service';
 

@@ -14,7 +14,14 @@
     "outDir": "./dist",
     "sourceMap": true,
     "inlineSources": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@infra/*": ["src/infra/*"],
+      "@modules/*": ["src/modules/*"],
+      "@common/*": ["src/common/*"],
+      "@idp-types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

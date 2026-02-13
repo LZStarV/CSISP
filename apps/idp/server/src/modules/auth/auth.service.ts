@@ -16,22 +16,23 @@ import {
 } from '@csisp/idl/idp';
 import type MfaSettings from '@csisp/infra-database/public/MfaSettings';
 import type User from '@csisp/infra-database/public/User';
+import { RedisPrefix } from '@idp-types/redis';
+import { verifyPassword, hashPasswordScrypt } from '@infra/crypto/password';
+import { getPublicKey } from '@infra/crypto/rsa';
+import { getIdpLogger } from '@infra/logger';
+import { MfaSettingsModel, UserModel } from '@infra/postgres/models';
+import { SmsService } from '@infra/sms/sms.service';
 import { Injectable, HttpException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+import {
+  SessionIssuer,
+  defaultSessionOptions,
+  SessionMode,
+} from '@utils/session.issuer';
+import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
 import { plainToInstance } from 'class-transformer';
 import { IsOptional, IsString, Length, validateSync } from 'class-validator';
 import type { Response } from 'express';
-
-import {
-  verifyPassword,
-  hashPasswordScrypt,
-} from '../../infra/crypto/password';
-import { getPublicKey } from '../../infra/crypto/rsa';
-import { getIdpLogger } from '../../infra/logger';
-import { MfaSettingsModel } from '../../infra/postgres/models/mfa-settings.model';
-import { UserModel } from '../../infra/postgres/models/user.model';
-import { set as redisSet, get as redisGet } from '../../infra/redis';
-import { SmsService } from '../../infra/sms/sms.service';
 
 type RpcParams = Record<string, any>;
 
@@ -45,12 +46,96 @@ type RpcParams = Record<string, any>;
  */
 @Injectable()
 export class AuthService {
+  private readonly sessionIssuer = new SessionIssuer(defaultSessionOptions);
+  private readonly resetTicketIssuer = new TicketIssuer({
+    prefix: RedisPrefix.IdpReset,
+    ttl: 900,
+  });
+
+  private readonly oidcTicketIssuer = new TicketIssuer<any>({
+    prefix: RedisPrefix.OidcTicket,
+    ttl: 600,
+    idType: TicketIdType.UUID,
+  });
+
+  private readonly oidcAuthReqIssuer = new TicketIssuer<any>({
+    prefix: RedisPrefix.OidcAuthReq,
+    ttl: 600,
+  });
+
+  private readonly oidcCodeIssuer = new TicketIssuer<any>({
+    prefix: RedisPrefix.OidcCode,
+    ttl: 600,
+  });
+
   constructor(
     @InjectModel(UserModel) private readonly userModel: typeof UserModel,
     @InjectModel(MfaSettingsModel)
     private readonly mfaSettingsModel: typeof MfaSettingsModel,
     private readonly smsService: SmsService
   ) {}
+
+  /**
+   * 获取用户的多因子配置列表
+   */
+  private async getMfaMethods(user: {
+    id: number;
+    phone?: string | null;
+  }): Promise<{ mfa: IMethod[]; requiresMfa: boolean }> {
+    // 默认列表
+    const mfa: IMethod[] = [
+      {
+        type: MFAType.Sms,
+        extra: user.phone ?? undefined,
+        enabled: true,
+      },
+      { type: MFAType.Email, enabled: false },
+      { type: MFAType.Fido2, enabled: false },
+      { type: MFAType.Otp, enabled: false },
+    ];
+
+    type MfaPick = Pick<
+      MfaSettings,
+      | 'sms_enabled'
+      | 'email_enabled'
+      | 'fido2_enabled'
+      | 'otp_enabled'
+      | 'phone_number'
+      | 'required'
+    >;
+
+    const mfaSettings = (await this.mfaSettingsModel.findOne({
+      where: { user_id: user.id },
+      attributes: [
+        'sms_enabled',
+        'email_enabled',
+        'fido2_enabled',
+        'otp_enabled',
+        'phone_number',
+        'required',
+      ],
+      raw: true,
+    })) as MfaPick | null;
+
+    if (!mfaSettings) {
+      return { mfa, requiresMfa: false };
+    }
+
+    return {
+      mfa: [
+        {
+          type: MFAType.Sms,
+          extra: user.phone ?? mfaSettings.phone_number ?? undefined,
+          enabled: !!mfaSettings.sms_enabled,
+        },
+        { type: MFAType.Email, enabled: !!mfaSettings.email_enabled },
+        { type: MFAType.Fido2, enabled: !!mfaSettings.fido2_enabled },
+        { type: MFAType.Otp, enabled: !!mfaSettings.otp_enabled },
+      ],
+      requiresMfa: !!mfaSettings.required,
+    };
+  }
+
   /**
    * 获取 RSA 公钥与一次性标识
    * - 用于前端进行密码加密传输
@@ -117,83 +202,21 @@ export class AuthService {
     if (!ok) throw new HttpException('Invalid username or password', 401);
 
     // 构建多因子列表（根据 mfa_settings 动态启用）
-    // TODO：根据实际情况调整多因子列表（如 FIDO2 等）
-    let mfa: IMethod[] = [
-      {
-        type: MFAType.Sms,
-        extra: user.phone ?? undefined,
-        enabled: true,
-      },
-      { type: MFAType.Email, enabled: false },
-      { type: MFAType.Fido2, enabled: false },
-      { type: MFAType.Otp, enabled: false },
-    ];
+    const { mfa, requiresMfa } = await this.getMfaMethods(user);
 
-    if (user) {
-      type MfaPick = Pick<
-        MfaSettings,
-        | 'sms_enabled'
-        | 'email_enabled'
-        | 'fido2_enabled'
-        | 'otp_enabled'
-        | 'phone_number'
-        | 'required'
-      >;
-      const mfaSettings = (await this.mfaSettingsModel.findOne({
-        where: { user_id: user.id },
-        attributes: [
-          'sms_enabled',
-          'email_enabled',
-          'fido2_enabled',
-          'otp_enabled',
-          'phone_number',
-          'required',
-        ],
-        raw: true,
-      })) as MfaPick | null;
-      if (mfaSettings) {
-        mfa = [
-          {
-            type: MFAType.Sms,
-            extra: user.phone ?? mfaSettings.phone_number ?? undefined,
-            enabled: !!mfaSettings.sms_enabled,
-          },
-          { type: MFAType.Email, enabled: !!mfaSettings.email_enabled },
-          { type: MFAType.Fido2, enabled: !!mfaSettings.fido2_enabled },
-          { type: MFAType.Otp, enabled: !!mfaSettings.otp_enabled },
-        ];
-        // 根据 required 控制是否需要多因子登录
-        const requiresMfa = !!mfaSettings.required;
-        // 在 login 阶段建立会话：需要多因子则短期，否则直接长期
-        if (res && user) {
-          const sid =
-            Math.random().toString(36).slice(2) + Date.now().toString(36);
-          await redisSet(
-            `idp:sess:${sid}`,
-            String(user.id),
-            requiresMfa ? 300 : 3600
-          );
-          res.cookie('idp_session', sid, {
-            httpOnly: true,
-            sameSite: 'lax',
-          });
-        }
-        if (!requiresMfa) {
-          return new LoginResult({
-            next: [AuthNextStep.Enter],
-            multifactor: mfa,
-          });
-        }
-      }
+    // 在 login 阶段建立会话：需要多因子则短期，否则直接长期
+    if (res) {
+      await this.sessionIssuer.issue(
+        res,
+        user.id,
+        requiresMfa ? SessionMode.Short : SessionMode.Long
+      );
     }
 
-    // 在 login 阶段建立短期 SSO 会话（待完成多因子后升级）
-    if (res && user) {
-      const sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
-      await redisSet(`idp:sess:${sid}`, String(user.id), 300);
-      res.cookie('idp_session', sid, {
-        httpOnly: true,
-        sameSite: 'lax',
+    if (!requiresMfa) {
+      return new LoginResult({
+        next: [AuthNextStep.Enter],
+        multifactor: mfa,
       });
     }
 
@@ -233,7 +256,6 @@ export class AuthService {
 
     switch (params.type) {
       case MFAType.Sms: {
-        const key = `idp:otp:${dto.phoneOrEmail}`;
         const code = dto.codeOrAssertion;
         const isRequest = code.length !== 6 || /\D/.test(code);
         if (isRequest) {
@@ -254,13 +276,7 @@ export class AuthService {
             raw: true,
           })) as UserPick | null;
           if (user) {
-            const sid =
-              Math.random().toString(36).slice(2) + Date.now().toString(36);
-            await redisSet(`idp:sess:${sid}`, String(user.id), 3600);
-            res.cookie('idp_session', sid, {
-              httpOnly: true,
-              sameSite: 'lax',
-            });
+            await this.sessionIssuer.issue(res, user.id, SessionMode.Long);
           }
         }
         return new Next({ next: [AuthNextStep.Enter] });
@@ -450,15 +466,16 @@ export class AuthService {
     if (!boundPhone) throw new HttpException('No phone bound', 400);
     const ok = await this.smsService.verifyOtp(boundPhone, code);
     if (!ok) throw new HttpException('Invalid verification code', 401);
-    const token = (
-      Math.random().toString(36).slice(2) + Date.now().toString(36)
-    ).slice(0, 32);
-    // 这里暂以 Redis 存储令牌；如需持久化可改用 PasswordResetsModel
+
+    // 使用 TicketIssuer 发放重置令牌
+    let token = '';
     if (user) {
-      await redisSet(
-        `idp:reset:${user.student_id}:${token}`,
+      // 生成随机标识并绑定学号前缀，确保令牌的唯一性与归属性
+      const randomToken =
+        Math.random().toString(36).slice(2) + Date.now().toString(36);
+      token = await this.resetTicketIssuer.issue(
         String(user.id),
-        900
+        `${user.student_id}:${randomToken}`
       );
     }
     return new VerifyResult({ ok: true, reset_token: token });
@@ -496,9 +513,9 @@ export class AuthService {
       raw: true,
     })) as UserPick | null;
     if (!user) throw new HttpException('User not found', 404);
-    // 校验重置令牌（Redis）
-    const tokenKey = `idp:reset:${user.student_id}:${dto.resetToken}`;
-    const tokenVal = await redisGet(tokenKey);
+
+    // 校验重置令牌（使用 TicketIssuer）
+    const tokenVal = await this.resetTicketIssuer.verify(dto.resetToken);
     if (!tokenVal || Number(tokenVal) !== user.id) {
       throw new HttpException('Invalid reset token', 401);
     }
@@ -507,8 +524,8 @@ export class AuthService {
       { password: hashed },
       { where: { student_id: dto.studentId } }
     );
-    // 标记令牌失效
-    await redisSet(tokenKey, '0', 1);
+    // 标记令牌失效（消费令牌）
+    await this.resetTicketIssuer.consume(dto.resetToken);
     // 改密成功后进入多因子校验
     return new Next({ next: [AuthNextStep.Multifactor] });
   }
@@ -571,18 +588,17 @@ export class AuthService {
 
     const ticket = params.ticket;
     let state = dto.state;
-    let auth: string | null = null;
+    let auth: any = null;
 
     if (ticket) {
-      auth = await redisGet(`oidc:ticket:${ticket}`);
+      auth = await this.oidcTicketIssuer.verify(ticket);
       if (auth) {
-        const obj = JSON.parse(auth);
-        state = obj.state;
+        state = auth.state;
       }
     }
 
     if (!auth && state) {
-      auth = await redisGet(`oidc:authreq:${state}`);
+      auth = await this.oidcAuthReqIssuer.verify(state);
     }
 
     const studentId = dto.studentId;
@@ -613,12 +629,7 @@ export class AuthService {
     );
 
     if (res && uid !== null && uid !== undefined) {
-      const sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
-      await redisSet(`idp:sess:${sid}`, String(uid), 3600);
-      res.cookie('idp_session', sid, {
-        httpOnly: true,
-        sameSite: 'lax',
-      });
+      await this.sessionIssuer.issue(res, uid, SessionMode.Long);
     }
 
     if (!auth) {
@@ -629,25 +640,19 @@ export class AuthService {
       throw new HttpException('Unauthorized: session invalid', 401);
     }
 
-    const obj = JSON.parse(auth);
-    const code = (
-      Math.random().toString(36).slice(2) + Date.now().toString(36)
-    ).slice(0, 32);
-    await redisSet(
-      `oidc:code:${code}`,
-      JSON.stringify({
-        client_id: obj.client_id,
-        redirect_uri: obj.redirect_uri,
-        code_challenge: obj.code_challenge,
-        sub: String(uid),
-        nonce: obj.nonce,
-        acr: 'mfa',
-        amr: ['sms'],
-        scope: obj.scope || 'openid',
-      }),
-      600
-    );
-    const redirectTo = `${obj.redirect_uri}?code=${code}&state=${encodeURIComponent(String(state || ''))}`;
+    // 使用 TicketIssuer 发放授权码
+    const code = await this.oidcCodeIssuer.issue({
+      client_id: auth.client_id,
+      redirect_uri: auth.redirect_uri,
+      code_challenge: auth.code_challenge,
+      sub: String(uid),
+      nonce: auth.nonce,
+      acr: 'mfa',
+      amr: ['sms'],
+      scope: auth.scope || 'openid',
+    });
+
+    const redirectTo = `${auth.redirect_uri}?code=${code}&state=${encodeURIComponent(String(state || ''))}`;
     if (res && dto.redirectMode === 'http') {
       res.redirect(302, redirectTo);
       return new Next({ next: [AuthNextStep.Finish] });
@@ -656,61 +661,23 @@ export class AuthService {
   }
 
   /**
-   * 根据会话查询可用的多因子方法
-   * - 默认开启短信，其他方法按 mfa_settings 动态启用
+   * 根据会话获取多因子方法列表
    */
   async mfaMethodsBySession(sid?: string): Promise<IMethod[]> {
     if (!sid) return [];
-    const uid = await redisGet(`idp:sess:${sid}`);
+    const uid = await this.sessionIssuer.get(sid);
     if (!uid) return [];
+
     type UserPick = Pick<User, 'id' | 'phone'>;
     const user = (await this.userModel.findOne({
       where: { id: Number(uid) },
       attributes: ['id', 'phone'],
       raw: true,
     })) as UserPick | null;
+
     if (!user) return [];
-    let mfa: IMethod[] = [
-      {
-        type: MFAType.Sms,
-        extra: (user as any).phone ?? undefined,
-        enabled: true,
-      },
-      { type: MFAType.Email, enabled: false },
-      { type: MFAType.Fido2, enabled: false },
-      { type: MFAType.Otp, enabled: false },
-    ];
-    type MfaPick = Pick<
-      MfaSettings,
-      | 'sms_enabled'
-      | 'email_enabled'
-      | 'fido2_enabled'
-      | 'otp_enabled'
-      | 'phone_number'
-    >;
-    const cfg = (await this.mfaSettingsModel.findOne({
-      where: { user_id: user.id },
-      attributes: [
-        'sms_enabled',
-        'email_enabled',
-        'fido2_enabled',
-        'otp_enabled',
-        'phone_number',
-      ],
-      raw: true,
-    })) as MfaPick | null;
-    if (cfg) {
-      mfa = [
-        {
-          type: MFAType.Sms,
-          extra: user.phone ?? cfg.phone_number ?? undefined,
-          enabled: !!cfg.sms_enabled,
-        },
-        { type: MFAType.Email, enabled: !!cfg.email_enabled },
-        { type: MFAType.Fido2, enabled: !!cfg.fido2_enabled },
-        { type: MFAType.Otp, enabled: !!cfg.otp_enabled },
-      ];
-    }
+
+    const { mfa } = await this.getMfaMethods(user);
     return mfa;
   }
 }

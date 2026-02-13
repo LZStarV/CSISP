@@ -17,7 +17,7 @@
     "dev:portal": "turbo run dev --filter=@csisp/frontend-portal",
     "build": "turbo build"
   },
-  "packageManager": "pnpm@10.22.0",
+  "packageManager": "pnpm@10.29.3+sha256.a74f4dbd3f5a7ca874d004135271f0b697b683bf1fd2fc2133961161cd25b29c",
   "workspaces": [
     "apps/*",
     "packages/*",

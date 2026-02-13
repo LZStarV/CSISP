@@ -43,7 +43,12 @@ function k(key: string): string {
   return `${ns}:${key}`;
 }
 
-// 设置键值对
+/**
+ * 设置 Redis 键值对
+ * @param key 键名
+ * @param value 键值
+ * @param ttlSeconds 过期时间（秒），默认不设置过期时间
+ */
 export async function set(
   key: string,
   value: string,
@@ -81,7 +86,12 @@ export async function ttl(key: string): Promise<number> {
   return c.ttl(k(key));
 }
 
-// 发布消息到频道
+/**
+ * 发布消息到 Redis 频道
+ * @param channel 频道名
+ * @param message 消息内容
+ * @returns 成功发布的客户端数量
+ */
 export async function publish(
   channel: string,
   message: string
@@ -90,7 +100,12 @@ export async function publish(
   return c.publish(`${ns}:${channel}`, message);
 }
 
-// 订阅频道并处理消息
+/**
+ * 订阅 Redis 频道并处理消息
+ * @param channel 频道名
+ * @param onMessage 处理消息的回调函数
+ * @returns 取消订阅的函数
+ */
 export function subscribe(
   channel: string,
   onMessage: (message: string) => void

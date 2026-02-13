@@ -1,3 +1,4 @@
+import { ThriftIdpController } from '@common/decorators/controller.decorator';
 import { oidc } from '@csisp/idl/idp';
 import {
   IAuthorizationInitResult,
@@ -14,8 +15,6 @@ import {
 import { createThriftMiddleware, runThrift } from '@csisp/rpc/thrift-server';
 import { Post, Req, Res, Next } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
-
-import { ThriftIdpController } from '../../common/decorators/controller.decorator';
 
 import { OidcService } from './oidc.service';
 

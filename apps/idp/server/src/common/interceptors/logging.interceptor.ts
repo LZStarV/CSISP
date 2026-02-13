@@ -1,4 +1,6 @@
+import { SENSITIVE_FIELDS } from '@csisp/idl/idp';
 import { RPC_PROTOCOL_KEY, RpcProtocol } from '@csisp/rpc/constants';
+import { getIdpLogger } from '@infra/logger';
 import {
   CallHandler,
   ExecutionContext,
@@ -9,33 +11,66 @@ import { Reflector } from '@nestjs/core';
 import type { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
-import { getIdpLogger } from '../../infra/logger';
+// 敏感字段列表，用于日志脱敏
+const SENSITIVE_KEYS = new Set(SENSITIVE_FIELDS);
+
+/**
+ * 递归脱敏对象中的敏感字段
+ */
+function maskSensitiveData(data: any): any {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => maskSensitiveData(item));
+  }
+
+  const masked: any = {};
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      if (SENSITIVE_KEYS.has(key)) {
+        masked[key] = '***MASKED***';
+      } else if (typeof data[key] === 'object') {
+        masked[key] = maskSensitiveData(data[key]);
+      } else {
+        masked[key] = data[key];
+      }
+    }
+  }
+  return masked;
+}
 
 // 从 HTTP 请求路径和 RPC 请求体中提取方法名、ID 和协议信息
 function deriveRpc(
   path: string,
   body: any,
-  protocol?: RpcProtocol
+  protocol?: RpcProtocol,
+  handlerName?: string
 ): { rpcMethod?: string; rpcId?: any; protocol?: string } | undefined {
   if (protocol === RpcProtocol.THRIFT) {
     return {
-      rpcMethod: 'thrift.call',
+      rpcMethod: handlerName ? `thrift.${handlerName}` : 'thrift.call',
       protocol: 'thrift',
     };
   }
 
   const isJson = body && body.jsonrpc === '2.0';
   if (!isJson) return undefined;
+
   const pathOnly = (path ?? '').split('?')[0];
   const parts = pathOnly.replace(/^\/+/, '').split('/');
   const rpcInfo: any = { protocol: 'json-rpc', rpcId: body.id };
 
-  if (parts.length >= 2) {
+  // 优先使用 handlerName 构造方法名，这样更准确
+  if (handlerName) {
+    // 假设路径中倒数第二个部分是领域名，如 /api/idp/auth/login -> auth
+    const domain = parts.length >= 2 ? parts[parts.length - 2] : 'unknown';
+    rpcInfo.rpcMethod = `${domain}.${handlerName}`;
+  } else if (parts.length >= 2) {
     const a = parts[parts.length - 2];
     const b = parts[parts.length - 1];
     rpcInfo.rpcMethod = `${a}.${b}`;
-  } else if (parts.length === 1 && parts[0]) {
-    rpcInfo.rpcMethod = parts[0];
   }
 
   return rpcInfo;
@@ -51,6 +86,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const http = context.switchToHttp();
     const req: any = http.getRequest();
     const res: any = http.getResponse();
+    const handler = context.getHandler();
 
     // 获取协议元数据
     const protocol = this.reflector.get<RpcProtocol>(
@@ -62,7 +98,13 @@ export class LoggingInterceptor implements NestInterceptor {
     const logger = getIdpLogger(
       protocol === RpcProtocol.THRIFT ? 'thrift' : 'http'
     );
-    const rpc = deriveRpc(req.url, req.body, protocol);
+    const rpc = deriveRpc(req.url, req.body, protocol, handler?.name);
+
+    // 对请求参数进行脱敏处理
+    const maskedParams =
+      protocol === RpcProtocol.JSON_RPC
+        ? maskSensitiveData(req.body?.params)
+        : undefined;
 
     logger.info(
       {
@@ -70,9 +112,7 @@ export class LoggingInterceptor implements NestInterceptor {
         method: req.method,
         url: req.url,
         ...(rpc ?? {}),
-        // 如果是 JSON-RPC，记录请求参数（脱敏处理视业务而定）
-        params:
-          protocol === RpcProtocol.JSON_RPC ? req.body?.params : undefined,
+        params: maskedParams,
       },
       'Request started'
     );

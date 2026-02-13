@@ -1,8 +1,8 @@
+import { RedisPrefix } from '@idp-types/redis';
+import { getIdpLogger } from '@infra/logger';
+import { get as redisGet } from '@infra/redis';
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
-
-import { getIdpLogger } from '../../infra/logger';
-import { get as redisGet } from '../../infra/redis';
 
 const logger = getIdpLogger('idp-session-guard');
 
@@ -15,7 +15,7 @@ export class IdpSessionGuard implements CanActivate {
     (req as any).idpSession = sid;
 
     if (sid) {
-      const uid = await redisGet(`idp:sess:${sid}`);
+      const uid = await redisGet(`${RedisPrefix.IdpSession}${sid}`);
       logger.info({ sid, uid }, 'Checking idp_session');
       if (uid !== null && uid !== undefined && uid !== '') {
         (req as any).idpUserId = Number(uid);

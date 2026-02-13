@@ -4,9 +4,8 @@ import {
   OIDCGrantType,
   OIDCScope,
 } from '@csisp/idl/idp';
+import { getIdpLogger } from '@infra/logger';
 import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
-
-import { getIdpLogger } from '../../infra/logger';
 
 type RpcBody = {
   jsonrpc?: string;

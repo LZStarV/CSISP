@@ -66,3 +66,12 @@ export function isJsonRpcRequest(
   const o = x as Record<string, unknown>;
   return o.jsonrpc === '2.0' && 'id' in o && 'params' in o;
 }
+
+/**
+ * 判断对象是否为标准的 JSON-RPC 2.0 响应结构
+ */
+export function isJsonRpcResponse(x: unknown): x is JsonRpcResponse {
+  if (!x || typeof x !== 'object') return false;
+  const o = x as Record<string, unknown>;
+  return o.jsonrpc === '2.0' && 'id' in o && ('result' in o || 'error' in o);
+}
