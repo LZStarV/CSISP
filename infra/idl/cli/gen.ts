@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, readdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 
 import type { Config } from './config';
@@ -25,7 +25,6 @@ export function genTS(root: string, cfg: Config) {
     const src = join(root, m.source);
     const out = join(root, m.tsOut);
     if (!existsSync(src)) continue;
-    if (existsSync(out)) rmSync(out, { recursive: true, force: true });
     mkdirSync(out, { recursive: true });
     const files = collectThriftFiles(src).map(f =>
       join('.', f.split('/').pop() as string)
@@ -78,8 +77,6 @@ export function genJS(root: string, cfg: Config) {
 export function genAggregators(root: string, cfg: Config) {
   const genRoot = resolve(root, '.generated');
   mkdirSync(genRoot, { recursive: true });
-  const legacyIndex = resolve(genRoot, 'index.ts');
-  if (existsSync(legacyIndex)) rmSync(legacyIndex, { force: true });
   const aggPaths = {
     backoffice: resolve(genRoot, 'backoffice.ts'),
     backend: resolve(genRoot, 'backend.ts'),
@@ -95,7 +92,8 @@ export function genAggregators(root: string, cfg: Config) {
       .filter(d => d.isDirectory())
       .map(d => d.name);
     for (const sub of subdirs) {
-      const line = `export * from './ts/${m.name}/${cfg.version}/${sub}';\n`;
+      const line = `export * from './ts/${m.name}/${cfg.version}/${sub}';
+`;
       if (m.name === 'backoffice' && sub !== 'backoffice') {
         writeFileSync(aggPaths.backoffice, line, { flag: 'a' });
       } else if (m.name === 'backend') {

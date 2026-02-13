@@ -47,7 +47,7 @@ export function Login() {
     try {
       const res = await authCall<LoginResult>('login', values);
       if (hasError(res)) throw new Error(res.error.message || '登录失败');
-      const next = (res.result?.next ?? []) as AuthNextStep[];
+      const nextSteps = (res.result?.nextSteps ?? []) as AuthNextStep[];
 
       // 登录成功后，如果存在授权请求，需要透传 ticket 或 state 供后续 enter 阶段使用
       const flowState = {
@@ -56,11 +56,11 @@ export function Login() {
         state: authInfo?.state || state,
       };
 
-      if (next.includes(AuthNextStep.Multifactor)) {
+      if (nextSteps.includes(AuthNextStep.Multifactor)) {
         navigate(ROUTE_MFA_SELECT, { state: flowState });
         return;
       }
-      if (next.includes(AuthNextStep.Enter)) {
+      if (nextSteps.includes(AuthNextStep.Enter)) {
         navigate(ROUTE_FINISH, {
           state: { ...flowState, fromNormalFlow: true },
         });

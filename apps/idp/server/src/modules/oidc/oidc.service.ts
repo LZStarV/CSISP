@@ -153,7 +153,7 @@ export class OidcService {
           kid: r.kid,
           kty: r.kty,
           alg: r.alg,
-          use: r.use,
+          keyUse: r.use,
           n: jwk.n,
           e: jwk.e,
         });

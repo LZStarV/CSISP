@@ -192,7 +192,7 @@ export class AuthService {
     const isFirstLogin = !pwd.startsWith('scrypt$');
     if (isFirstLogin) {
       return new LoginResult({
-        next: [AuthNextStep.ResetPassword],
+        nextSteps: [AuthNextStep.ResetPassword],
         multifactor: [],
       });
     }
@@ -215,14 +215,14 @@ export class AuthService {
 
     if (!requiresMfa) {
       return new LoginResult({
-        next: [AuthNextStep.Enter],
+        nextSteps: [AuthNextStep.Enter],
         multifactor: mfa,
       });
     }
 
     // 返回进入多因子校验的指令
     return new LoginResult({
-      next: [AuthNextStep.Multifactor],
+      nextSteps: [AuthNextStep.Multifactor],
       multifactor: mfa,
     });
   }
@@ -264,7 +264,10 @@ export class AuthService {
           if (dto.phoneOrEmail) {
             api = await this.smsService.sendOtp(dto.phoneOrEmail);
           }
-          return new Next({ next: [AuthNextStep.Multifactor], sms: api ?? {} });
+          return new Next({
+            nextSteps: [AuthNextStep.Multifactor],
+            sms: api ?? {},
+          });
         }
         const ok = await this.smsService.verifyOtp(dto.phoneOrEmail, code);
         if (!ok) throw new HttpException('Invalid verification code', 401);
@@ -279,7 +282,7 @@ export class AuthService {
             await this.sessionIssuer.issue(res, user.id, SessionMode.Long);
           }
         }
-        return new Next({ next: [AuthNextStep.Enter] });
+        return new Next({ nextSteps: [AuthNextStep.Enter] });
       }
       case MFAType.Email: {
         throw new HttpException('MFA method email not supported', 400);
@@ -434,7 +437,10 @@ export class AuthService {
     if (boundPhone) {
       api = await this.smsService.sendOtp(boundPhone);
     }
-    return new Next({ next: [AuthNextStep.ResetPassword], sms: api ?? {} });
+    return new Next({
+      nextSteps: [AuthNextStep.ResetPassword],
+      sms: api ?? {},
+    });
   }
 
   // 忘记密码：校验验证码并下发令牌
@@ -527,7 +533,7 @@ export class AuthService {
     // 标记令牌失效（消费令牌）
     await this.resetTicketIssuer.consume(dto.resetToken);
     // 改密成功后进入多因子校验
-    return new Next({ next: [AuthNextStep.Multifactor] });
+    return new Next({ nextSteps: [AuthNextStep.Multifactor] });
   }
 
   async resetPasswordRequest(_params: { studentId: string }): Promise<Next> {
@@ -550,7 +556,10 @@ export class AuthService {
     if (phone) {
       api = await this.smsService.sendOtp(phone);
     }
-    return new Next({ next: [AuthNextStep.ResetPassword], sms: api ?? {} });
+    return new Next({
+      nextSteps: [AuthNextStep.ResetPassword],
+      sms: api ?? {},
+    });
   }
 
   /**
@@ -633,7 +642,7 @@ export class AuthService {
     }
 
     if (!auth) {
-      return new Next({ next: [AuthNextStep.Finish] });
+      return new Next({ nextSteps: [AuthNextStep.Finish] });
     }
 
     if (uid === null || uid === undefined) {
@@ -655,9 +664,9 @@ export class AuthService {
     const redirectTo = `${auth.redirect_uri}?code=${code}&state=${encodeURIComponent(String(state || ''))}`;
     if (res && dto.redirectMode === 'http') {
       res.redirect(302, redirectTo);
-      return new Next({ next: [AuthNextStep.Finish] });
+      return new Next({ nextSteps: [AuthNextStep.Finish] });
     }
-    return new Next({ next: [AuthNextStep.Finish], redirectTo });
+    return new Next({ nextSteps: [AuthNextStep.Finish], redirectTo });
   }
 
   /**

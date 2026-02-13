@@ -36,9 +36,9 @@ struct SmsSendResult {
 
 // 状态机下一步
 struct Next {
-  1: list<AuthNextStep> next,     // 下一步指令列表（枚举）
-  2: optional SmsSendResult sms,  // 短信发送结果（当下一步仍是 multifactor 时返回）
-  3: optional string redirectTo   // 授权跳转地址（当 next=finish 时可返回）
+  1: list<AuthNextStep> nextSteps, // 下一步指令列表（枚举）
+  2: optional SmsSendResult sms,   // 短信发送结果（当下一步仍是 multifactor 时返回）
+  3: optional string redirectTo    // 授权跳转地址（当 next=finish 时可返回）
 }
 
 // 重置密码原因标识

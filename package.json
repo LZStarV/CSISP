@@ -9,6 +9,7 @@
     "lint:staged": "lint-staged",
     "prepare": "husky",
     "dev:infra": "turbo run db:init --filter=@csisp/infra-database && turbo run idl:gen --filter=@csisp/idl",
+    "dev:infra:win": "pnpm -F @csisp/infra-database db:init:win && pnpm -F @csisp/idl idl:gen",
     "dev:backend-integrated": "turbo run db:types --filter=@csisp/backend-integrated && turbo run dev --filter=@csisp/backend-integrated",
     "dev:backoffice": "turbo run db:types --filter=@csisp/backoffice && turbo run dev --filter=@csisp/backoffice",
     "dev:idp": "turbo run dev --filter=@csisp/idp-client --filter=@csisp/idp-server",

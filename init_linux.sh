@@ -20,15 +20,10 @@ export LANG="en_US.UTF-8"
 if [ -f ".nvmrc" ]; then
   REQUIRED_NODE_MAJOR=$(tr -d ' v' < .nvmrc)
 else
-  REQUIRED_NODE_MAJOR=22
+  REQUIRED_NODE_MAJOR=18
 fi
 
-PNPM_LINE=$(grep '"packageManager"' package.json 2>/dev/null || true)
-if [[ "$PNPM_LINE" =~ pnpm@([0-9.]+) ]]; then
-  REQUIRED_PNPM_VERSION="${BASH_REMATCH[1]}"
-else
-  REQUIRED_PNPM_VERSION="10.22.0"
-fi
+REQUIRED_PNPM_MAJOR=10
 
 NODE_STATUS="未检查"
 NODE_OK=0
@@ -91,46 +86,47 @@ else
   fi
 fi
 
-log_info "正在检查 pnpm 环境 (期望版本 $REQUIRED_PNPM_VERSION)"
+log_info "正在检查 pnpm 环境 (期望主版本 $REQUIRED_PNPM_MAJOR.x)"
 if command -v pnpm >/dev/null 2>&1; then
   PNPM_VERSION_RAW=$(pnpm -v 2>/dev/null || echo "")
   PNPM_VERSION=$(printf "%s" "$PNPM_VERSION_RAW" | tr -d '\r\n' | LC_ALL=C tr -cd '0-9.')
-  if [[ "$PNPM_VERSION" == "$REQUIRED_PNPM_VERSION"* ]]; then
+  PNPM_MAJOR=$(printf "%s" "$PNPM_VERSION" | cut -d. -f1)
+  if [ "$PNPM_MAJOR" -ge "$REQUIRED_PNPM_MAJOR" ]; then
     PNPM_STATUS="已安装，版本符合要求: $PNPM_VERSION"
     PNPM_OK=1
     log_success "$PNPM_STATUS"
   else
-    log_warn "已安装 pnpm $PNPM_VERSION，期望版本为 $REQUIRED_PNPM_VERSION"
+    log_warn "已安装 pnpm $PNPM_VERSION，期望主版本为 $REQUIRED_PNPM_MAJOR.x"
     if command -v npm >/dev/null 2>&1; then
-      log_info "尝试通过 npm 安装 pnpm@$REQUIRED_PNPM_VERSION"
-      if npm install -g "pnpm@$REQUIRED_PNPM_VERSION" >/dev/null 2>&1; then
+      log_info "尝试通过 npm 安装 pnpm@$REQUIRED_PNPM_MAJOR"
+      if npm install -g "pnpm@$REQUIRED_PNPM_MAJOR" >/dev/null 2>&1; then
         PNPM_VERSION=$(pnpm -v 2>/dev/null || echo "")
         PNPM_STATUS="已更新 pnpm 至: $PNPM_VERSION"
         PNPM_OK=1
         log_success "$PNPM_STATUS"
       else
-        PNPM_STATUS="pnpm 更新失败，请手动执行: npm install -g pnpm@$REQUIRED_PNPM_VERSION"
+        PNPM_STATUS="pnpm 更新失败，请手动执行: npm install -g pnpm@$REQUIRED_PNPM_MAJOR"
         log_error "$PNPM_STATUS"
       fi
     else
-      PNPM_STATUS="未检测到 npm，无法自动更新 pnpm，请手动安装 pnpm@$REQUIRED_PNPM_VERSION"
+      PNPM_STATUS="未检测到 npm，无法自动更新 pnpm，请手动安装 pnpm@$REQUIRED_PNPM_MAJOR"
       log_error "$PNPM_STATUS"
     fi
   fi
 else
   if command -v npm >/dev/null 2>&1; then
-    log_info "未检测到 pnpm，尝试通过 npm 安装 pnpm@$REQUIRED_PNPM_VERSION"
-    if npm install -g "pnpm@$REQUIRED_PNPM_VERSION" >/dev/null 2>&1; then
+    log_info "未检测到 pnpm，尝试通过 npm 安装 pnpm@$REQUIRED_PNPM_MAJOR"
+    if npm install -g "pnpm@$REQUIRED_PNPM_MAJOR" >/dev/null 2>&1; then
       PNPM_VERSION=$(pnpm -v 2>/dev/null || echo "")
       PNPM_STATUS="已安装 pnpm: $PNPM_VERSION"
       PNPM_OK=1
       log_success "$PNPM_STATUS"
     else
-      PNPM_STATUS="通过 npm 安装 pnpm 失败，请手动安装 pnpm@$REQUIRED_PNPM_VERSION"
+      PNPM_STATUS="通过 npm 安装 pnpm 失败，请手动安装 pnpm@$REQUIRED_PNPM_MAJOR"
       log_error "$PNPM_STATUS"
     fi
   else
-    PNPM_STATUS="未安装 pnpm，且未检测到 npm，请先安装 Node.js/npm 后再安装 pnpm@$REQUIRED_PNPM_VERSION"
+    PNPM_STATUS="未安装 pnpm，且未检测到 npm，请先安装 Node.js/npm 后再安装 pnpm@$REQUIRED_PNPM_MAJOR"
     log_error "$PNPM_STATUS"
   fi
 fi

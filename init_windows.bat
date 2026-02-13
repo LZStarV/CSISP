@@ -9,7 +9,7 @@ echo    Windows Development Environment Check
 echo ================================================
 echo.
 
-echo [1/4] Checking Node.js (expected: v22.x)
+echo [1/4] Checking Node.js (expected: v18.x)
 set NODE_OK=0
 
 where node >nul 2>&1
@@ -18,13 +18,13 @@ if !errorlevel! equ 0 (
     if defined NODE_VERSION (
         set "NODE_MAJOR=!NODE_VERSION:~1,2!"
 
-        if "!NODE_MAJOR!"=="22" (
+        if "!NODE_MAJOR!"=="18" (
             set NODE_OK=1
             echo   [OK] Node.js !NODE_VERSION!
         ) else (
-            echo   [WARN] Node.js !NODE_VERSION! (expected v22.x)
+            echo   [WARN] Node.js !NODE_VERSION! (expected v18.x)
             echo   [INFO] To switch version using nvm:
-            echo          nvm install 22 ^&^& nvm use 22
+            echo          nvm install 18 ^&^& nvm use 18
             echo          or download from: https://nodejs.org/en/download/
         )
     ) else (
@@ -33,34 +33,35 @@ if !errorlevel! equ 0 (
 ) else (
     echo   [ERROR] Node.js not installed
     echo   [INFO] Install nvm-windows: https://github.com/coreybutler/nvm-windows/releases
-    echo          then run: nvm install 22 ^&^& nvm use 22
+    echo          then run: nvm install 18 ^&^& nvm use 18
 )
 
 echo.
-echo [2/4] Checking pnpm (expected: v10.22.0)
+echo [2/4] Checking pnpm (expected: v10.x)
 set PNPM_OK=0
 
-set REQUIRED_PNPM_VERSION=10.22.0
+set REQUIRED_PNPM_MAJOR=10
 
 where pnpm >nul 2>&1
 if !errorlevel! equ 0 (
     for /f "tokens=*" %%i in ('pnpm --version') do set "PNPM_VERSION=%%i"
     if defined PNPM_VERSION (
         set "PNPM_VERSION=!PNPM_VERSION: =!"
+        set "PNPM_MAJOR=!PNPM_VERSION:~0,2!"
 
-        if "!PNPM_VERSION!"=="!REQUIRED_PNPM_VERSION!" (
+        if "!PNPM_MAJOR!"=="10" (
             set PNPM_OK=1
             echo   [OK] pnpm v!PNPM_VERSION!
         ) else (
-            echo   [WARN] pnpm v!PNPM_VERSION! (expected v!REQUIRED_PNPM_VERSION!)
-            echo   [INFO] Upgrade with: npm install -g pnpm@!REQUIRED_PNPM_VERSION!
+            echo   [WARN] pnpm v!PNPM_VERSION! (expected v10.x)
+            echo   [INFO] Upgrade with: npm install -g pnpm@10
         )
     ) else (
         echo   [ERROR] Could not determine pnpm version
     )
 ) else (
     echo   [ERROR] pnpm not installed
-    echo   [INFO] Install with: npm install -g pnpm@!REQUIRED_PNPM_VERSION!
+    echo   [INFO] Install with: npm install -g pnpm@10
 )
 
 echo.
@@ -153,8 +154,8 @@ if !TOTAL! equ 5 (
     echo    Missing Components
     echo ================================================
     echo.
-    if !NODE_OK! equ 0 echo    - Node.js v22.x
-    if !PNPM_OK! equ 0 echo    - pnpm v!REQUIRED_PNPM_VERSION!
+    if !NODE_OK! equ 0 echo    - Node.js v18.x
+    if !PNPM_OK! equ 0 echo    - pnpm v10.x
     if !DOCKER_OK! equ 0 echo    - Docker Desktop
     if !THRIFT_OK! equ 0 echo    - Apache Thrift compiler
     if !GIT_OK! equ 0 echo    - Git

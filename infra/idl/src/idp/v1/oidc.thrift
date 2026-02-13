@@ -114,12 +114,12 @@ struct TokenResponse {
 
 // JWK（公钥）
 struct JWK {
-  1: string kty, // 密钥类型（RSA）
-  2: string kid, // 密钥标识
-  3: string use, // 用途（sig）
-  4: string n,   // 模数（base64url）
-  5: string e,   // 指数（base64url）
-  6: string alg  // 算法（RS256）
+  1: string kty,      // 密钥类型（RSA）
+  2: string kid,      // 密钥标识
+  3: string keyUse,   // 用途（sig）
+  4: string n,        // 模数（base64url）
+  5: string e,        // 指数（base64url）
+  6: string alg       // 算法（RS256）
 }
 
 // 公钥集合

@@ -13,7 +13,7 @@ struct RSATokenResult {
 }
 
 struct LoginResult {
-  1: list<common.AuthNextStep> next,            // 下一步指令列表（枚举：multifactor/reset_password/enter/finish）
+  1: list<common.AuthNextStep> nextSteps,       // 下一步指令列表（枚举：multifactor/reset_password/enter/finish）
   2: optional list<common.Method> multifactor,  // 可用的多因子方法集合
   3: optional common.ResetPasswordFlags reset_password // 重置密码原因标识
 }

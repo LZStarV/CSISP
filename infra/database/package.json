@@ -10,7 +10,7 @@
     "db:seed": "tsx src/seed/index.ts",
     "db:init:mac": "bash scripts/init_mac.sh",
     "db:init:linux": "bash scripts/init_linux.sh",
-    "db:init:win": "scripts/init_windows.bat",
+    "db:init:win": ".\\scripts\\init_windows.bat",
     "db:init": "bash scripts/init_mac.sh",
     "atlas:diff": "docker compose -f docker-compose.db.yml --env-file ../../.env run --rm atlas schema diff --config file://infra/database/atlas.hcl --env local --from env://url --to file://infra/database/src/schema/",
     "atlas:migrate:diff": "docker compose -f docker-compose.db.yml --env-file ../../.env run --rm atlas migrate diff --config file://infra/database/atlas.hcl --env local",

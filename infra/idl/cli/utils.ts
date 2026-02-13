@@ -9,9 +9,15 @@ const logger = getCliLogger('utils');
 /**
  * 执行外部命令（同步）
  * - 失败时记录错误并抛出异常
+ * - Windows 使用 shell 模式以正确处理 .bin 脚本
  */
 export function runBin(bin: string, args: string[], cwd: string) {
-  const res = spawnSync(bin, args, { stdio: 'inherit', cwd });
+  const isWindows = process.platform === 'win32';
+  const res = spawnSync(bin, args, {
+    stdio: 'inherit',
+    cwd,
+    shell: isWindows,
+  });
   if (res.status !== 0) {
     logger.error({ bin, args, cwd, code: res.status }, 'exec failed');
     throw new Error(`${bin} failed with code ${res.status}`);
