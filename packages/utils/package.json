@@ -20,6 +20,7 @@
   "dependencies": {
     "@csisp/types": "workspace:*",
     "dotenv": "catalog:",
+    "dotenv-expand": "^12.0.3",
     "pino": "catalog:",
     "pino-pretty": "catalog:"
   }

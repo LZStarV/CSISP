@@ -38,7 +38,6 @@ description: 'CSISP node 端开发 SOP。在进行 Node.js 服务端开发、涉
 
 ## 4. 环境变量与配置规范
 
-- **加载机制**：Node 端启动或读取环境变量前，必须先调用 [`@csisp/utils`](file:///Users/bytedance/project/CSISP/packages/utils/src/env.ts) 中的 `loadRootEnv()`。
 - **变更流程**：
   1. 优先在 [`.env`](file:///Users/bytedance/project/CSISP/.env) 和 [`.env.example`](file:///Users/bytedance/project/CSISP/.env.example) 中补充变量定义。
   2. 若涉及 **Secret/敏感类** 字段，必须与用户确认后再添加。

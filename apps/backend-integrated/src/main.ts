@@ -1,5 +1,4 @@
 import 'reflect-metadata';
-import { loadRootEnv } from '@csisp/utils';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
@@ -9,8 +8,6 @@ import { RateLimitInterceptor } from './common/interceptors/rate-limit.intercept
 import { RpcExceptionFilter } from './common/rpc/rpc-exception.filter';
 import { corsOptions } from './config/cors.config';
 import { connect as connectRedis } from './infra/redis';
-
-loadRootEnv();
 
 async function bootstrap() {
   if (process.env.REDIS_ENABLED === 'true') {

@@ -1,8 +1,5 @@
 import pino, { type LoggerOptions } from 'pino';
 
-import { loadRootEnv } from './env';
-
-loadRootEnv();
 const runtimeEnv = process.env.NODE_ENV || 'development';
 
 /**

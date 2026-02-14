@@ -1,4 +1,3 @@
-import { loadRootEnv } from '@csisp/utils';
 import { QueryTypes } from 'sequelize';
 
 import { getInfraDbLogger } from '../logger';
@@ -6,7 +5,6 @@ import { getSequelize, closeSequelize } from '../sequelize-client';
 
 import { ADMIN_USER_SEED, BASE_ROLES } from './config';
 
-loadRootEnv();
 const logger = getInfraDbLogger();
 
 export async function seedBaseData(): Promise<void> {

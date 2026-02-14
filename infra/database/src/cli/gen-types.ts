@@ -1,12 +1,9 @@
 import { spawnSync } from 'child_process';
 import path from 'path';
 
-import { loadRootEnv } from '@csisp/utils';
-
 import { getInfraDbLogger } from '../logger';
 
 async function main(): Promise<void> {
-  loadRootEnv();
   const logger = getInfraDbLogger();
 
   // 1. 获取数据库连接字符串 (参考 run-kanel.ts 的逻辑)

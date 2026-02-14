@@ -1,5 +1,3 @@
-import { loadRootEnv } from '@csisp/utils';
-
 /**
  * 模块配置类型
  * - name：模块名称（如 backoffice/backend/idp 或 single）
@@ -46,8 +44,6 @@ export const CONFIG_FILENAME = 'config.json';
  * - TS_OUT_DIR / JS_OUT_DIR：覆盖输出目录（仅在单模块模式时使用）
  */
 export function loadConfig(): Config {
-  // 读取仓库根 .env
-  loadRootEnv();
   const version = process.env[ENV_KEYS.IDL_VERSION] ?? 'v1';
   const sourceDir = process.env[ENV_KEYS.IDL_SOURCE_DIR] ?? '';
   const tsOutDir = '';

@@ -1,7 +1,3 @@
-import { loadRootEnv } from '@csisp/utils';
-
-loadRootEnv();
-
 // 获取 Backoffice 本地会话的 JWT 密钥
 export function getJwtSecret(): string {
   return process.env.JWT_SECRET || 'local-dev-do-not-use';

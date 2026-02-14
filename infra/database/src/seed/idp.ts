@@ -1,4 +1,3 @@
-import { loadRootEnv } from '@csisp/utils';
 import type MfaSettings from '@pgtype/MfaSettings';
 import type User from '@pgtype/User';
 import { DataTypes, type QueryInterface } from 'sequelize';
@@ -8,7 +7,6 @@ import { getSequelize, closeSequelize } from '../sequelize-client';
 
 import { ADMIN_USER_SEED } from './config';
 
-loadRootEnv();
 const logger = getInfraDbLogger();
 
 export async function seedIdp(): Promise<void> {

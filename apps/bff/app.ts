@@ -1,11 +1,8 @@
-import { loadRootEnv } from '@csisp/utils';
 import { connect as connectRedis } from '@infra/redis';
 import { setupMiddlewares } from '@middleware';
 import legacyProxy from '@middleware/legacyProxy';
 import router from '@modules';
 import Koa from 'koa';
-
-loadRootEnv();
 
 const app = new Koa();
 if (process.env.REDIS_ENABLED === 'true') {

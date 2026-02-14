@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 
-import { loadRootEnv } from '@csisp/utils';
 import type OidcClients from '@pgtype/OidcClients';
 import type OidcKeys from '@pgtype/OidcKeys';
 import type { QueryInterface } from 'sequelize';
@@ -8,7 +7,6 @@ import type { QueryInterface } from 'sequelize';
 import { getInfraDbLogger } from '../logger';
 import { getSequelize, closeSequelize } from '../sequelize-client';
 
-loadRootEnv();
 const logger = getInfraDbLogger();
 
 function deriveKey(secret: string): Buffer {

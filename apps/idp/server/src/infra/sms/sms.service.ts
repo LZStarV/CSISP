@@ -2,7 +2,6 @@ import Credential from '@alicloud/credentials';
 import Dypnsapi20170525, * as $Dypnsapi20170525 from '@alicloud/dypnsapi20170525';
 import * as $OpenApi from '@alicloud/openapi-client';
 import * as $Util from '@alicloud/tea-util';
-import { loadRootEnv } from '@csisp/utils';
 import { getIdpLogger } from '@infra/logger';
 import { set as redisSet, get as redisGet } from '@infra/redis';
 import { Injectable } from '@nestjs/common';
@@ -22,8 +21,10 @@ type SmsSendResult = {
 export class SmsService {
   private logger = getIdpLogger('sms-service');
 
+  private client: Dypnsapi20170525;
+
   constructor() {
-    loadRootEnv();
+    this.client = this.createClient();
   }
 
   private createClient(): Dypnsapi20170525 {

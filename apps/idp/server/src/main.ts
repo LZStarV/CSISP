@@ -1,5 +1,4 @@
 import 'reflect-metadata';
-import { loadRootEnv } from '@csisp/utils';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 
@@ -7,7 +6,6 @@ import { AppModule } from './app.module';
 import { connect as connectRedis } from './infra/redis';
 
 async function bootstrap() {
-  loadRootEnv();
   if (process.env.REDIS_ENABLED === 'true') {
     await connectRedis({});
   }

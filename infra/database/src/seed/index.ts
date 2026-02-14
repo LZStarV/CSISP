@@ -1,23 +1,21 @@
-import { loadRootEnv } from '@csisp/utils';
-
 import { getInfraDbLogger } from '../logger';
 
 import { seedBaseData } from './base-data';
 import { seedIdp } from './idp';
 import { seedOidc } from './oidc';
 
-loadRootEnv();
 const logger = getInfraDbLogger();
 
 async function main() {
-  logger.info('开始执行统一种子任务');
+  logger.info('开始执行数据库种子填充...');
   await seedBaseData();
   await seedIdp();
   await seedOidc();
-  logger.info('统一种子任务完成');
+  logger.info('数据库种子填充完成');
 }
 
 main().catch(err => {
-  logger.error({ error: err?.message }, '统一种子任务执行失败');
+  const logger = getInfraDbLogger();
+  logger.error({ error: err?.message }, '数据库种子填充失败');
   process.exit(1);
 });

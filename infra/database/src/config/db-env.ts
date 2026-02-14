@@ -1,5 +1,3 @@
-import { loadRootEnv } from '@csisp/utils';
-
 export type DbConfig = {
   host: string;
   port: number;
@@ -9,8 +7,6 @@ export type DbConfig = {
 };
 
 export function getDbConfig(): DbConfig {
-  loadRootEnv();
-
   const url = process.env.IDP_DB_URL || process.env.DATABASE_URL;
   if (url) {
     const u = new URL(url);
