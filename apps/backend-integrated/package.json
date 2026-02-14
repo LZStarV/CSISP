@@ -21,7 +21,6 @@
     "bcrypt": "catalog:node",
     "class-transformer": "catalog:node",
     "class-validator": "catalog:node",
-    "dotenv": "catalog:",
     "mongoose": "catalog:node",
     "pino": "catalog:",
     "pino-pretty": "catalog:",

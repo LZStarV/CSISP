@@ -1,4 +1,4 @@
-import { SessionManager, MemorySessionStore } from '@csisp/auth/server';
+import { SessionManager } from '@csisp/auth/server';
 
 import { getRedis } from '@/src/infra/redis';
 
@@ -6,7 +6,6 @@ import { getRedis } from '@/src/infra/redis';
 const redisStore = {
   get: async (key: string) => {
     const r = getRedis();
-    if (!r) return null;
     const raw = await r.get(key);
     if (!raw) return null;
     try {
@@ -17,20 +16,15 @@ const redisStore = {
   },
   set: async (key: string, value: any, ttlMs: number) => {
     const r = getRedis();
-    if (r) {
-      await r.set(key, JSON.stringify({ user: value }), 'PX', ttlMs);
-    }
+    await r.set(key, JSON.stringify({ user: value }), 'PX', ttlMs);
   },
   del: async (key: string) => {
     const r = getRedis();
-    if (r) {
-      await r.del(key);
-    }
+    await r.del(key);
   },
 };
 
-const store = getRedis() ? redisStore : new MemorySessionStore();
-export const sessionManager = new SessionManager(store);
+export const sessionManager = new SessionManager(redisStore);
 
 export async function createSession(token: string, user: any, ttlMs?: number) {
   return sessionManager.create(token, user, ttlMs as number);

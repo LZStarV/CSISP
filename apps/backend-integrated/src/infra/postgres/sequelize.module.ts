@@ -1,3 +1,4 @@
+import { requireEnv } from '@csisp/utils';
 import { Module } from '@nestjs/common';
 import {
   SequelizeModule,
@@ -12,11 +13,7 @@ import { POSTGRES_MODELS } from './models';
       useFactory: (): SequelizeModuleOptions =>
         ({
           dialect: 'postgres',
-          host: process.env.DB_HOST ?? 'localhost',
-          port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5433,
-          database: process.env.DB_NAME ?? 'csisp',
-          username: process.env.DB_USER ?? 'admin',
-          password: process.env.DB_PASSWORD ?? 'replace-me',
+          uri: requireEnv('DATABASE_URL'),
           logging: false,
           models: [...POSTGRES_MODELS],
           autoLoadModels: false,

@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 
+import { requireEnv } from '@csisp/utils';
 import type OidcClients from '@pgtype/OidcClients';
 import type OidcKeys from '@pgtype/OidcKeys';
 import type { QueryInterface } from 'sequelize';
@@ -25,29 +26,12 @@ function encryptPrivatePem(pem: string, kek: string): Buffer {
 export async function seedOidc(): Promise<void> {
   const sequelize = getSequelize();
   const qi: QueryInterface = sequelize.getQueryInterface();
-  const kek = process.env.OIDC_KEK_SECRET || 'dev-kek';
-  const defaultClientId = process.env.OIDC_DEFAULT_CLIENT_ID || 'csisp-bff';
-  let allowedRedirects: string[] | null = null;
-  const redirectsEnv = process.env.OIDC_DEFAULT_REDIRECT_URIS;
-  if (redirectsEnv) {
-    try {
-      const arr = JSON.parse(redirectsEnv);
-      if (Array.isArray(arr) && arr.length > 0) {
-        allowedRedirects = arr.filter(x => typeof x === 'string');
-      }
-    } catch {}
-  }
-  if (!allowedRedirects) {
-    const single = process.env.OIDC_DEFAULT_REDIRECT_URI;
-    if (single) {
-      allowedRedirects = [single];
-    } else {
-      allowedRedirects = [
-        'http://localhost:4000/api/bff/callback',
-        'http://localhost:3000/api/backoffice/callback',
-      ];
-    }
-  }
+  const kek = requireEnv('OIDC_KEK_SECRET');
+  const defaultClientId = requireEnv('CSISP_OIDC_DEFAULT_CLIENT_ID');
+  const rpcPrefix = requireEnv('CSISP_RPC_PREFIX');
+  const bffRedirect = `${requireEnv('CSISP_BFF_URL')}${rpcPrefix}/bff/callback`;
+  const backofficeRedirect = `${requireEnv('CSISP_BACKOFFICE_URL')}${rpcPrefix}/auth/callback`;
+  const allowedRedirects = [bffRedirect, backofficeRedirect];
 
   await sequelize.transaction(async transaction => {
     const existingKeys: Array<Partial<OidcKeys>> = (await sequelize.query(
@@ -133,9 +117,7 @@ export async function seedOidc(): Promise<void> {
         }
       )) as any;
     if (existingBackoffice.length === 0) {
-      const redirectsJson = JSON.stringify([
-        'http://localhost:3000/api/auth/callback',
-      ]);
+      const redirectsJson = JSON.stringify([backofficeRedirect]);
       const scopesJson = JSON.stringify(['openid', 'profile', 'email']);
       await qi.bulkInsert(
         'oidc_clients',

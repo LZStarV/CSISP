@@ -182,11 +182,11 @@ sequenceDiagram
 
 ### 5.1 环境配置
 
-- `.env`（根目录与 `apps/bff/.env` 叠加）：
-  - `BACKEND_INTEGRATED_URL`：指向 backend-integrated 的基础地址（如 `http://localhost:3100`）
-  - `BFF_PORT`：BFF 服务监听端口（建议与后端不同端口，如 `4000`）
+- 环境变量由运行时注入到 process.env（推荐通过 Infisical CLI 注入）：
+  - `CSISP_BACKEND_INTEGRATED_URL`：指向 backend-integrated 的基础地址
+  - `CSISP_BFF_PORT`：BFF 服务监听端口
   - `JWT_SECRET`：JWT 签名密钥
-  - `REDIS_ENABLED`/`REDIS_HOST`/`REDIS_PORT`：可选 Redis 连接配置
+  - `REDIS_HOST/REDIS_PORT/REDIS_DB/REDIS_PASSWORD/REDIS_NAMESPACE`：Redis 连接配置
 - 端口策略：对外由网关统一端口，内部 BFF/Backend 使用不同端口以便灰度与限流。
 
 ### 5.2 依赖与版本
@@ -208,8 +208,8 @@ flowchart TB
     Nginx[Nginx / Ingress]
   end
   subgraph Services
-    BFF[apps/bff : BFF_PORT]
-    BE[apps/backend-integrated : 3100]
+    BFF[apps/bff : CSISP_BFF_PORT]
+    BE[apps/backend-integrated : CSISP_BACKEND_INTEGRATED_PORT]
   end
   Client --> Nginx
   Nginx -->|/api/bff/*| BFF

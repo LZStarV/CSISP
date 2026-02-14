@@ -40,7 +40,7 @@
   - 行为：提交登录后服务端设置 HttpOnly Cookie，并写入 Redis 会话；客户端依赖 auth.me 校验登录态
 - 服务端鉴权与会话
   - 中间件 jwtAuth 支持从 Authorization Bearer 或 Cookie 读取 token，验签并校验 Redis 会话
-  - 会话模块：src/server/auth/session.ts（Redis 优先、缺失时内存回退，默认 TTL 2 小时）
+  - 会话模块：src/server/auth/session.ts（Redis 会话存储，默认 TTL 2 小时）
   - 控制器：auth.controller.ts 的 login/me 完成登录与会话校验
 
 **样式写法与用法**
@@ -97,7 +97,7 @@
   - src/infra/postgres/generated/public/\*：Kanel 生成类型，字段与结构参照
 - Redis（限流与 KV）
   - src/infra/redis/client.ts：PING 健康检查（包含 connected_clients）
-  - src/infra/redis/rate-limit.ts：统一限流封装（窗口/阈值可配置）
+  - src/infra/redis/rate-limit.ts：统一限流封装（窗口/阈值由代码维护）
 - Mongo（Mongoose）
   - src/infra/mongo/client.ts：连接与健康检查（readyState、ping 延时、连接数）
   - src/infra/mongo/schemas/\*：i18n/log 占位 schema（后续接入）
@@ -107,14 +107,15 @@
 
 **环境变量**
 
-- DATABASE_URL：PostgreSQL 连接（只读账号，必填）
+- DATABASE_URL：PostgreSQL 连接（必填）
 - JWT_SECRET：认证签名密钥（必填）
-- RATE_LIMIT：限流阈值（默认 60/min）
-- REDIS_ENABLED：是否启用 Redis（true/false）
-- REDIS_HOST/REDIS_PORT/REDIS_DB/REDIS_PASSWORD：Redis 连接配置
-- MONGODB_URI/MONGODB_DB：Mongo 连接配置
+- CSISP_IDP_THRIFT_URL：IdP Thrift RPC 地址（必填）
+- CSISP_BACKOFFICE_URL / CSISP_RPC_PREFIX：用于拼接 OIDC callback（必填）
+- CSISP_IDP_CLIENT_URL：IdP 登录页地址（必填）
+- REDIS_HOST/REDIS_PORT/REDIS_DB/REDIS_PASSWORD/REDIS_NAMESPACE：Redis 连接配置（必填）
+- MONGODB_URI/MONGODB_DB：Mongo 连接配置（必填）
 - DOCS_ENABLED：是否启用内部文档端点（可选）
-- 加载方式：统一通过根目录 .env/.env.local 注入，示例参见 [项目根 .env.example](file:///Users/bytedance/project/CSISP/.env.example)（不再使用 apps/backoffice/.env.template）
+- 加载方式：统一通过 Infisical CLI 注入到 process.env
 
 **开发与脚本**
 

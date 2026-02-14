@@ -1,3 +1,4 @@
+import { requireEnv } from '@csisp/utils';
 import { createClient, RedisClientType } from 'redis';
 
 type RedisOptions = {
@@ -9,12 +10,20 @@ type RedisOptions = {
 };
 
 let client: RedisClientType | undefined;
-let ns = 'csisp';
+let ns = '';
 
 function buildUrl(opts: RedisOptions): string {
-  const host = opts.host ?? process.env.REDIS_HOST ?? 'localhost';
-  const port = Number(opts.port ?? process.env.REDIS_PORT ?? 6379);
-  const db = Number(opts.db ?? process.env.REDIS_DB ?? 0);
+  const host = opts.host ?? requireEnv('REDIS_HOST');
+  const portRaw = String(opts.port ?? requireEnv('REDIS_PORT'));
+  const port = Number(portRaw);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(`Invalid environment variable: REDIS_PORT=${portRaw}`);
+  }
+  const dbRaw = String(opts.db ?? requireEnv('REDIS_DB'));
+  const db = Number(dbRaw);
+  if (!Number.isInteger(db) || db < 0) {
+    throw new Error(`Invalid environment variable: REDIS_DB=${dbRaw}`);
+  }
   return `redis://${host}:${port}/${db}`;
 }
 
@@ -22,9 +31,10 @@ export async function connect(
   options: RedisOptions = {}
 ): Promise<RedisClientType> {
   if (client) return client;
-  ns = options.namespace ?? process.env.REDIS_NAMESPACE ?? 'csisp';
+  ns = options.namespace ?? requireEnv('REDIS_NAMESPACE');
   const url = buildUrl(options);
-  const password = options.password ?? process.env.REDIS_PASSWORD;
+  const passwordRaw = options.password ?? process.env.REDIS_PASSWORD;
+  const password = passwordRaw === '' ? undefined : passwordRaw;
   client = createClient({ url, password });
   client.on('error', () => {});
   await client.connect();

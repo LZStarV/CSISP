@@ -26,7 +26,6 @@ Redis 只承载“加速”和“辅助”角色：任何持久业务数据仍�
 - `REDIS_DB`：数据库索引（整数，默认 `0`）
 - `REDIS_PASSWORD`：密码（如有启用权限控制）
 - `REDIS_NAMESPACE`：命名空间前缀，默认 `csisp`
-- `REDIS_ENABLED`：`true/false`，控制应用是否启用 Redis
 
 ### 2.2 客户端封装
 
@@ -61,7 +60,7 @@ export async function del(key: string | string[]): Promise<void> {
 ```
 
 - backend-integrated：
-  - 在 `main.ts` 中根据 `REDIS_ENABLED` 调用 `connect()`；
+  - 在 `main.ts` 中调用 `connect()` 初始化连接；
   - 业务中通过 `@infra/redis` 导入 `get/set/del` 等；
 - BFF：
   - 当前主要通过 HTTP 调用后端，Redis 使用场景较少或为后续扩展预留。
@@ -141,17 +140,13 @@ async function getStudentAttendanceStats(userId: number, classId?: number) {
     ? `csisp:be:attendance:stats:student:${userId}:class:${classId}`
     : `csisp:be:attendance:stats:student:${userId}`;
 
-  if (process.env.REDIS_ENABLED === 'true') {
-    const cached = await get(keyBase);
-    if (cached) return JSON.parse(cached);
-  }
+  const cached = await get(keyBase);
+  if (cached) return JSON.parse(cached);
 
   // 未命中：查询数据库并聚合
   const stats = await computeStatsFromDatabase(userId, classId);
 
-  if (process.env.REDIS_ENABLED === 'true') {
-    await set(keyBase, JSON.stringify(stats), 60); // TTL 60 秒
-  }
+  await set(keyBase, JSON.stringify(stats), 60); // TTL 60 秒
 
   return stats;
 }
@@ -178,15 +173,13 @@ async function getStudentAttendanceStats(userId: number, classId?: number) {
 示例（考勤打卡后失效统计缓存）：
 
 ```ts
-if (process.env.REDIS_ENABLED === 'true') {
-  const taskReloaded = await this.taskModel.findByPk(taskId);
-  const classId = taskReloaded?.classId;
+const taskReloaded = await this.taskModel.findByPk(taskId);
+const classId = taskReloaded?.classId;
 
-  await del(`csisp:be:attendance:stats:student:${userId}`);
-  if (classId) {
-    await del(`csisp:be:attendance:stats:student:${userId}:class:${classId}`);
-    await del(`csisp:be:attendance:stats:class:${classId}`);
-  }
+await del(`csisp:be:attendance:stats:student:${userId}`);
+if (classId) {
+  await del(`csisp:be:attendance:stats:student:${userId}:class:${classId}`);
+  await del(`csisp:be:attendance:stats:class:${classId}`);
 }
 ```
 
@@ -202,17 +195,13 @@ if (process.env.REDIS_ENABLED === 'true') {
 import { connect as connectRedis } from '@infra/redis';
 
 async function bootstrap() {
-  if (process.env.REDIS_ENABLED === 'true') {
-    await connectRedis({});
-  }
+  await connectRedis({});
 
   const app = await NestFactory.create(AppModule);
   // ... 省略中间件与路由配置
-  await app.listen(process.env.BACKEND_INTEGRATED_PORT || 3100);
+  await app.listen(Number(process.env.CSISP_BACKEND_INTEGRATED_PORT));
 }
 ```
-
-- 若 `REDIS_ENABLED=false` 或连接失败，业务逻辑仍需可以在“无缓存模式”下正常运行。
 
 ### 5.2 业务使用方式
 
@@ -226,16 +215,12 @@ export class DashboardService {
   async getStats() {
     const cacheKey = 'csisp:be:dashboard:stats';
 
-    if (process.env.REDIS_ENABLED === 'true') {
-      const cached = await get(cacheKey);
-      if (cached) return JSON.parse(cached);
-    }
+    const cached = await get(cacheKey);
+    if (cached) return JSON.parse(cached);
 
     const stats = await this.computeStatsFromDatabase();
 
-    if (process.env.REDIS_ENABLED === 'true') {
-      await set(cacheKey, JSON.stringify(stats), 60);
-    }
+    await set(cacheKey, JSON.stringify(stats), 60);
 
     return stats;
   }

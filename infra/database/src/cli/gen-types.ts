@@ -1,21 +1,14 @@
 import { spawnSync } from 'child_process';
 import path from 'path';
 
+import { requireEnv } from '@csisp/utils';
+
 import { getInfraDbLogger } from '../logger';
 
 async function main(): Promise<void> {
   const logger = getInfraDbLogger();
 
-  // 1. 获取数据库连接字符串 (参考 run-kanel.ts 的逻辑)
-  const host = process.env.DB_HOST || 'localhost';
-  const port = process.env.DB_PORT || '5433';
-  const database = process.env.DB_NAME || 'csisp';
-  const user = process.env.DB_USER || 'admin';
-  const password = process.env.DB_PASSWORD || 'replace-me';
-
-  const connectionString =
-    process.env.DATABASE_URL ||
-    `postgres://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
+  const connectionString = requireEnv('DATABASE_URL');
 
   const outDir = path.resolve(process.cwd(), 'dist');
 

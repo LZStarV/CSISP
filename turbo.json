@@ -2,15 +2,11 @@
   "$schema": "https://turbo.build/schema.json",
   "globalPassThroughEnv": ["*"],
   "tasks": {
-    "check:env": {
-      "cache": false
-    },
     "build": {
-      "dependsOn": ["^build", "check:env"],
+      "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
-      "dependsOn": ["check:env"],
       "cache": false,
       "persistent": true
     },
@@ -35,16 +31,6 @@
     },
     "db:status": {
       "cache": false
-    },
-    "db:types": {
-      "cache": false,
-      "persistent": false,
-      "outputs": [
-        "src/infra/postgres/generated/**",
-        "src/db-types/generated/**",
-        "src/db/generated/**"
-      ],
-      "inputs": ["scripts/**", "package.json", "tsconfig.json"]
     }
   }
 }

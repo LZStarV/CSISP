@@ -8,15 +8,15 @@
     "format": "pnpm prettier --write . && eslint . --fix && stylelint '**/*.{css,scss,vue}' --fix",
     "lint:staged": "lint-staged",
     "prepare": "husky",
-    "dev:infra": "pnpm check:env && dotenv -- turbo run db:init --filter=@csisp/infra-database && dotenv -- turbo run idl:gen --filter=@csisp/idl",
-    "dev:infra:win": "pnpm check:env && pnpm -F @csisp/infra-database db:init:win && pnpm -F @csisp/idl idl:gen",
-    "dev:backend-integrated": "dotenv -- turbo run db:types --filter=@csisp/backend-integrated && dotenv -- turbo run dev --filter=@csisp/backend-integrated",
-    "dev:backoffice": "dotenv -- turbo run db:types --filter=@csisp/backoffice && dotenv -- turbo run dev --filter=@csisp/backoffice",
-    "dev:idp": "dotenv -- turbo run dev --filter=@csisp/idp-client --filter=@csisp/idp-server",
-    "dev:bff": "dotenv -- turbo run dev --filter=@csisp/bff",
-    "dev:admin": "dotenv -- turbo run dev --filter=@csisp/frontend-admin",
-    "dev:portal": "dotenv -- turbo run dev --filter=@csisp/frontend-portal",
-    "check:env": "tsx infra/scripts/check-env.ts",
+    "dev:infra": "infisical run -- turbo run db:init --filter=@csisp/infra-database && infisical run -- turbo run idl:gen --filter=@csisp/idl",
+    "dev:infra:win": "infisical run -- pnpm -F @csisp/infra-database db:init:win && infisical run -- pnpm -F @csisp/idl idl:gen",
+    "dev:backend-integrated": "infisical run -- turbo run dev --filter=@csisp/backend-integrated",
+    "dev:backoffice": "infisical run -- turbo run dev --filter=@csisp/backoffice",
+    "dev:idp:server": "infisical run -- turbo run dev --filter=@csisp/idp-server",
+    "dev:idp:client": "infisical run -- turbo run dev --filter=@csisp/idp-client",
+    "dev:bff": "infisical run -- turbo run dev --filter=@csisp/bff",
+    "dev:admin": "infisical run -- turbo run dev --filter=@csisp/frontend-admin",
+    "dev:portal": "infisical run -- turbo run dev --filter=@csisp/frontend-portal",
     "build": "turbo build"
   },
   "packageManager": "pnpm@10.29.3+sha256.a74f4dbd3f5a7ca874d004135271f0b697b683bf1fd2fc2133961161cd25b29c",
@@ -39,12 +39,12 @@
   "devDependencies": {
     "@csisp/utils": "workspace:*",
     "@eslint/js": "^9.39.1",
+    "@infisical/cli": "^0.43.40",
     "@types/eslint-config-prettier": "^6.11.3",
     "@types/glob": "^9.0.0",
     "@types/node": "^18.19.0",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",
-    "dotenv-cli": "^11.0.0",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-import": "^2.32.0",
@@ -67,11 +67,19 @@
     "typescript-eslint": "^8.46.4"
   },
   "pnpm": {
-    "overrides": {
-      "dotenv": "^16.4.5"
-    },
     "ignoredBuiltDependencies": [
-      "argon2"
+      "@alicloud/openapi-core",
+      "@nestjs/core",
+      "@parcel/watcher",
+      "argon2",
+      "bcrypt",
+      "esbuild",
+      "sharp",
+      "vue-demi",
+      "vue-echarts"
+    ],
+    "onlyBuiltDependencies": [
+      "@infisical/cli"
     ]
   }
 }

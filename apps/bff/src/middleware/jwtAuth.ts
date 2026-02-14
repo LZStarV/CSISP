@@ -1,4 +1,5 @@
 import { koaAuth } from '@csisp/auth/server';
+import { requireEnv } from '@csisp/utils';
 import type { Context, Next } from 'koa';
 
 // JWT 鉴权中间件
@@ -28,7 +29,7 @@ export default function jwtAuth(options: JwtAuthOptions = {}) {
   } = options;
 
   const authMiddleware = koaAuth({
-    jwtSecret: process.env.JWT_SECRET || 'default-secret',
+    jwtSecret: requireEnv('JWT_SECRET'),
     required,
     roles,
     excludePaths,

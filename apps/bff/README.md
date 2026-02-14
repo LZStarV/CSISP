@@ -69,9 +69,10 @@
 
 - BFF_ENABLED_SUBPROJECTS：启用的子项目集合，逗号分隔（默认 portal,admin）
 - JWT_SECRET：JWT 鉴权密钥（如启用 jwtAuth）
-- REDIS_ENABLED：是否启用 Redis 连接（true/false）
-- BACKEND_INTEGRATED_URL：legacyProxy 转发目标的基础地址
-- BFF_PORT：服务监听端口（默认 4000）
+- CSISP_BFF_PORT：服务监听端口
+- CSISP_BFF_URL：前端访问 BFF 的基础 URL（用于前端代理与 OIDC 回调拼接）
+- CSISP_BACKEND_INTEGRATED_URL：legacyProxy 转发目标的基础地址
+- REDIS_HOST / REDIS_PORT / REDIS_DB / REDIS_PASSWORD / REDIS_NAMESPACE：Redis 连接配置
 
 **开发须知**
 
@@ -104,12 +105,12 @@
 
 **健康检查**
 
-- 端口：由环境变量 BFF_PORT 控制（默认 4000）
+- 端口：由环境变量 CSISP_BFF_PORT 控制
 - 健康接口：GET /api/bff/health
   - 返回：{ code: 0, message: 'OK' }
-  - 用法示例（假设端口 4000）：
-    - 浏览器打开 http://localhost:4000/api/bff/health
-    - 或使用 curl：curl -s http://localhost:4000/api/bff/health
+  - 用法示例：
+    - 浏览器打开 ${CSISP_BFF_URL}/api/bff/health
+    - 或使用 curl：curl -s ${CSISP_BFF_URL}/api/bff/health
 
 **接口示例（演示方法）**
 
@@ -127,14 +128,14 @@
 
 - 打开文档：
   - 在浏览器访问对应子项目的 openrpc.json，即可查看方法列表与参数/返回的结构描述
-  - portal 文档示例：http://localhost:4000/api/bff/portal/openrpc.json
+  - portal 文档示例：${CSISP_BFF_URL}/api/bff/portal/openrpc.json
 - 当前文档端点与健康接口无需令牌；后续将限制文档端点仅超级管理员可访问
-  - admin 文档示例：http://localhost:4000/api/bff/admin/openrpc.json
+  - admin 文档示例：${CSISP_BFF_URL}/api/bff/admin/openrpc.json
 - 使用工具调试：
   - 可将 openrpc.json 导入支持 OpenRPC 的调试/生成工具，或手动使用 curl/Postman 进行请求
   - JSON-RPC 请求示例（portal 演示方法）：
-    - curl -X POST -H "Content-Type: application/json" -d '{}' http://localhost:4000/api/bff/portal/demo/test
-    - curl -X POST -H "Content-Type: application/json" -d '{}' http://localhost:4000/api/bff/admin/demo/test
+    - curl -X POST -H "Content-Type: application/json" -d '{}' ${CSISP_BFF_URL}/api/bff/portal/demo/test
+    - curl -X POST -H "Content-Type: application/json" -d '{}' ${CSISP_BFF_URL}/api/bff/admin/demo/test
 
 **维护建议**
 

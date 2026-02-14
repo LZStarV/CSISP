@@ -5,17 +5,21 @@ import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
-  const env = getFrontendEnv(mode);
+export default defineConfig(() => {
+  const env = getFrontendEnv();
+  const bffUrl = env.CSISP_BFF_URL;
+  if (!bffUrl) {
+    throw new Error('Missing environment variable: CSISP_BFF_URL');
+  }
 
   return {
     plugins: [vue()],
-    envPrefix: ['VITE_', 'CSISP_'],
+    envPrefix: ['CSISP_'],
     server: {
       port: 5273,
       proxy: {
         '/api': {
-          target: env.CSISP_BFF_URL || 'http://localhost:4000',
+          target: bffUrl,
           changeOrigin: true,
         },
       },

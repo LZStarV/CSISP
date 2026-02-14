@@ -41,8 +41,7 @@ export class IdpClient {
     @Optional() @Inject(IDP_CLIENT_OPTIONS) options?: IdpClientOptions
   ) {
     if (!options) {
-      // Fallback for non-DI usage or default config
-      options = { url: process.env.IDP_THRIFT_URL || 'http://localhost:9090' };
+      throw new Error('Missing IDP client options');
     }
     this.client = createThriftClient(oidc.Client, {
       url: options.url,

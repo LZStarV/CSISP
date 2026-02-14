@@ -116,11 +116,11 @@ NestJS]:::be
 
 职责：
 
-- 加载环境变量（优先根 `.env`，再加载 backend-integrated 自身配置）
-- 若 `REDIS_ENABLED=true`，通过 `@infra/redis` 初始化 Redis 连接
+- 环境变量由运行时注入到 process.env（推荐通过 Infisical CLI 注入）
+- 通过 `@infra/redis` 初始化 Redis 连接
 - 创建 Nest 应用实例并加载 `AppModule`
 - 注册全局拦截器 / 过滤器 / CORS 配置
-- 监听 `BACKEND_INTEGRATED_PORT` 端口，暴露 `/api` REST 接口
+- 监听 `CSISP_BACKEND_INTEGRATED_PORT` 端口，暴露 `/api` REST 接口
 - 通过 `MongooseModule.forRoot(MONGODB_URI, { dbName: MONGODB_DB })` 初始化 Mongo（内容域）
 
 应用启动流程（简化）：
@@ -134,15 +134,15 @@ sequenceDiagram
   participant PGMod as SequelizePostgresModule
 
   Dev->>Main: pnpm --filter @csisp/backend-integrated dev
-  Main->>Main: 加载根 .env + backend-integrated/.env
-  Main->>Main: 若 REDIS_ENABLED=true 则 connectRedis()
+  Main->>Main: 读取 process.env 中的配置
+  Main->>Main: connectRedis()
   Main->>Nest: NestFactory.create(AppModule)
   Nest->>AppMod: 解析模块依赖
   AppMod->>PGMod: 通过 @nestjs/sequelize 初始化 Postgres 连接
   PGMod-->>Nest: 注册 sequelize-typescript 模型并提供 @InjectModel 注入
   Nest-->>Main: 应用实例构建完成
   Main->>Main: 注册拦截器/过滤器/CORS
-  Main->>Main: app.listen(BACKEND_INTEGRATED_PORT)
+  Main->>Main: app.listen(CSISP_BACKEND_INTEGRATED_PORT)
 ```
 
 ---
@@ -230,7 +230,7 @@ export {
 
 使用约定：
 
-- 在 `main.ts` 中根据 `REDIS_ENABLED` 决定是否调用 `connect()` 初始化连接
+- 在 `main.ts` 中调用 `connect()` 初始化连接
 - 业务 Service 不直接导入 `@csisp/redis`，而是从 `@infra/redis` 导入 `get/set/del`
 - 缓存键规范与 TTL 与架构文档一致：
   - 键前缀：`csisp:be:...`（后端），
@@ -405,10 +405,8 @@ const cacheKey = classId
   ? `be:homework:submissions:student:${userId}:class:${classId}`
   : `be:homework:submissions:student:${userId}`;
 
-if (process.env.REDIS_ENABLED === 'true') {
-  const cached = await get(cacheKey);
-  if (cached) return JSON.parse(cached);
-}
+const cached = await get(cacheKey);
+if (cached) return JSON.parse(cached);
 
 // 查询数据库并聚合后写回缓存
 ```
@@ -534,13 +532,13 @@ backend-integrated 的缓存策略与《技术架构文档》中 Redis 部分一
 
 ### 9.1 环境变量
 
-关键环境变量（示例，以 `.env.example` 为准）：
+关键环境变量：
 
-- 数据库：`DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`
-- Redis：`REDIS_HOST/REDIS_PORT/REDIS_DB/REDIS_PASSWORD/REDIS_ENABLED`
-- 端口：`BACKEND_INTEGRATED_PORT`
+- 数据库：`DATABASE_URL`
+- Redis：`REDIS_HOST/REDIS_PORT/REDIS_DB/REDIS_PASSWORD/REDIS_NAMESPACE`
+- 端口：`CSISP_BACKEND_INTEGRATED_PORT`
 - Mongo：`MONGODB_URI`、`MONGODB_DB`
-- JWT：`JWT_SECRET/JWT_EXPIRES_IN`
+- JWT：`JWT_SECRET`
 
 ### 9.2 健康检查
 

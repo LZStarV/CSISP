@@ -34,6 +34,7 @@ import type OidcClients from '@csisp/infra-database/public/OidcClients';
 import type OidcKeys from '@csisp/infra-database/public/OidcKeys';
 import type RefreshTokens from '@csisp/infra-database/public/RefreshTokens';
 import type User from '@csisp/infra-database/public/User';
+import { requireEnv } from '@csisp/utils';
 import { RedisPrefix } from '@idp-types/redis';
 import { getIdpLogger } from '@infra/logger';
 import { OidcClientModel } from '@infra/postgres/models/oidc-client.model';
@@ -49,6 +50,8 @@ import { OidcPolicyHelper } from './helpers/oidc.policy';
 import { OidcTokenSigner } from './helpers/token.signer';
 
 const logger = getIdpLogger('oidc-service');
+const accessTokenExpiresIn = '1h';
+const refreshTokenExpiresIn = '7d';
 
 type TokenRefreshRequest = {
   grant_type: OIDCGrantType;
@@ -87,9 +90,9 @@ export class OidcService {
 
   private readonly tokenSigner = new OidcTokenSigner({
     issuer: getApiBaseUrl(),
-    expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-    kekSecret: process.env.OIDC_KEK_SECRET || 'dev-kek',
+    expiresIn: accessTokenExpiresIn,
+    refreshExpiresIn: refreshTokenExpiresIn,
+    kekSecret: requireEnv('OIDC_KEK_SECRET'),
   });
 
   /**

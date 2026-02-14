@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { requireIntEnv } from '@csisp/utils';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
@@ -10,9 +11,7 @@ import { corsOptions } from './config/cors.config';
 import { connect as connectRedis } from './infra/redis';
 
 async function bootstrap() {
-  if (process.env.REDIS_ENABLED === 'true') {
-    await connectRedis({});
-  }
+  await connectRedis({});
 
   const app = await NestFactory.create(AppModule);
 
@@ -28,7 +27,7 @@ async function bootstrap() {
   app.useGlobalFilters(new RpcExceptionFilter());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  const port = Number(process.env.BACKEND_INTEGRATED_PORT ?? 3100);
+  const port = requireIntEnv('CSISP_BACKEND_INTEGRATED_PORT');
   await app.listen(port);
 }
 

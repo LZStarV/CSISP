@@ -1,3 +1,4 @@
+import { requireEnv } from '@csisp/utils';
 import { request } from 'undici';
 
 import { getBaseLogger } from './logger';
@@ -17,7 +18,7 @@ export function createBffHttpClient(
     : baseLogger.child({ context: 'upstream' });
 
   return createHttpClient({
-    baseURL: process.env.BACKEND_INTEGRATED_URL as string,
+    baseURL: requireEnv('CSISP_BACKEND_INTEGRATED_URL'),
     headers,
     logger,
   });

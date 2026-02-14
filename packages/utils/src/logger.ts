@@ -6,7 +6,7 @@ const runtimeEnv = process.env.NODE_ENV || 'development';
  * 日志创建选项
  */
 export interface CreateLoggerOptions {
-  /** 日志级别，默认从环境变量 LOG_LEVEL 读取，缺省为 'info' */
+  /** 日志级别 */
   level?: string;
   /** 是否为开发环境，默认根据 NODE_ENV === 'development' 判断 */
   isDev?: boolean;
@@ -29,7 +29,7 @@ export function createLogger(
   options: CreateLoggerOptions = {}
 ) {
   const isDev = options.isDev ?? runtimeEnv === 'development';
-  const level = (options.level ?? process.env.LOG_LEVEL) || 'info';
+  const level = options.level || 'info';
 
   const pinoOpts: LoggerOptions = {
     level,

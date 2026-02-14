@@ -2,7 +2,7 @@ import { checkAndIncr } from '@/src/infra/redis';
 
 export async function limit(
   ctx: { ip?: string; path?: string },
-  maxPerMin = Number(process.env.RATE_LIMIT || 60)
+  maxPerMin = 60
 ) {
   const ip = ctx.ip || '0';
   const path = ctx.path || '';

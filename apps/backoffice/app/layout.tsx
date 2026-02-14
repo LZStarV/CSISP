@@ -21,7 +21,7 @@ export default function RootLayout({
             clientId='backoffice'
             apiPrefix='/api/backoffice'
             loginUrl={authConfig.idpLoginUrl}
-            redirectUri='http://localhost:3000/api/auth/callback'
+            redirectUri={`${location.origin}/api/auth/callback`}
           >
             <App style={{ height: '100vh' }}>
               <AntdGlobal />

@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@csisp/idl', '@csisp/rpc', '@csisp/utils'],
+  env: {
+    CSISP_IDP_CLIENT_URL: process.env.CSISP_IDP_CLIENT_URL,
+  },
   webpack: config => {
     config.module.rules.push({
       test: /\.js$/,

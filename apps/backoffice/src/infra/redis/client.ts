@@ -1,15 +1,23 @@
+import { requireEnv } from '@csisp/utils';
 import Redis from 'ioredis';
 
 let redis: Redis | null = null;
 
-export function getRedis(): Redis | null {
+export function getRedis(): Redis {
   if (redis) return redis;
-  const enabled = String(process.env.REDIS_ENABLED || 'false') === 'true';
-  if (!enabled) return null;
-  const host = process.env.REDIS_HOST || '127.0.0.1';
-  const port = Number(process.env.REDIS_PORT || 6379);
-  const db = Number(process.env.REDIS_DB || 0);
-  const password = process.env.REDIS_PASSWORD || undefined;
+  const host = requireEnv('REDIS_HOST');
+  const portRaw = requireEnv('REDIS_PORT');
+  const port = Number(portRaw);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(`Invalid environment variable: REDIS_PORT=${portRaw}`);
+  }
+  const dbRaw = requireEnv('REDIS_DB');
+  const db = Number(dbRaw);
+  if (!Number.isInteger(db) || db < 0) {
+    throw new Error(`Invalid environment variable: REDIS_DB=${dbRaw}`);
+  }
+  const passwordRaw = process.env.REDIS_PASSWORD;
+  const password = passwordRaw === '' ? undefined : passwordRaw;
   redis = new Redis({ host, port, db, password, lazyConnect: true });
   return redis;
 }
@@ -21,7 +29,6 @@ export async function health(): Promise<{
 }> {
   try {
     const r = getRedis();
-    if (!r) return { ok: false, latencyMs: null };
     const start = Date.now();
     await r.ping();
     const latency = Date.now() - start;

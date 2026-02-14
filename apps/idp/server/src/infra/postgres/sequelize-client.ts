@@ -1,7 +1,5 @@
-import dotenv from 'dotenv';
+import { requireEnv } from '@csisp/utils';
 import { Sequelize } from 'sequelize';
-
-dotenv.config();
 
 let sequelizeInstance: Sequelize | null = null;
 
@@ -12,30 +10,9 @@ function getEnv(name: string, def?: string): string | undefined {
 export function getSequelize(): Sequelize {
   if (sequelizeInstance) return sequelizeInstance;
 
-  const url = getEnv('IDP_DB_URL');
-  if (url) {
-    sequelizeInstance = new Sequelize(url, {
-      dialect: 'postgres',
-      logging: false,
-      define: { underscored: true },
-      timezone: '+08:00',
-    });
-    return sequelizeInstance;
-  }
-
-  const host = getEnv('DB_HOST', 'localhost')!;
-  const port = Number(getEnv('DB_PORT', '5433'));
-  const database = getEnv('DB_NAME', 'csisp')!;
-  const username = getEnv('DB_USER', 'postgres')!;
-  const password = getEnv('DB_PASSWORD', 'postgres')!;
-
-  sequelizeInstance = new Sequelize({
+  const url = getEnv('IDP_DB_URL') ?? requireEnv('DATABASE_URL');
+  sequelizeInstance = new Sequelize(url, {
     dialect: 'postgres',
-    host,
-    port,
-    database,
-    username,
-    password,
     logging: false,
     define: { underscored: true },
     timezone: '+08:00',

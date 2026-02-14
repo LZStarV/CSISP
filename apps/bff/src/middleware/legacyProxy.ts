@@ -8,6 +8,7 @@
  * - 有请求体且未设置类型时，补充 `Content-Type: application/json` 并序列化为 JSON。
  * - 对后端返回做兼容：优先解析 JSON；若非 JSON，读取文本并尝试 JSON.parse，失败则以文本填充 `message`，避免出现模糊的错误提示。
  */
+import { requireEnv } from '@csisp/utils';
 import type { Context, Next } from 'koa';
 import { request } from 'undici';
 
@@ -18,9 +19,7 @@ export default function legacyProxy() {
     // 仅处理以 /api/bff 开头的路径；其它路径交由前端路由或静态资源处理
     const requestPath = ctx.path;
     if (!requestPath.startsWith('/api/bff')) return;
-    const backendBaseUrl = process.env.BACKEND_INTEGRATED_URL;
-    if (!backendBaseUrl)
-      ctx.throw(500, 'BACKEND_INTEGRATED_URL is not configured');
+    const backendBaseUrl = requireEnv('CSISP_BACKEND_INTEGRATED_URL');
     const forwardHeaders: Record<string, string> = {};
     // 透传鉴权与链路追踪头
     const authorization = ctx.get('Authorization');

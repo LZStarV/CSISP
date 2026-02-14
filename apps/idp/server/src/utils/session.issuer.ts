@@ -85,8 +85,8 @@ export class SessionIssuer {
  * 默认会话配置
  */
 export const defaultSessionOptions: SessionOptions = {
-  ttlShort: Number(process.env.IDP_SESSION_TTL_SHORT ?? 300),
-  ttlLong: Number(process.env.IDP_SESSION_TTL_LONG ?? 3600),
+  ttlShort: 300,
+  ttlLong: 3600,
   redisPrefix: RedisPrefix.IdpSession,
   cookie: {
     name: 'idp_session',

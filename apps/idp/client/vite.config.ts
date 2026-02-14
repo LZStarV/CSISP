@@ -1,5 +1,6 @@
 import path from 'path';
 
+import { requireEnv, requireIntEnv } from '@csisp/utils';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -10,11 +11,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  envPrefix: ['CSISP_'],
   server: {
-    port: 5174,
+    port: requireIntEnv('CSISP_IDP_CLIENT_PORT'),
     proxy: {
       '/api/idp': {
-        target: 'http://localhost:4001',
+        target: requireEnv('CSISP_IDP_URL'),
         changeOrigin: true,
         secure: false,
       },
