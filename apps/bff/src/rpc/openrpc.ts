@@ -1,6 +1,7 @@
 import type { Context } from 'koa';
 import { z } from 'zod';
 
+import { config } from '../config';
 import { DomainModules } from '../modules';
 
 // 转换 zod schema 为 openrpc 类型描述
@@ -23,10 +24,11 @@ function schemaToJson(schema?: z.ZodTypeAny): any {
 function buildDocFor(subProject: string) {
   const mod = DomainModules.find(m => m.subProject === subProject);
   const methods = mod ? Object.keys(mod.schemas || {}) : [];
+  const base = config.routes.basePrefix;
   return {
     openrpc: '1.2.6',
     info: { title: `CSISP BFF OpenRPC (${subProject})`, version: '0.1.0' },
-    servers: [{ name: `bff-${subProject}`, url: `/api/bff/${subProject}` }],
+    servers: [{ name: `bff-${subProject}`, url: `${base}/${subProject}` }],
     methods: methods.map(name => {
       const s = (mod!.schemas as Record<string, any>)[name];
       return {

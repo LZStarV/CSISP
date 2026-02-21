@@ -296,6 +296,9 @@ importers:
       '@csisp/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@csisp/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@csisp/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -346,7 +349,10 @@ importers:
         version: 6.37.7(pg-hstore@2.3.4)(pg@8.18.0)
       sequelize-typescript:
         specifier: catalog:node
-        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0))
+        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7)
+      zod:
+        specifier: catalog:node
+        version: 3.25.76
     devDependencies:
       '@csisp/infra-database':
         specifier: workspace:*
@@ -442,6 +448,9 @@ importers:
       '@csisp/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@csisp/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@csisp/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -476,6 +485,9 @@ importers:
       '@types/koa-bodyparser':
         specifier: catalog:dev
         version: 4.3.13
+      '@types/koa__router':
+        specifier: ^8.0.7
+        version: 8.0.11
       esbuild:
         specifier: catalog:dev
         version: 0.19.12
@@ -668,6 +680,9 @@ importers:
       '@csisp/auth':
         specifier: workspace:*
         version: link:../../../packages/auth
+      '@csisp/config':
+        specifier: workspace:*
+        version: link:../../../packages/config
       '@csisp/rpc':
         specifier: workspace:*
         version: link:../../../packages/rpc
@@ -721,7 +736,10 @@ importers:
         version: 6.37.7(pg-hstore@2.3.4)(pg@8.18.0)
       sequelize-typescript:
         specifier: catalog:node
-        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0))
+        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7)
+      zod:
+        specifier: catalog:node
+        version: 3.25.76
     devDependencies:
       '@csisp/infra-database':
         specifier: workspace:*
@@ -779,7 +797,7 @@ importers:
         version: 6.37.7(pg-hstore@2.3.4)(pg@8.18.0)
       sequelize-typescript:
         specifier: catalog:node
-        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0))
+        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7)
       umzug:
         specifier: ^3.8.0
         version: 3.8.2(@types/node@18.19.130)
@@ -869,6 +887,15 @@ importers:
       '@types/react-dom':
         specifier: catalog:dev
         version: 18.3.7(@types/react@18.3.28)
+
+  packages/config:
+    dependencies:
+      '@csisp/utils':
+        specifier: workspace:*
+        version: link:../utils
+      zod:
+        specifier: catalog:node
+        version: 3.25.76
 
   packages/rpc:
     dependencies:
@@ -2857,6 +2884,9 @@ packages:
 
   '@types/koa@3.0.1':
     resolution: {integrity: sha512-VkB6WJUQSe0zBpR+Q7/YIUESGp5wPHcaXr0xueU5W0EOUWtlSbblsl+Kl31lyRQ63nIILh0e/7gXjQ09JXJIHw==}
+
+  '@types/koa__router@8.0.11':
+    resolution: {integrity: sha512-WXgKWpBsbS14kzmzD9LeFapOIa678h7zvUHxDwXwSx4ETKXhXLVUAToX6jZ/U7EihM7qwyD9W/BZvB0MRu7MTQ==}
 
   '@types/linkify-it@5.0.0':
     resolution: {integrity: sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q==}
@@ -8886,7 +8916,7 @@ snapshots:
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
       sequelize: 6.37.7(pg-hstore@2.3.4)(pg@8.18.0)
-      sequelize-typescript: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0))
+      sequelize-typescript: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7)
       uuid: 9.0.1
 
   '@nestjs/serve-static@4.0.2(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(express@4.22.1)':
@@ -9555,6 +9585,10 @@ snapshots:
       '@types/keygrip': 1.0.6
       '@types/koa-compose': 3.2.9
       '@types/node': 18.19.130
+
+  '@types/koa__router@8.0.11':
+    dependencies:
+      '@types/koa': 3.0.1
 
   '@types/linkify-it@5.0.0': {}
 
@@ -13853,7 +13887,7 @@ snapshots:
 
   sequelize-pool@7.1.0: {}
 
-  sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0)):
+  sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7):
     dependencies:
       '@types/node': 18.19.130
       '@types/validator': 13.15.10

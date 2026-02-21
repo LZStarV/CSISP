@@ -1,6 +1,8 @@
 import { getBaseLogger } from '@infra/logger';
 import type { Context } from 'koa';
 
+import { config } from '../config';
+
 import { InvalidRequest, InternalError, MethodNotFound } from './errors';
 import { call } from './registry';
 import { ok, genId, type RPCResponse, type RPCID } from './types';
@@ -23,10 +25,7 @@ export async function handlePost(ctx: Context): Promise<void> {
   const id: RPCID =
     (ctx.request.body && (ctx.request.body as any).id) ?? genId();
   const params = ctx.request.body ?? {};
-  const enabled = (process.env.BFF_ENABLED_SUBPROJECTS || 'portal,admin')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+  const enabled = config.features.enabledSubProjects;
   if (!enabled.includes(subProject)) {
     ctx.body = MethodNotFound(id, { subProject });
     return;

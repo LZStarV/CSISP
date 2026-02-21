@@ -8,9 +8,10 @@
  * - 有请求体且未设置类型时，补充 `Content-Type: application/json` 并序列化为 JSON。
  * - 对后端返回做兼容：优先解析 JSON；若非 JSON，读取文本并尝试 JSON.parse，失败则以文本填充 `message`，避免出现模糊的错误提示。
  */
-import { requireEnv } from '@csisp/utils';
 import type { Context, Next } from 'koa';
 import { request } from 'undici';
+
+import { config } from '../config';
 
 export default function legacyProxy() {
   return async (ctx: Context, next: Next) => {
@@ -18,8 +19,9 @@ export default function legacyProxy() {
     if (ctx.body !== undefined || (ctx.status && ctx.status !== 404)) return;
     // 仅处理以 /api/bff 开头的路径；其它路径交由前端路由或静态资源处理
     const requestPath = ctx.path;
-    if (!requestPath.startsWith('/api/bff')) return;
-    const backendBaseUrl = requireEnv('CSISP_BACKEND_INTEGRATED_URL');
+    const basePrefix = config.routes.basePrefix;
+    if (!requestPath.startsWith(basePrefix)) return;
+    const backendBaseUrl = config.upstream.backendIntegratedBaseUrl;
     const forwardHeaders: Record<string, string> = {};
     // 透传鉴权与链路追踪头
     const authorization = ctx.get('Authorization');
@@ -36,12 +38,8 @@ export default function legacyProxy() {
     // 拼接后端 URL，保留查询参数
     const base = new URL(backendBaseUrl);
     const basePath = base.pathname.replace(/\/$/, '');
-    const normalizedRequestPath =
-      basePath.endsWith('/api') && requestPath.startsWith('/api/bff')
-        ? requestPath.slice('/api/bff'.length) || '/'
-        : requestPath;
-    const urlPath =
-      (basePath && basePath !== '/' ? basePath : '') + normalizedRequestPath;
+    const suffix = requestPath.slice(basePrefix.length) || '/';
+    const urlPath = (basePath && basePath !== '/' ? basePath : '') + suffix;
     const forwardUrl = `${base.origin}${ctx.querystring ? `${urlPath}?${ctx.querystring}` : urlPath}`;
     const body = (ctx.request as any).body;
     const method = ctx.method.toUpperCase();

@@ -2,6 +2,8 @@ import { RedisPrefix } from '@idp-types/redis';
 import { set as redisSet, get as redisGet } from '@infra/redis';
 import type { Response } from 'express';
 
+import { config } from '../config';
+
 /**
  * Cookie SameSite 策略枚举
  */
@@ -92,8 +94,8 @@ export const defaultSessionOptions: SessionOptions = {
     name: 'idp_session',
     httpOnly: true,
     sameSite: SameSite.Lax,
-    secure: process.env.NODE_ENV === 'production',
-    domain: process.env.IDP_COOKIE_DOMAIN || undefined,
+    secure: config.runtime.isProduction,
+    domain: config.session.cookieDomain,
     path: '/',
   },
 };

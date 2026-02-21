@@ -1,9 +1,9 @@
 import 'reflect-metadata';
-import { requireIntEnv } from '@csisp/utils';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 
 import { AppModule } from './app.module';
+import { config } from './config';
 import { connect as connectRedis } from './infra/redis';
 
 async function bootstrap() {
@@ -12,7 +12,7 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  await app.listen(requireIntEnv('CSISP_IDP_PORT'));
+  await app.listen(config.http.port);
 }
 
 void bootstrap();

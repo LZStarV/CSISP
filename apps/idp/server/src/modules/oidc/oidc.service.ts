@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 
+import { config } from '@config';
 import { verifyToken } from '@csisp/auth/server';
 import {
   IAuthorizationRequest,
@@ -34,7 +35,6 @@ import type OidcClients from '@csisp/infra-database/public/OidcClients';
 import type OidcKeys from '@csisp/infra-database/public/OidcKeys';
 import type RefreshTokens from '@csisp/infra-database/public/RefreshTokens';
 import type User from '@csisp/infra-database/public/User';
-import { requireEnv } from '@csisp/utils';
 import { RedisPrefix } from '@idp-types/redis';
 import { getIdpLogger } from '@infra/logger';
 import { OidcClientModel } from '@infra/postgres/models/oidc-client.model';
@@ -50,8 +50,8 @@ import { OidcPolicyHelper } from './helpers/oidc.policy';
 import { OidcTokenSigner } from './helpers/token.signer';
 
 const logger = getIdpLogger('oidc-service');
-const accessTokenExpiresIn = '1h';
-const refreshTokenExpiresIn = '7d';
+const accessTokenExpiresIn = config.auth.accessTokenExpiresIn;
+const refreshTokenExpiresIn = config.auth.refreshTokenExpiresIn;
 
 type TokenRefreshRequest = {
   grant_type: OIDCGrantType;
@@ -92,7 +92,7 @@ export class OidcService {
     issuer: getApiBaseUrl(),
     expiresIn: accessTokenExpiresIn,
     refreshExpiresIn: refreshTokenExpiresIn,
-    kekSecret: requireEnv('OIDC_KEK_SECRET'),
+    kekSecret: config.auth.oidcKekSecret,
   });
 
   /**

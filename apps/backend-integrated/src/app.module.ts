@@ -1,8 +1,8 @@
 import { IdpAuthModule } from '@csisp/auth/server';
-import { requireEnv } from '@csisp/utils';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { config } from './config';
 import { SequelizePostgresModule } from './infra/postgres/sequelize.module';
 import { DomainModules } from './modules';
 
@@ -10,15 +10,15 @@ import { DomainModules } from './modules';
   imports: [
     IdpAuthModule.register({
       idp: {
-        url: requireEnv('CSISP_IDP_THRIFT_URL'),
+        url: config.auth.idpThriftUrl,
       },
       auth: {
-        jwtSecret: requireEnv('JWT_SECRET'),
+        jwtSecret: config.auth.jwtSecret,
       },
     }),
     SequelizePostgresModule,
-    MongooseModule.forRoot(requireEnv('MONGODB_URI'), {
-      dbName: requireEnv('MONGODB_DB'),
+    MongooseModule.forRoot(config.mongo.uri, {
+      dbName: config.mongo.dbName,
     }),
     ...DomainModules,
   ],

@@ -1,4 +1,4 @@
-import { requireEnv } from '@csisp/utils';
+import { config } from '@config';
 import { Module } from '@nestjs/common';
 import {
   SequelizeModule,
@@ -13,7 +13,7 @@ import { POSTGRES_MODELS } from './models';
       useFactory: (): SequelizeModuleOptions =>
         ({
           dialect: 'postgres',
-          uri: requireEnv('DATABASE_URL'),
+          uri: config.db.url,
           logging: false,
           models: [...POSTGRES_MODELS],
           autoLoadModels: false,

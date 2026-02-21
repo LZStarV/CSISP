@@ -2,7 +2,7 @@ import { AUTH_COOKIE_NAME } from '@csisp/auth/core';
 import { verifyAuth } from '@csisp/auth/server';
 
 import { sessionManager } from '@/src/server/auth/session';
-import { getJwtSecret } from '@/src/server/config/env';
+import { config } from '@/src/server/config';
 
 export async function withAuth(ctx: Record<string, any>) {
   const auth = ctx.headers?.get?.('authorization') || '';
@@ -21,7 +21,7 @@ export async function withAuth(ctx: Record<string, any>) {
 
   if (token) {
     const decoded = await verifyAuth(token, {
-      jwtSecret: getJwtSecret(),
+      jwtSecret: config.auth.jwtSecret,
       sessionManager,
     });
 

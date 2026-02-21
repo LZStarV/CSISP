@@ -1,6 +1,8 @@
 import { getRequestLogger } from '@infra/logger';
 import type { Context, Next } from 'koa';
 
+import { config } from '../config';
+
 // 全局错误处理中间件
 //
 // 作用：
@@ -37,7 +39,7 @@ export default function error(options: ErrorOptions = {}) {
         code: ctx.status,
         message: err.message || 'Internal Error',
       };
-      if (showDetailsInDev && process.env.NODE_ENV === 'development') {
+      if (showDetailsInDev && config.runtime.isDev) {
         body.stack = err.stack;
       }
       ctx.body = body;

@@ -1,13 +1,13 @@
 import pg from 'pg';
 import { Sequelize } from 'sequelize';
 
-import { getDatabaseUrl } from '@/src/server/config/env';
+import { config } from '@/src/server/config';
 
 let sequelize: Sequelize | null = null;
 
 export function getSequelize(): Sequelize {
   if (sequelize) return sequelize;
-  const url = getDatabaseUrl();
+  const url = config.db.url;
   if (!url) {
     throw new Error('DATABASE_URL is not set');
   }

@@ -1,6 +1,7 @@
 import { koaAuth } from '@csisp/auth/server';
-import { requireEnv } from '@csisp/utils';
 import type { Context, Next } from 'koa';
+
+import { config } from '../config';
 
 // JWT 鉴权中间件
 //
@@ -16,20 +17,21 @@ type JwtAuthOptions = {
 };
 
 export default function jwtAuth(options: JwtAuthOptions = {}) {
+  const basePrefix = config.routes.basePrefix;
   const {
     required = true,
     roles = [],
     excludePaths = [
-      '/api/bff/health',
-      '/api/bff/admin/openrpc.json',
-      '/api/bff/portal/openrpc.json',
-      '/api/bff/auth/login',
-      '/api/bff/auth/register',
+      `${basePrefix}/health`,
+      `${basePrefix}/admin/openrpc.json`,
+      `${basePrefix}/portal/openrpc.json`,
+      `${basePrefix}/auth/login`,
+      `${basePrefix}/auth/register`,
     ],
   } = options;
 
   const authMiddleware = koaAuth({
-    jwtSecret: requireEnv('JWT_SECRET'),
+    jwtSecret: config.auth.jwtSecret,
     required,
     roles,
     excludePaths,
@@ -38,7 +40,10 @@ export default function jwtAuth(options: JwtAuthOptions = {}) {
   return async (ctx: Context, next: Next) => {
     // 1. 如果是 RPC 路径以外的路径（且不在排除名单内），则直接通过
     // 注意：BFF 绝大部分业务逻辑在 RPC 路径下
-    const isRpcPath = /^\/api\/bff\/[^/]+\/[^/]+\/[^/]+$/.test(ctx.path);
+    const rest = ctx.path.startsWith(basePrefix)
+      ? ctx.path.slice(basePrefix.length)
+      : '';
+    const isRpcPath = /^\/[^/]+\/[^/]+\/[^/]+$/.test(rest);
     if (!isRpcPath && !excludePaths.includes(ctx.path)) {
       return next();
     }

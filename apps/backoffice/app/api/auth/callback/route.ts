@@ -8,12 +8,13 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createSession } from '@/src/server/auth/session';
-import { idpConfig, oidcConfig } from '@/src/server/config/env';
+import { getIdpConfig, getOidcConfig } from '@/src/server/config/env';
 import { getLogger } from '@/src/server/middleware/logger';
 import { signToken } from '@/src/server/modules/auth/auth.service';
 
-const idpClient = new IdpClient(idpConfig);
 const logger = getLogger({ context: 'auth-callback' });
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -40,12 +41,13 @@ export async function GET(req: NextRequest) {
     logger.info({ code, state, savedState }, 'Callback started');
 
     // 2. 向 IdP 换取 Token 并解析用户信息
+    const idpClient = new IdpClient(getIdpConfig());
     const { user } = await idpClient.exchangeAndDecodeUser(
       {
         code,
         verifier,
         client_id: 'backoffice',
-        redirect_uri: oidcConfig.callbackUrl,
+        redirect_uri: getOidcConfig().callbackUrl,
       },
       { headers: req.headers }
     );

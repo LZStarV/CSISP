@@ -115,6 +115,51 @@ export default [
   // TypeScript 官方推荐规则集（flat configs）
   ...ts.configs.recommended,
   {
+    // 禁止在业务代码直接读取环境变量，统一从各子项目 src/config 获取
+    // 例外：配置目录、构建配置文件、Backoffice 项目暂时豁免
+    files: ['**/*.{js,ts,tsx}'],
+    ignores: [
+      '**/src/config/**',
+      '**/src/**/config/**',
+      '**/vite.config.*',
+      '**/next.config.*',
+      'apps/backoffice/**',
+      'infra/**',
+      'packages/**',
+    ],
+    rules: {
+      // 禁止使用 process.env.<VAR>（允许 NODE_ENV）
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "MemberExpression[object.type='MemberExpression'][object.object.name='process'][object.property.name='env'][property.name!='NODE_ENV']",
+          message:
+            '请从所在子项目的 src/config 获取配置，避免直接使用 process.env',
+        },
+        // 禁止 import.meta.env.<VAR>（前端配置集中在各自 src/config）
+        {
+          selector:
+            "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
+          message:
+            '请从所在子项目的 src/config 获取配置，避免直接使用 import.meta.env',
+        },
+      ],
+    },
+  },
+  {
+    // 限制深层级相对路径导入：禁止 ../../ 或更深的父级相对导入
+    files: ['**/*.{js,ts,tsx,vue}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: ['../../**', '../../../**', '../../../../**'],
+        },
+      ],
+    },
+  },
+  {
     // TypeScript 与 Vue 文件的专项解析与规则
     files: ['**/*.{ts,tsx,vue}'],
     languageOptions: {

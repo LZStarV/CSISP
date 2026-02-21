@@ -5,6 +5,7 @@
  * 输出包含方法、路径、状态码和耗时的日志，
  * 替代旧 backend 中 logger/accessLogger 的核心行为。
  */
+import { getBackendLogger } from '@infra/logger';
 import {
   CallHandler,
   ExecutionContext,
@@ -13,8 +14,6 @@ import {
 } from '@nestjs/common';
 import type { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-
-import { getBackendLogger } from '../../infra/logger';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {

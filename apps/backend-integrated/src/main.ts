@@ -1,5 +1,4 @@
 import 'reflect-metadata';
-import { requireIntEnv } from '@csisp/utils';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
@@ -7,6 +6,7 @@ import { AppModule } from './app.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { RateLimitInterceptor } from './common/interceptors/rate-limit.interceptor';
 import { RpcExceptionFilter } from './common/rpc/rpc-exception.filter';
+import { config } from './config';
 import { corsOptions } from './config/cors.config';
 import { connect as connectRedis } from './infra/redis';
 
@@ -27,8 +27,7 @@ async function bootstrap() {
   app.useGlobalFilters(new RpcExceptionFilter());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  const port = requireIntEnv('CSISP_BACKEND_INTEGRATED_PORT');
-  await app.listen(port);
+  await app.listen(config.http.port);
 }
 
 void bootstrap();

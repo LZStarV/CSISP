@@ -1,16 +1,19 @@
 import {
   signToken as sdkSignToken,
   verifyToken as sdkVerifyToken,
+  parseDurationToSeconds,
 } from '@csisp/auth/server';
 
-import { getJwtSecret, jwtExpiresIn } from '@/src/server/config/env';
+import { config } from '@/src/server/config';
 
 export function signToken(payload: Record<string, any>) {
-  return sdkSignToken(payload, getJwtSecret(), { expiresIn: jwtExpiresIn });
+  return sdkSignToken(payload, config.auth.jwtSecret, {
+    expiresIn: parseDurationToSeconds(config.auth.jwtExpiresIn, 7200),
+  });
 }
 
 export function verifyToken(token: string) {
-  return sdkVerifyToken(token, getJwtSecret());
+  return sdkVerifyToken(token, config.auth.jwtSecret);
 }
 
 export function requireAdmin(ctx: Record<string, any>) {

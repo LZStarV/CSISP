@@ -139,13 +139,12 @@
 </template>
 
 <script setup lang="ts">
-import type { User, Course, AttendanceRecord, Homework } from '@csisp/types';
+import type { User, Course, Homework } from '@csisp/types';
 import {
   PeopleOutline,
   BookOutline,
   SchoolOutline,
   CheckmarkCircleOutline,
-  DocumentTextOutline,
   RefreshOutline,
   DownloadOutline,
   ArrowUpOutline,
@@ -168,6 +167,20 @@ import { PageContainer } from '@/components';
 const message = useMessage();
 const loading = ref(false);
 const error = ref<string | null>(null);
+
+type AdminOverview = NonNullable<
+  Awaited<ReturnType<typeof dashboardApi.getAdminOverview>>['data']
+>;
+type DashboardStats = AdminOverview['stats'];
+function hasClassCount(
+  s: DashboardStats | (DashboardStats & { classCount?: number })
+): s is DashboardStats & { classCount: number } {
+  if ('classCount' in s) {
+    const v = (s as { classCount?: unknown }).classCount;
+    return typeof v === 'number';
+  }
+  return false;
+}
 
 // 当前激活的标签页
 const activeTab = ref('users');
@@ -533,22 +546,27 @@ const fetchOverviewData = async () => {
     error.value = null;
 
     // 并行获取概览数据
-    const [statsResponse, usersResponse, coursesResponse] =
+    const [overviewResponse, usersResponse, coursesResponse] =
       await Promise.allSettled([
-        dashboardApi.getDashboardStats(),
+        dashboardApi.getAdminOverview(30, 10),
         userApi.getUsers({ page: 1, pageSize: 1 }),
         courseApi.getCourses({ page: 1, pageSize: 1 }),
       ]);
 
     // 更新概览卡片
-    if (statsResponse.status === 'fulfilled' && statsResponse.value.data) {
-      const stats = statsResponse.value.data;
+    if (
+      overviewResponse.status === 'fulfilled' &&
+      overviewResponse.value.data
+    ) {
+      const stats = overviewResponse.value.data.stats;
       if (overviewCards.value[0])
         overviewCards.value[0].value = stats.userCount;
       if (overviewCards.value[1])
         overviewCards.value[1].value = stats.courseCount;
       if (overviewCards.value[2])
-        overviewCards.value[2].value = stats.classCount;
+        overviewCards.value[2].value = hasClassCount(stats)
+          ? stats.classCount
+          : 0;
       if (overviewCards.value[3])
         overviewCards.value[3].value = stats.attendanceRate;
     }

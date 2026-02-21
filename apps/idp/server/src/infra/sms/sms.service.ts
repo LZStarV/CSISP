@@ -2,6 +2,7 @@ import Credential from '@alicloud/credentials';
 import Dypnsapi20170525, * as $Dypnsapi20170525 from '@alicloud/dypnsapi20170525';
 import * as $OpenApi from '@alicloud/openapi-client';
 import * as $Util from '@alicloud/tea-util';
+import { config } from '@config';
 import { getIdpLogger } from '@infra/logger';
 import { set as redisSet, get as redisGet } from '@infra/redis';
 import { Injectable } from '@nestjs/common';
@@ -45,9 +46,7 @@ export class SmsService {
     const code = this.generateCode();
     await redisSet(`idp:otp:${phone}`, code, OTP_MINUTES * 60);
     const client = this.createClient();
-    const signName = process.env.SMS_SIGN_NAME || '速通互联验证码';
-    const templateCode = process.env.SMS_TEMPLATE_CODE || '100001';
-    const schemeName = process.env.SMS_SCHEME_NAME || 'CSISP';
+    const { signName, templateCode, schemeName } = config.sms;
     const params = JSON.stringify({ code, min: String(OTP_MINUTES) });
     const req = new $Dypnsapi20170525.SendSmsVerifyCodeRequest({
       signName,

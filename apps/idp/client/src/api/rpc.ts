@@ -1,7 +1,9 @@
 import { auth, oidc } from '@csisp/idl/idp';
 import { call, hasError } from '@csisp/rpc/client-fetch';
 
-const IDP_PREFIX: string = '/api/idp';
+import { config } from '@/config';
+
+const IDP_PREFIX: string = config.routes.apiPrefix;
 
 // domain = auth
 const authCall = function <T>(action: string, params?: any) {

@@ -1,23 +1,12 @@
-import { requireEnv } from '@csisp/utils';
 import Redis from 'ioredis';
+
+import { config } from '@/src/server/config';
 
 let redis: Redis | null = null;
 
 export function getRedis(): Redis {
   if (redis) return redis;
-  const host = requireEnv('REDIS_HOST');
-  const portRaw = requireEnv('REDIS_PORT');
-  const port = Number(portRaw);
-  if (!Number.isInteger(port) || port <= 0) {
-    throw new Error(`Invalid environment variable: REDIS_PORT=${portRaw}`);
-  }
-  const dbRaw = requireEnv('REDIS_DB');
-  const db = Number(dbRaw);
-  if (!Number.isInteger(db) || db < 0) {
-    throw new Error(`Invalid environment variable: REDIS_DB=${dbRaw}`);
-  }
-  const passwordRaw = process.env.REDIS_PASSWORD;
-  const password = passwordRaw === '' ? undefined : passwordRaw;
+  const { host, port, db, password } = config.redis;
   redis = new Redis({ host, port, db, password, lazyConnect: true });
   return redis;
 }

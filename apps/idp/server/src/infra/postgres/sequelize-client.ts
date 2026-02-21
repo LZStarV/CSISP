@@ -1,17 +1,12 @@
-import { requireEnv } from '@csisp/utils';
+import { config } from '@config';
 import { Sequelize } from 'sequelize';
 
 let sequelizeInstance: Sequelize | null = null;
 
-function getEnv(name: string, def?: string): string | undefined {
-  return process.env[name] ?? def;
-}
-
 export function getSequelize(): Sequelize {
   if (sequelizeInstance) return sequelizeInstance;
 
-  const url = getEnv('IDP_DB_URL') ?? requireEnv('DATABASE_URL');
-  sequelizeInstance = new Sequelize(url, {
+  sequelizeInstance = new Sequelize(config.db.url, {
     dialect: 'postgres',
     logging: false,
     define: { underscored: true },

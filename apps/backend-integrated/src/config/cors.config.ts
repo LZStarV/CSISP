@@ -1,16 +1,13 @@
 import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 
+import { config } from './index';
+
 /**
  * CORS 配置
  */
 export const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
-    const allowedOrigins = [
-      process.env.CSISP_BFF_URL,
-      process.env.CSISP_BACKOFFICE_URL,
-      process.env.CSISP_FRONTEND_ADMIN_URL,
-      process.env.CSISP_FRONTEND_PORTAL_URL,
-    ].filter((x): x is string => Boolean(x));
+    const allowedOrigins = config.cors.allowedOrigins;
 
     if (!origin) {
       // 允许同源或服务器端调用

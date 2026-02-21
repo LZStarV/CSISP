@@ -153,23 +153,31 @@ const paginationConfig = computed(() => {
     };
   }
 
+  if (typeof props.pagination !== 'object' || props.pagination === null) {
+    return false;
+  }
+  const p = props.pagination as PaginationConfig;
+  const handler = p.onChange;
   const onUpdatePage =
-    typeof props.pagination.onChange === 'function'
-      ? (page: number) => props.pagination.onChange!(page)
-      : undefined;
-
+    typeof handler === 'function' ? (page: number) => handler(page) : undefined;
   const onUpdatePageSize =
-    typeof (props.pagination as any).onUpdatePageSize === 'function'
-      ? (size: number) => (props.pagination as any).onUpdatePageSize!(size)
+    typeof (p as PaginationConfig & { onUpdatePageSize?: (n: number) => void })
+      .onUpdatePageSize === 'function'
+      ? (size: number) =>
+          (
+            p as PaginationConfig & {
+              onUpdatePageSize?: (n: number) => void;
+            }
+          ).onUpdatePageSize!(size)
       : undefined;
 
   return {
-    page: props.pagination.current,
-    pageSize: props.pagination.pageSize,
-    itemCount: props.pagination.total,
-    pageSizes: props.pagination.pageSizeOptions || [10, 20, 50, 100],
-    showSizePicker: props.pagination.showSizeChanger !== false,
-    showQuickJumper: props.pagination.showQuickJumper !== false,
+    page: p.current,
+    pageSize: p.pageSize,
+    itemCount: p.total,
+    pageSizes: p.pageSizeOptions || [10, 20, 50, 100],
+    showSizePicker: p.showSizeChanger !== false,
+    showQuickJumper: p.showQuickJumper !== false,
     onUpdatePage,
     onUpdatePageSize,
   };

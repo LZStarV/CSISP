@@ -1,6 +1,8 @@
 import type Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 
+import { config } from '../config';
+
 import cors from './cors';
 import error from './error';
 import jwtAuth from './jwtAuth';
@@ -18,7 +20,7 @@ import trace from './trace';
 // - rateLimitMiddleware：滑窗限流
 export const errorMiddleware = () =>
   error({
-    showDetailsInDev: process.env.NODE_ENV === 'development',
+    showDetailsInDev: config.runtime.isDev,
     logErrors: true,
   });
 export const corsMiddleware = () => cors({});

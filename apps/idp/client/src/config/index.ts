@@ -19,3 +19,12 @@ export const CLIENT_LOGIN_URLS: Record<string, string> = {
 
   // 如果有其他系统，可以在此继续添加
 };
+
+export const config = {
+  routes: {
+    apiPrefix: '/api/idp',
+  },
+  login: {
+    targets: CLIENT_LOGIN_URLS,
+  },
+};

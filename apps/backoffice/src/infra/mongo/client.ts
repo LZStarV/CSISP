@@ -1,13 +1,12 @@
-import { requireEnv } from '@csisp/utils';
 import mongoose from 'mongoose';
+
+import { config } from '@/src/server/config';
 
 let connected = false;
 
 export async function getMongoose() {
   if (connected) return mongoose;
-  const uri = requireEnv('MONGODB_URI');
-  const dbName = requireEnv('MONGODB_DB');
-  await mongoose.connect(uri, { dbName });
+  await mongoose.connect(config.mongo.uri, { dbName: config.mongo.dbName });
   connected = true;
   return mongoose;
 }

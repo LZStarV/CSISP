@@ -1,5 +1,6 @@
-import { requireEnv } from '@csisp/utils';
 import { createClient, type RedisClientType } from 'redis';
+
+import { config as appConfig } from '../config';
 
 type RedisOptions = {
   host?: string;
@@ -14,17 +15,9 @@ let ns = '';
 
 // 组装 redis:// 连接 URL
 function buildUrl(opts: RedisOptions): string {
-  const host = opts.host ?? requireEnv('REDIS_HOST');
-  const portRaw = String(opts.port ?? requireEnv('REDIS_PORT'));
-  const port = Number(portRaw);
-  if (!Number.isInteger(port) || port <= 0) {
-    throw new Error(`Invalid environment variable: REDIS_PORT=${portRaw}`);
-  }
-  const dbRaw = String(opts.db ?? requireEnv('REDIS_DB'));
-  const db = Number(dbRaw);
-  if (!Number.isInteger(db) || db < 0) {
-    throw new Error(`Invalid environment variable: REDIS_DB=${dbRaw}`);
-  }
+  const host = opts.host ?? appConfig.redis.host;
+  const port = opts.port ?? appConfig.redis.port;
+  const db = opts.db ?? appConfig.redis.db;
   return `redis://${host}:${port}/${db}`;
 }
 
@@ -33,10 +26,9 @@ export async function connect(
   options: RedisOptions = {}
 ): Promise<RedisClientType> {
   if (client) return client;
-  ns = options.namespace ?? requireEnv('REDIS_NAMESPACE');
+  ns = options.namespace ?? appConfig.redis.namespace;
   const url = buildUrl(options);
-  const passwordRaw = options.password ?? process.env.REDIS_PASSWORD;
-  const password = passwordRaw === '' ? undefined : passwordRaw;
+  const password = options.password ?? appConfig.redis.password;
   client = createClient({ url, password });
   client.on('error', () => {});
   await client.connect();

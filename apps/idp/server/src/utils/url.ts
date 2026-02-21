@@ -1,5 +1,5 @@
-import { requireEnv } from '@csisp/utils';
+import { config } from '../config';
 
 export function getApiBaseUrl(): string {
-  return requireEnv('CSISP_IDP_RPC_URL');
+  return config.issuer.baseUrl;
 }

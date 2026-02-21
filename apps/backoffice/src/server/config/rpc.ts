@@ -10,3 +10,5 @@ export enum I18nAction {
   IMPORT_ENTRIES = 'importEntries',
   EXPORT_ENTRIES = 'exportEntries',
 }
+
+export const I18N_ACTION_ALIAS: Record<string, I18nAction> = {};

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@csisp/auth": "workspace:*",
+    "@csisp/config": "workspace:*",
     "@csisp/types": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@koa/router": "catalog:node",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@types/koa": "catalog:dev",
     "@types/koa-bodyparser": "catalog:dev",
+    "@types/koa__router": "^8.0.7",
     "esbuild": "catalog:dev",
     "nodemon": "catalog:dev",
     "pino-pretty": "catalog:",

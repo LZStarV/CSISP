@@ -20,6 +20,7 @@
     "@creditkarma/thrift-server-core": "^1.0.4",
     "@creditkarma/thrift-server-express": "1.0.4",
     "@csisp/auth": "workspace:*",
+    "@csisp/config": "workspace:*",
     "@csisp/rpc": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@nestjs/common": "catalog:node",
@@ -37,7 +38,8 @@
     "reflect-metadata": "catalog:node",
     "rxjs": "catalog:node",
     "sequelize": "catalog:node",
-    "sequelize-typescript": "catalog:node"
+    "sequelize-typescript": "catalog:node",
+    "zod": "catalog:node"
   },
   "devDependencies": {
     "@csisp/infra-database": "workspace:*",

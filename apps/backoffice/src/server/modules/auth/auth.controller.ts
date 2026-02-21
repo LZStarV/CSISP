@@ -4,13 +4,14 @@ import {
   OIDC_VERIFIER_COOKIE,
 } from '@csisp/auth/core';
 import { IdpClient } from '@csisp/auth/server';
-import type { IUserInfo } from '@csisp/idl/backoffice';
 import { z } from 'zod';
 
 import { destroySession } from '@/src/server/auth/session';
-import { idpConfig, oidcConfig } from '@/src/server/config/env';
+import { config } from '@/src/server/config';
 
-const idpClient = new IdpClient(idpConfig);
+function getIdpClient() {
+  return new IdpClient({ url: config.idp.thriftUrl });
+}
 
 export const meResult = z.object({
   sub: z.string(),
@@ -47,10 +48,10 @@ export interface AuthorizeParams {
 
 export async function authorize(params: AuthorizeParams, ctx: any) {
   // 1. 使用 SDK 构造授权跳转地址
-  const result = await idpClient.getAuthorizationUrl(
+  const result = await getIdpClient().getAuthorizationUrl(
     {
       client_id: 'backoffice',
-      redirect_uri: oidcConfig.callbackUrl,
+      redirect_uri: config.oidc.callbackUrl,
       state: params.state,
       code_challenge: params.code_challenge,
     },

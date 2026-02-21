@@ -13,7 +13,16 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "sourceMap": true,
-    "inlineSources": true
+    "inlineSources": true,
+    "baseUrl": ".",
+    "paths": {
+      "@infra/*": ["src/infra/*"],
+      "@modules/*": ["src/modules/*"],
+      "@common/*": ["src/common/*"],
+      "@utils/*": ["src/utils/*"],
+      "@config": ["src/config/index.ts"],
+      "@config/*": ["src/config/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

@@ -5,10 +5,12 @@ import axios, {
   type AxiosResponse,
 } from 'axios';
 
+import { config } from '../config';
+
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
-  baseURL: '/api',
-  timeout: 10000,
+  baseURL: config.api.prefix,
+  timeout: config.api.timeoutMs,
   headers: {
     'Content-Type': 'application/json',
   },

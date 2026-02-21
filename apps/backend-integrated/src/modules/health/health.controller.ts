@@ -1,9 +1,8 @@
+import type { RPCRequest, RPCResponse } from '@common/rpc/jsonrpc';
+import { ok } from '@common/rpc/jsonrpc';
+import { RpcExceptionFilter } from '@common/rpc/rpc-exception.filter';
+import { RpcRequestPipe } from '@common/rpc/rpc-request.pipe';
 import { Body, Controller, Post, UseFilters } from '@nestjs/common';
-
-import type { RPCRequest, RPCResponse } from '../../common/rpc/jsonrpc';
-import { ok } from '../../common/rpc/jsonrpc';
-import { RpcExceptionFilter } from '../../common/rpc/rpc-exception.filter';
-import { RpcRequestPipe } from '../../common/rpc/rpc-request.pipe';
 
 import { HealthService } from './health.service';
 
