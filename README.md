@@ -41,12 +41,11 @@ git config core.eol lf
 - 建议使用支持 EditorConfig 的编辑器，并确保保存时使用 LF：
   - VS Code：保持 EditorConfig 扩展启用，右下角换行符显示为 `LF`。
 
-### 开发环境与变量初始化
+### 开发环境与变量初始化（连接远端 Infisical）
 
-> 注意：在运行 infisical up 前，确保 Docker 已运行。
+> 说明：不再在本地启动 Infisical，统一连接云端实例；脚本会在开头自动触发登录，无需手动执行 login。
 
 ```bash
-pnpm -F @csisp/infra-infisical up
 pnpm dev:infra
 ```
 
