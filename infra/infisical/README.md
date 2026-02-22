@@ -17,8 +17,7 @@ pnpm add -wD @infisical/cli
 如果本地尚未启动 Infisical 服务，请先启动（需确保已安装 Docker）：
 
 ```bash
-cd infra/infisical
-pnpm run up
+pnpm up -F @csisp/infra-infisical
 ```
 
 _注：服务启动后运行在 http://localhost:8080_

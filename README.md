@@ -41,19 +41,14 @@ git config core.eol lf
 - 建议使用支持 EditorConfig 的编辑器，并确保保存时使用 LF：
   - VS Code：保持 EditorConfig 扩展启用，右下角换行符显示为 `LF`。
 
-### 初始化环境变量（首次克隆项目）
+### 开发环境与变量初始化
+
+> 注意：在运行 infisical up 前，确保 Docker 已运行。
 
 ```bash
-cp .env.example .env
-# 然后根据本地环境修改 .env 中的密码、端口等配置
+pnpm -F @csisp/infra-infisical up
+pnpm dev:infra
 ```
-
-> 说明：`.env.example` 仅作为示例和约定模板，列出项目需要的环境变量键与典型取值，不直接参与运行。拷贝生成的 `/.env` 用于本地开发，后续如需个人定制（例如调整端口、连接远程数据库等），建议在 `/.env.local` 中覆盖。
->
-> 当 `.env.example` 发生变更时：
->
-> - 维护者应确保仓库中的 `/.env` 在“变量键集合”上与 `.env.example` 保持一致（新增/删除/重命名变量时同步更新），但默认值可以更贴合本地开发场景。
-> - 协作者本地的 `/.env` 不需要每次覆盖，只需在拉取新代码后关注 `.env.example` 的变更：如果新增了必需变量或重命名了变量，再手动补充/调整自己的 `/.env` 或 `/.env.local` 即可。
 
 ### 安装依赖
 
@@ -72,11 +67,7 @@ pnpm -F [sub-application-name] dev
 
 ### 开发依赖数据库的后端子项目
 
-推荐通过统一脚本完成基础设施与类型生成后，再启动后端：
-
 ```bash
-pnpm run dev:infra
-
 pnpm run dev:backend-integrated
 ```
 

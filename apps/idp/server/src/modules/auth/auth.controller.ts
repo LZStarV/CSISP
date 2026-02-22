@@ -11,6 +11,7 @@ import {
 import { parseEnum } from '@csisp/utils';
 import { RedisPrefix } from '@idp-types/redis';
 import { del as redisDel } from '@infra/redis';
+import { BadRequestException } from '@nestjs/common';
 import {
   Body,
   Post,
@@ -19,9 +20,15 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { validateSync } from 'class-validator';
 import type { Response, Request } from 'express';
 
 import { AuthService } from './auth.service';
+import { EnterDto } from './dto/enter.dto';
+import { LoginDto } from './dto/login.dto';
+import { MultifactorDto } from './dto/multifactor.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 /**
  * AuthController 重构：采用声明式路由与拦截器模式
@@ -45,13 +52,13 @@ export class AuthController {
     @Body(RpcRequestPipe) { params }: any,
     @Res({ passthrough: true }) res: Response
   ) {
-    return this.service.login(
-      {
-        studentId: String(params.studentId ?? ''),
-        password: String(params.password ?? ''),
-      },
-      res
-    );
+    const dto = plainToInstance(LoginDto, {
+      studentId: params.studentId,
+      password: params.password,
+    });
+    const errs = validateSync(dto, { whitelist: true });
+    if (errs.length) throw new BadRequestException('Invalid params');
+    return this.service.login(dto, res);
   }
 
   @Post('multifactor')
@@ -60,14 +67,14 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ) {
     const typeParsed = parseEnum(params.type, MFAType, MFAType.Sms);
-    return this.service.multifactor(
-      {
-        type: typeParsed,
-        codeOrAssertion: String(params.codeOrAssertion ?? ''),
-        phoneOrEmail: String(params.phoneOrEmail ?? ''),
-      },
-      res
-    );
+    const dto = plainToInstance(MultifactorDto, {
+      type: typeParsed,
+      codeOrAssertion: params.codeOrAssertion,
+      phoneOrEmail: params.phoneOrEmail,
+    });
+    const errs = validateSync(dto, { whitelist: true });
+    if (errs.length) throw new BadRequestException('Invalid params');
+    return this.service.multifactor(dto, res);
   }
 
   @Post('reset_password_request')
@@ -84,11 +91,16 @@ export class AuthController {
       ResetReason,
       ResetReason.WeakPassword
     );
+    const dto = plainToInstance(ResetPasswordDto, {
+      studentId: params.studentId,
+      newPassword: params.newPassword,
+      resetToken: params.resetToken,
+    });
+    const errs = validateSync(dto, { whitelist: true });
+    if (errs.length) throw new BadRequestException('Invalid params');
     return this.service.resetPassword({
-      studentId: String(params.studentId ?? ''),
-      newPassword: String(params.newPassword ?? ''),
+      ...dto,
       reason: reasonParsed,
-      resetToken: String(params.resetToken ?? ''),
     });
   }
 
@@ -100,19 +112,18 @@ export class AuthController {
   ) {
     type IdpRequest = Request & { idpUserId?: number };
     const uid = (request as IdpRequest).idpUserId;
-    return this.service.enter(
-      {
-        state: String(params.state ?? ''),
-        ticket: params.ticket ? String(params.ticket) : undefined,
-        studentId: params.studentId ? String(params.studentId) : undefined,
-        redirectMode:
-          typeof params.redirectMode === 'string'
-            ? (params.redirectMode as string)
-            : undefined,
-      },
-      response,
-      uid
-    );
+    const dto = plainToInstance(EnterDto, {
+      state: params.state,
+      ticket: params.ticket,
+      studentId: params.studentId,
+      redirectMode:
+        typeof params.redirectMode === 'string'
+          ? (params.redirectMode as string)
+          : undefined,
+    });
+    const errs = validateSync(dto, { whitelist: true });
+    if (errs.length) throw new BadRequestException('Invalid params');
+    return this.service.enter(dto as any, response, uid);
   }
 
   @Post('mfa_methods')

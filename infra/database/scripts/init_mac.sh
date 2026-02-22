@@ -4,16 +4,6 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "$0")/../../.." && pwd)
 source "$ROOT_DIR/infra/database/scripts/common.sh"
 
-if [ -f "$ROOT_DIR/.env" ]; then
-  export $(grep -v '^#' "$ROOT_DIR/.env" | xargs)
-fi
-
-# 检查环境变量是否已从 Infisical 注入（以 DB_HOST 为例）
-if [ -z "${DB_HOST:-}" ] && [ ! -f "$ROOT_DIR/.env" ]; then
-  echo -e "\x1b[31m[ERROR] 既未发现 .env 文件，也未通过 Infisical 注入环境变量。请先运行 'infisical login' 并通过 'infisical run' 启动。\x1b[0m"
-  exit 1
-fi
-
 if ! command -v docker >/dev/null 2>&1; then
   log_info "检测到未安装 Docker，准备通过 Homebrew 安装 Docker Desktop"
   if ! command -v brew >/dev/null 2>&1; then
@@ -46,12 +36,7 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 
 log_info "启动数据库服务"
-if [ -f "$ROOT_DIR/.env" ]; then
-  docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" --env-file "$ROOT_DIR/.env" up -d postgres redis mongo
-else
-  # 如果没有 .env 文件，直接使用注入的环境变量
-  docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" up -d postgres redis mongo
-fi
+docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" up -d postgres redis mongo
 
 log_info "等待 PostgreSQL 数据库就绪"
 for i in {1..30}; do
@@ -78,6 +63,11 @@ for i in {1..30}; do
   fi
   sleep 2
 done
+
+if [ -z "${DB_HOST:-}" ]; then
+  echo -e "\x1b[31m[ERROR] 未检测到必要环境变量（例如 DB_HOST）。请先运行 'infisical login' 并通过 'infisical run' 启动。\x1b[0m"
+  exit 1
+fi
 
 log_info "创建应用用户与数据库"
 docker compose -f "$ROOT_DIR/infra/database/docker-compose.db.yml" exec -T postgres psql -U "$POSTGRES_USER" -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD' CREATEDB;" >/dev/null 2>&1 || true

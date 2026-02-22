@@ -53,29 +53,32 @@ export class RpcRequestPipe implements PipeTransform {
         typeof fieldValue === 'string' ? fieldValue.trim() : fieldValue;
     }
     // 通用字符串字段校验工具（必填/可选）
-    const strField = (k: string, min = 0, max = 1024) => {
+    const requiredStr = (k: string, min = 1, max = 1024) => {
       const val = params[k];
-      if (val === undefined || val === null) return undefined;
+      if (val === undefined || val === null)
+        throw new BadRequestException(`${k} is required`);
       if (typeof val !== 'string')
         throw new BadRequestException(`Invalid type for ${k}`);
-      if (val.length < min || val.length > max)
+      const v = val.trim();
+      if (v.length < min || v.length > max)
         throw new BadRequestException(`Invalid length for ${k}`);
-      return val;
+      return v;
     };
-    const optStrField = (k: string, min = 0, max = 1024) => {
+    const optionalStr = (k: string, min = 0, max = 1024) => {
       const val = params[k];
       if (val === undefined || val === null) return undefined;
       if (typeof val !== 'string')
         throw new BadRequestException(`Invalid type for ${k}`);
-      if (val.length < min || val.length > max)
+      const v = val.trim();
+      if (v.length < min || v.length > max)
         throw new BadRequestException(`Invalid length for ${k}`);
-      return val;
+      return v;
     };
     const has = (k: string) => Object.prototype.hasOwnProperty.call(params, k);
     // Auth.enter：state/redirectMode
-    if (has('state')) params.state = strField('state', 1, 256);
+    if (has('state')) params.state = optionalStr('state', 1, 256);
     if (has('redirectMode')) {
-      const redirectModeValue = optStrField('redirectMode', 0, 16);
+      const redirectModeValue = optionalStr('redirectMode', 0, 16);
       if (redirectModeValue && redirectModeValue !== 'http')
         throw new BadRequestException('Invalid redirectMode');
       params.redirectMode = redirectModeValue;
@@ -131,13 +134,24 @@ export class RpcRequestPipe implements PipeTransform {
           ? (OIDCGrantType.RefreshToken as OIDCGrantType)
           : (OIDCGrantType.AuthorizationCode as OIDCGrantType);
     }
-    if (has('code_verifier'))
-      params.code_verifier = strField('code_verifier', 8, 255);
-    if (has('code')) params.code = strField('code', 1, 128);
-    // 通用：client_id/redirect_uri
-    if (has('client_id')) params.client_id = strField('client_id', 1, 128);
-    if (has('redirect_uri'))
-      params.redirect_uri = strField('redirect_uri', 1, 1024);
+    // OIDC.token 强制必填字段（按 grant_type 区分）
+    if (params.grant_type === 'authorization_code') {
+      params.code_verifier = requiredStr('code_verifier', 8, 255);
+      params.code = requiredStr('code', 1, 128);
+      params.redirect_uri = requiredStr('redirect_uri', 1, 1024);
+      params.client_id = requiredStr('client_id', 1, 128);
+    } else if (params.grant_type === 'refresh_token') {
+      params.refresh_token = requiredStr('refresh_token', 1, 1024);
+      params.client_id = requiredStr('client_id', 1, 128);
+    } else {
+      // 通用：若出现这些字段则进行规范化
+      if (has('code_verifier'))
+        params.code_verifier = optionalStr('code_verifier', 8, 255);
+      if (has('code')) params.code = optionalStr('code', 1, 128);
+      if (has('client_id')) params.client_id = optionalStr('client_id', 1, 128);
+      if (has('redirect_uri'))
+        params.redirect_uri = optionalStr('redirect_uri', 1, 1024);
+    }
     // OIDC.scope：空格分隔 + 白名单
     if (has('scope')) {
       const val = params.scope;
@@ -184,9 +198,9 @@ export class RpcRequestPipe implements PipeTransform {
     }
     // Auth.multifactor：最小字段校验
     if (has('codeOrAssertion'))
-      params.codeOrAssertion = strField('codeOrAssertion', 1, 64);
+      params.codeOrAssertion = optionalStr('codeOrAssertion', 1, 64);
     if (has('phoneOrEmail'))
-      params.phoneOrEmail = optStrField('phoneOrEmail', 0, 128);
+      params.phoneOrEmail = optionalStr('phoneOrEmail', 0, 128);
     return { id, params };
   }
 }

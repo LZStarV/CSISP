@@ -30,9 +30,12 @@ import {
   SessionMode,
 } from '@utils/session.issuer';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
-import { plainToInstance } from 'class-transformer';
-import { IsOptional, IsString, Length, validateSync } from 'class-validator';
 import type { Response } from 'express';
+
+import { EnterDto } from './dto/enter.dto';
+import { LoginDto } from './dto/login.dto';
+import { MultifactorDto } from './dto/multifactor.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 type RpcParams = Record<string, any>;
 
@@ -153,33 +156,14 @@ export class AuthService {
    * - 校验用户是否首次登录（非 scrypt$ 前缀需重置密码）
    * - 校验密码通过后生成短期会话并返回多因子列表
    */
-  async login(
-    params: {
-      studentId: string;
-      password: string;
-    },
-    res?: Response
-  ): Promise<LoginResult> {
-    class LoginParamsDto {
-      @IsString()
-      @Length(1, 128)
-      studentId!: string;
-      @IsString()
-      @Length(1, 512)
-      password!: string;
-    }
-    // 参数校验（运行时）
-    const dto = plainToInstance(LoginParamsDto, params);
-    const errs = validateSync(dto, { whitelist: true });
-    if (errs.length) throw new HttpException('Invalid params', 400);
-
+  async login(params: LoginDto, res?: Response): Promise<LoginResult> {
     // 查询用户（按学号）
     type UserPick = Pick<
       User,
       'id' | 'username' | 'student_id' | 'phone' | 'password'
     >;
     const user = (await this.userModel.findOne({
-      where: { student_id: dto.studentId },
+      where: { student_id: params.studentId },
       attributes: ['id', 'username', 'student_id', 'phone', 'password'],
       raw: true,
     })) as UserPick | null;
@@ -198,7 +182,7 @@ export class AuthService {
     }
 
     // 密码校验：仅支持 scrypt$ 前缀的密码（未来可能支持 RSA 公钥加密后的密码）
-    const ok = await verifyPassword(user.password, dto.password);
+    const ok = await verifyPassword(user.password, params.password);
     if (!ok) throw new HttpException('Invalid username or password', 401);
 
     // 构建多因子列表（根据 mfa_settings 动态启用）
@@ -232,49 +216,33 @@ export class AuthService {
    * - codeOrAssertion 非 6 位数字视为请求验证码
    * - 6 位数字视为校验验证码，成功则建立会话并进入 enter
    */
-  async multifactor(
-    params: {
-      type: MFAType;
-      codeOrAssertion: string;
-      phoneOrEmail: string;
-    },
-    res?: Response
-  ): Promise<Next> {
-    // 多因子参数校验（最小闭环）：短信验证码请求与校验
-    class MultifactorParamsDto {
-      @IsString()
-      @Length(1, 64)
-      codeOrAssertion!: string;
-      @IsString()
-      @Length(0, 128)
-      phoneOrEmail!: string;
-    }
-    const dto = plainToInstance(MultifactorParamsDto, params);
-    const errs = validateSync(dto, { whitelist: true });
-    if (errs.length) throw new HttpException('Invalid params', 400);
+  async multifactor(params: MultifactorDto, res?: Response): Promise<Next> {
     const logger = getIdpLogger('multifactor');
 
     switch (params.type) {
       case MFAType.Sms: {
-        const code = dto.codeOrAssertion;
+        const code = params.codeOrAssertion;
         const isRequest = code.length !== 6 || /\D/.test(code);
         if (isRequest) {
-          logger.info({ method: 'sms', target: dto.phoneOrEmail });
+          logger.info({ method: 'sms', target: params.phoneOrEmail });
           let api: unknown = null;
-          if (dto.phoneOrEmail) {
-            api = await this.smsService.sendOtp(dto.phoneOrEmail);
+          if (params.phoneOrEmail) {
+            api = await this.smsService.sendOtp(params.phoneOrEmail);
           }
           return new Next({
             nextSteps: [AuthNextStep.Multifactor],
             sms: api ?? {},
           });
         }
-        const ok = await this.smsService.verifyOtp(dto.phoneOrEmail, code);
+        const ok = await this.smsService.verifyOtp(
+          params.phoneOrEmail ?? '',
+          code
+        );
         if (!ok) throw new HttpException('Invalid verification code', 401);
-        if (res && dto.phoneOrEmail) {
+        if (res && params.phoneOrEmail) {
           type UserPick = Pick<User, 'id' | 'phone'>;
           const user = (await this.userModel.findOne({
-            where: { phone: dto.phoneOrEmail },
+            where: { phone: params.phoneOrEmail },
             attributes: ['id', 'phone'],
             raw: true,
           })) as UserPick | null;
@@ -491,63 +459,39 @@ export class AuthService {
    * - 使用 scrypt 生成新密码哈希并写入数据库
    * - 成功后进入多因子校验
    */
-  async resetPassword(_params: {
-    studentId: string;
-    newPassword: string;
-    reason: ResetReason;
-    resetToken: string;
-  }): Promise<Next> {
-    // 重置密码：将新密码使用 scrypt 生成哈希并写入数据库
-    class ResetPasswordDto {
-      @IsString()
-      @Length(1, 128)
-      studentId!: string;
-      @IsString()
-      @Length(8, 64)
-      newPassword!: string;
-      @IsString()
-      @Length(1, 128)
-      resetToken!: string;
-    }
-    const dto = plainToInstance(ResetPasswordDto, _params);
-    const errs = validateSync(dto, { whitelist: true });
-    if (errs.length) throw new HttpException('Invalid params', 400);
+  async resetPassword(
+    _params: ResetPasswordDto & { reason: ResetReason }
+  ): Promise<Next> {
     type UserPick = Pick<User, 'id' | 'student_id'>;
     const user = (await this.userModel.findOne({
-      where: { student_id: dto.studentId },
+      where: { student_id: _params.studentId },
       attributes: ['id', 'student_id'],
       raw: true,
     })) as UserPick | null;
     if (!user) throw new HttpException('User not found', 404);
 
     // 校验重置令牌（使用 TicketIssuer）
-    const tokenVal = await this.resetTicketIssuer.verify(dto.resetToken);
+    const tokenVal = await this.resetTicketIssuer.verify(_params.resetToken);
     if (!tokenVal || Number(tokenVal) !== user.id) {
       throw new HttpException('Invalid reset token', 401);
     }
-    const hashed = await hashPasswordScrypt(dto.newPassword);
+    const hashed = await hashPasswordScrypt(_params.newPassword);
     await this.userModel.update(
       { password: hashed },
-      { where: { student_id: dto.studentId } }
+      { where: { student_id: _params.studentId } }
     );
     // 标记令牌失效（消费令牌）
-    await this.resetTicketIssuer.consume(dto.resetToken);
+    await this.resetTicketIssuer.consume(_params.resetToken);
     // 改密成功后进入多因子校验
     return new Next({ nextSteps: [AuthNextStep.Multifactor] });
   }
 
   async resetPasswordRequest(_params: { studentId: string }): Promise<Next> {
-    class ResetPasswordReqDto {
-      @IsString()
-      @Length(1, 128)
-      studentId!: string;
-    }
-    const dto = plainToInstance(ResetPasswordReqDto, _params);
-    const errs = validateSync(dto, { whitelist: true });
-    if (errs.length) throw new HttpException('Invalid params', 400);
+    const studentId = String(_params.studentId ?? '').trim();
+    if (!studentId) throw new HttpException('Invalid params', 400);
     type UserPick = Pick<User, 'phone'>;
     const user = (await this.userModel.findOne({
-      where: { student_id: dto.studentId },
+      where: { student_id: studentId },
       attributes: ['phone'],
       raw: true,
     })) as UserPick | null;
@@ -568,35 +512,12 @@ export class AuthService {
    * - 同时建立 SSO 会话（Cookie）
    */
   async enter(
-    params: RpcParams,
+    params: EnterDto,
     res?: Response,
     uidFromSess?: number
   ): Promise<Next> {
-    // 完成登录：建立 SSO 会话；如存在授权态则颁发一次性授权码并返回回调指令
-    class EnterParamsDto {
-      @IsOptional()
-      @IsString()
-      @Length(1, 256)
-      state?: string;
-      @IsOptional()
-      @IsString()
-      @Length(1, 128)
-      ticket?: string;
-      @IsOptional()
-      @IsString()
-      @Length(0, 16)
-      redirectMode?: string;
-      @IsOptional()
-      @IsString()
-      @Length(1, 128)
-      studentId?: string;
-    }
-    const dto = plainToInstance(EnterParamsDto, params);
-    const errs = validateSync(dto, { whitelist: true });
-    if (errs.length) throw new HttpException('Invalid params', 400);
-
     const ticket = params.ticket;
-    let state = dto.state;
+    let state = params.state;
     let auth: any = null;
 
     if (ticket) {
@@ -610,7 +531,7 @@ export class AuthService {
       auth = await this.oidcAuthReqIssuer.verify(state);
     }
 
-    const studentId = dto.studentId;
+    const studentId = params.studentId;
     type UserPick = Pick<User, 'id' | 'username' | 'student_id' | 'status'>;
     const user = studentId
       ? ((await this.userModel.findOne({
@@ -662,7 +583,7 @@ export class AuthService {
     });
 
     const redirectTo = `${auth.redirect_uri}?code=${code}&state=${encodeURIComponent(String(state || ''))}`;
-    if (res && dto.redirectMode === 'http') {
+    if (res && params.redirectMode === 'http') {
       res.redirect(302, redirectTo);
       return new Next({ nextSteps: [AuthNextStep.Finish] });
     }
