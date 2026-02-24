@@ -36,6 +36,6 @@ jobs:
             git fetch --all
             git reset --hard origin/\${DB_DEPLOY_BRANCH:-main}
             pnpm -v
-            pnpm install --frozen-lockfile
+            pnpm i -F @csisp/infra-database --frozen-lockfile
             pnpm -F @csisp/infra-database prod:db:init
           "
