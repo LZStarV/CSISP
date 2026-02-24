@@ -25,7 +25,7 @@
 bash init_mac.sh
 
 # Linux
-bash init_linux.sh
+sudo bash init_linux.sh
 ```
 
 ### 克隆仓库前的推荐 Git 配置（尤其是 Windows）

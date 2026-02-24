@@ -17,6 +17,20 @@ RESET=$'\033[0m'
 export LC_ALL="en_US.UTF-8"
 export LANG="en_US.UTF-8"
 
+log_info "正在检查 Infisical CLI"
+if command -v infisical >/dev/null 2>&1; then
+  log_success "已安装 Infisical CLI"
+else
+  log_warn "未检测到 Infisical CLI"
+  if command -v apt-get >/dev/null 2>&1; then
+    log_info "Debian/Ubuntu 安装命令:"
+    log_info "curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo -E bash"
+    log_info "sudo apt-get update && sudo apt-get install -y infisical"
+  else
+    log_info "请参考官方说明安装 CLI: https://infisical.com/docs/cli/overview"
+  fi
+fi
+
 if [ -f ".nvmrc" ]; then
   REQUIRED_NODE_MAJOR=$(tr -d ' v' < .nvmrc)
 else

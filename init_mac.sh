@@ -21,6 +21,18 @@ export HOMEBREW_NO_INSTALL_CLEANUP=1
 export HOMEBREW_NO_ENV_HINTS=1
 export NONINTERACTIVE=1
 
+log_info "正在检查 Infisical CLI"
+if command -v infisical >/dev/null 2>&1; then
+  log_success "已安装 Infisical CLI"
+else
+  log_warn "未检测到 Infisical CLI"
+  if command -v brew >/dev/null 2>&1; then
+    log_info "可通过 Homebrew 安装: brew install InfisicalHQ/infisical/infisical"
+  else
+    log_info "请参考官方说明安装 CLI: https://infisical.com/docs/cli/overview"
+  fi
+fi
+
 if [ -f ".nvmrc" ]; then
   REQUIRED_NODE_MAJOR=$(tr -d ' v' < .nvmrc)
 else

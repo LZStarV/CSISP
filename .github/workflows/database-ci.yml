@@ -1,0 +1,40 @@
+name: Database CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infra/database/**'
+
+concurrency:
+  group: db-prod
+  cancel-in-progress: false
+
+jobs:
+  apply-prod:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy database migration via SSH
+        env:
+          DB_SSH_HOST: ${{ secrets.DB_SSH_HOST }}
+          DB_SSH_PORT: ${{ secrets.DB_SSH_PORT }}
+          DB_SSH_USER: ${{ secrets.DB_SSH_USER }}
+          DB_SSH_KEY: ${{ secrets.DB_SSH_KEY }}
+          DB_DEPLOY_PATH: ${{ vars.DB_DEPLOY_PATH }}
+          DB_DEPLOY_BRANCH: ${{ vars.DB_DEPLOY_BRANCH }}
+        run: |
+          echo "$DB_SSH_KEY" > ssh_key.pem
+          chmod 600 ssh_key.pem
+          ssh -p "${DB_SSH_PORT:-22}" -i ssh_key.pem -o StrictHostKeyChecking=no "$DB_SSH_USER@$DB_SSH_HOST" "
+            set -euo pipefail
+            cd '$DB_DEPLOY_PATH'
+            git fetch --all
+            git reset --hard origin/\${DB_DEPLOY_BRANCH:-main}
+            pnpm -v
+            pnpm install --frozen-lockfile
+            pnpm -F @csisp/infra-database prod:db:init
+          "

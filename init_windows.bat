@@ -99,6 +99,16 @@ if !errorlevel! equ 0 (
 )
 
 echo.
+echo [Extra] Checking Infisical CLI
+where infisical >nul 2>&1
+if !errorlevel! equ 0 (
+    echo   [OK] Infisical CLI detected
+) else (
+    echo   [INFO] Infisical CLI not found. Please install and re-run.
+    echo   [INFO] See: https://infisical.com/docs/cli/overview
+)
+
+echo.
 echo ================================================
 echo    Environment Check Summary
 echo ================================================
