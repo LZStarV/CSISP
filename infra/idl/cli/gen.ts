@@ -6,7 +6,6 @@ import { getCliLogger } from './logger';
 import {
   collectThriftFiles,
   runBin,
-  thriftPath,
   thriftTypescriptPath,
   tscPath,
 } from './utils';
@@ -47,26 +46,6 @@ export function genTS(root: string, cfg: Config) {
   }
   genAggregators(root, cfg);
   runBin(tscPath(), ['-p', join(root, 'tsconfig.json')], root);
-}
-
-/**
- * 生成 Node.js 运行时代码（JS）
- * - 使用 Apache Thrift 编译器（thrift -r --gen js:node）
- * - 输出目录遵循脚本约定：dist/js/<module>/vN
- */
-export function genJS(root: string, cfg: Config) {
-  const bin = thriftPath();
-  for (const m of cfg.modules) {
-    const src = join(root, m.source);
-    const out = join(root, m.jsOut);
-    if (!existsSync(src)) continue;
-    mkdirSync(out, { recursive: true });
-    const files = collectThriftFiles(src);
-    for (const f of files) {
-      runBin(bin, ['-r', '--gen', 'js:node', '-out', out, f], root);
-    }
-    logger.info({ module: m.name, out }, 'js generated');
-  }
 }
 
 /**

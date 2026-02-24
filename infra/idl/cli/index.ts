@@ -1,14 +1,14 @@
 import { check } from './check';
 import { loadConfig } from './config';
 import { diff } from './diff';
-import { genJS, genTS } from './gen';
+import { genTS } from './gen';
 import { getCliLogger } from './logger';
-import { thriftPath, thriftTypescriptPath, tscPath } from './utils';
+import { thriftTypescriptPath, tscPath } from './utils';
 
 /**
  * CLI 入口
  * 支持的子命令：
- * - gen [--ts] [--js]：生成类型与运行时代码
+ * - gen [--ts]：生成类型代码
  * - check：运行非阻断的兼容性与规范检查
  * - diff：对比 vN 与 vN+1 的文件集差异
  * - doctor：输出工具链诊断信息
@@ -22,12 +22,9 @@ function main() {
 
   if (cmd === 'gen') {
     const ts = args.includes('--ts');
-    const js = args.includes('--js');
     if (ts) genTS(root, cfg);
-    if (js) genJS(root, cfg);
-    if (!ts && !js) {
+    if (!ts) {
       genTS(root, cfg);
-      genJS(root, cfg);
     }
     return;
   }
@@ -42,7 +39,6 @@ function main() {
   if (cmd === 'doctor') {
     logger.info(
       {
-        thrift: thriftPath(),
         thriftTypescript: thriftTypescriptPath(root),
         tsc: tscPath(),
       },
@@ -50,9 +46,7 @@ function main() {
     );
     return;
   }
-  logger.info(
-    'Usage: idl gen [--ts] [--js] | idl check | idl diff | idl doctor'
-  );
+  logger.info('Usage: idl gen [--ts] | idl check | idl diff | idl doctor');
 }
 
 main();

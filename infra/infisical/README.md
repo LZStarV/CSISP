@@ -14,7 +14,7 @@ pnpm add -wD @infisical/cli
 
 ### 连接远端 Secrets 服务
 
-团队已将 Infisical 部署到云服务器（例如 http://43.139.43.214:8080）。运行脚本时会在开头自动触发登录，无需手动执行 login。
+团队已将 Infisical 部署到云服务器（例如 http://43.139.43.214:80）。运行脚本时会在开头自动触发登录，无需手动执行 login。
 
 ## 2. 日常开发
 
@@ -32,7 +32,7 @@ pnpm dev:idp:server
 如果你需要查看当前环境生效的所有变量，可以运行：
 
 ```bash
-pnpm exec infisical export --domain http://43.139.43.214:8080/api
+pnpm exec infisical export --domain http://43.139.43.214/api
 ```
 
 ## 3. 注意事项

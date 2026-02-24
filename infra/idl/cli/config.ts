@@ -3,13 +3,11 @@
  * - name：模块名称（如 backoffice/backend/idp 或 single）
  * - source：Thrift 源目录（src/<module>/vN 或外部目录）
  * - tsOut：TS 生成输出目录（.generated/ts/<module>/vN）
- * - jsOut：JS 生成输出目录（dist/js/<module>/vN）
  */
 export type ModuleConfig = {
   name: string;
   source: string;
   tsOut: string;
-  jsOut: string;
 };
 
 /**
@@ -47,7 +45,6 @@ export function loadConfig(): Config {
   const version = process.env[ENV_KEYS.IDL_VERSION] ?? 'v1';
   const sourceDir = process.env[ENV_KEYS.IDL_SOURCE_DIR] ?? '';
   const tsOutDir = '';
-  const jsOutDir = '';
   const modules: ModuleConfig[] = [];
   if (sourceDir) {
     const name = 'single';
@@ -55,7 +52,6 @@ export function loadConfig(): Config {
       name,
       source: sourceDir,
       tsOut: tsOutDir || `.generated/ts/${name}/${version}`,
-      jsOut: jsOutDir || `dist/js/${name}/${version}`,
     });
   } else {
     for (const name of DEFAULT_MODULES) {
@@ -63,7 +59,6 @@ export function loadConfig(): Config {
         name,
         source: `src/${name}/${version}`,
         tsOut: `.generated/ts/${name}/${version}`,
-        jsOut: `dist/js/${name}/${version}`,
       });
     }
   }

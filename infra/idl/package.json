@@ -8,8 +8,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "gen:ts": "tsx ./cli/index.ts gen --ts",
-    "gen:js": "tsx ./cli/index.ts gen --js",
-    "idl:gen": "tsx ./cli/index.ts gen --ts --js && tsc -p tsconfig.esm.json && tsx ./scripts/build-esm-index.ts",
+    "idl:gen": "tsx ./cli/index.ts gen --ts && tsc -p tsconfig.esm.json && tsx ./scripts/build-esm-index.ts",
     "idl:check": "tsx ./cli/index.ts check",
     "idl:diff": "tsx ./cli/index.ts diff",
     "build": "pnpm idl:gen"
@@ -44,7 +43,6 @@
       "import": "./dist/ts/*",
       "types": "./dist/ts/*"
     },
-    "./js/*": "./dist/js/*",
     "./thrift/*": "./src/v1/*"
   },
   "typesVersions": {

@@ -7,7 +7,7 @@ export type DbConfig = {
 };
 
 export function getDbConfig(): DbConfig {
-  const url = process.env.IDP_DB_URL ?? process.env.DATABASE_URL;
+  const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error('Missing environment variable: DATABASE_URL');
   }

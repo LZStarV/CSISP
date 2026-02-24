@@ -187,59 +187,6 @@ else
   fi
 fi
 
-log_info "正在检查 Apache Thrift 编译器"
-THRIFT_STATUS="未检查"
-THRIFT_OK=0
-if command -v thrift >/dev/null 2>&1; then
-  THRIFT_VERSION=$(thrift --version 2>/dev/null || echo "thrift")
-  THRIFT_STATUS="已安装: $THRIFT_VERSION"
-  THRIFT_OK=1
-  log_success "$THRIFT_STATUS"
-else
-  # 按发行版尝试安装
-  if command -v apt-get >/dev/null 2>&1; then
-    log_info "未检测到 thrift，尝试通过 apt-get 安装 (thrift-compiler)"
-    if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y thrift-compiler >/dev/null 2>&1; then
-      if command -v thrift >/dev/null 2>&1; then
-        THRIFT_VERSION=$(thrift --version 2>/dev/null || echo "thrift")
-        THRIFT_STATUS="已安装: $THRIFT_VERSION"
-        THRIFT_OK=1
-        log_success "$THRIFT_STATUS"
-      else
-        THRIFT_STATUS="安装后仍未检测到 thrift，请检查安装日志"
-        log_error "$THRIFT_STATUS"
-      fi
-    else
-      THRIFT_STATUS="通过 apt-get 安装 thrift 失败，请参考发行版文档手动安装"
-      log_error "$THRIFT_STATUS"
-    fi
-  elif command -v dnf >/dev/null 2>&1; then
-    log_info "未检测到 thrift，尝试通过 dnf 安装"
-    if sudo dnf install -y thrift >/dev/null 2>&1; then
-      THRIFT_VERSION=$(thrift --version 2>/dev/null || echo "thrift")
-      THRIFT_STATUS="已安装: $THRIFT_VERSION"
-      THRIFT_OK=1
-      log_success "$THRIFT_STATUS"
-    else
-      THRIFT_STATUS="通过 dnf 安装 thrift 失败，请参考发行版文档手动安装"
-      log_error "$THRIFT_STATUS"
-    fi
-  elif command -v yum >/dev/null 2>&1; then
-    log_info "未检测到 thrift，尝试通过 yum 安装"
-    if sudo yum install -y thrift >/dev/null 2>&1; then
-      THRIFT_VERSION=$(thrift --version 2>/dev/null || echo "thrift")
-      THRIFT_STATUS="已安装: $THRIFT_VERSION"
-      THRIFT_OK=1
-      log_success "$THRIFT_STATUS"
-    else
-      THRIFT_STATUS="通过 yum 安装 thrift 失败，请参考发行版文档手动安装"
-      log_error "$THRIFT_STATUS"
-    fi
-  else
-    THRIFT_STATUS="未检测到常见包管理器，无法自动安装 thrift，请手动安装"
-    log_error "$THRIFT_STATUS"
-  fi
-fi
 log_info "正在检查 Git 环境"
 if command -v git >/dev/null 2>&1; then
   GIT_VERSION=$(git --version 2>/dev/null || echo "git")
@@ -251,12 +198,11 @@ else
   log_error "$GIT_STATUS"
 fi
 
-TOTAL=5
+TOTAL=4
 COMPLETED=0
 if [ "$NODE_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$PNPM_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$DOCKER_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
-if [ "$THRIFT_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$GIT_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 
 printf "\n======== 环境检查结果汇总 [%d / %d] ========\n" "$COMPLETED" "$TOTAL"

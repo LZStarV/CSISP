@@ -34,11 +34,6 @@ export function tscPath() {
   return 'tsc';
 }
 
-/** 获取 thrift 可执行命令 */
-export function thriftPath() {
-  return 'thrift';
-}
-
 /** 收集指定目录下的 .thrift 文件列表 */
 export function collectThriftFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
