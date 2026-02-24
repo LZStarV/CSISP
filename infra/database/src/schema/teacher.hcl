@@ -1,6 +1,6 @@
 table "teacher" {
   schema = schema.public
-  comment = "教师表：记录教师的基本信息与所属院系"
+  comment = "教师表：记录教师的基本信息"
   column "id" {
     null = false
     type = serial
