@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { authCall, oidcCall, hasError } from '@/api/rpc';
-import { CLIENT_LOGIN_URLS } from '@/config';
+import { CLIENT_LOGIN_ENDPOINTS } from '@/config';
 
 // 将 OIDCScope 枚举值转换为字符串
 function scopeEnumsToString(scopes?: Array<OIDCScope> | null): string {
@@ -103,8 +103,13 @@ export function Finish() {
 
     // 如果配置了专门的登录入口，则跳转到该入口以保证 PKCE 流程完整
     const clientId = item.client_id;
-    if (clientId && CLIENT_LOGIN_URLS[clientId]) {
-      window.location.href = CLIENT_LOGIN_URLS[clientId];
+    if (clientId && CLIENT_LOGIN_ENDPOINTS[clientId]) {
+      const endpoint = CLIENT_LOGIN_ENDPOINTS[clientId];
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = endpoint;
+      document.body.appendChild(form);
+      form.submit();
       return;
     }
 

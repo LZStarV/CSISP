@@ -22,6 +22,7 @@
     "@csisp/auth": "workspace:*",
     "@csisp/config": "workspace:*",
     "@csisp/rpc": "workspace:*",
+    "@csisp/idl": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@nestjs/common": "catalog:node",
     "@nestjs/core": "catalog:node",

@@ -9,13 +9,15 @@ import {
   OIDCGrantType,
   OIDCScope,
 } from '@csisp/idl/idp';
-import { Body, Post, UseInterceptors } from '@nestjs/common';
+import { OidcClientModel } from '@infra/postgres/models/oidc-client.model';
+import { Body, Post, UseInterceptors, Param, Res } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
+import type { Response } from 'express';
 
 import { OidcService } from './oidc.service';
 
 /**
  * OidcController 重构：采用声明式路由与拦截器模式
- * - 移除手动的 dispatch 映射表
  * - 利用 JsonRpcInterceptor 自动包装响应体
  */
 @ApiIdpController('oidc')
@@ -113,5 +115,34 @@ export class OidcController {
   @Post('getAuthorizationRequest')
   async getAuthorizationRequest(@Body(RpcRequestPipe) { params }: any) {
     return this.svc.getAuthorizationRequest(String(params.ticket ?? ''));
+  }
+
+  @Post('entrance/:client_id')
+  async entrance(@Param('client_id') clientId: string, @Res() res: Response) {
+    if (!clientId) throw new BadRequestException('Missing client_id');
+    const row = await OidcClientModel.findOne({
+      where: { client_id: clientId },
+      attributes: ['login_url', 'allowed_redirect_uris', 'status'],
+      raw: true,
+    });
+    if (!row || row.status !== 'active') {
+      throw new BadRequestException('Unknown or inactive client');
+    }
+    const loginUrl = String(row.login_url ?? '');
+    const redirects = Array.isArray(row.allowed_redirect_uris)
+      ? (row.allowed_redirect_uris as string[])
+      : [];
+    const ok =
+      loginUrl &&
+      redirects.length > 0 &&
+      redirects.some(u => {
+        try {
+          return new URL(u).host === new URL(loginUrl).host;
+        } catch {
+          return false;
+        }
+      });
+    if (!ok) throw new BadRequestException('Entrance not available');
+    res.redirect(loginUrl);
   }
 }

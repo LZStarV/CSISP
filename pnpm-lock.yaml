@@ -680,6 +680,9 @@ importers:
       '@csisp/config':
         specifier: workspace:*
         version: link:../../../packages/config
+      '@csisp/idl':
+        specifier: workspace:*
+        version: link:../../../infra/idl
       '@csisp/rpc':
         specifier: workspace:*
         version: link:../../../packages/rpc

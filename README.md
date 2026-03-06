@@ -49,6 +49,8 @@ git config core.eol lf
 pnpm dev:infra
 ```
 
+> 注意：在跳转至 infisical 登录系统登录完毕以后，UI 界面的 "Copy to clipboard" 按钮有问题，点击后是不会将 token 复制到剪贴板的。请通过点击上方的"\*\*\*"以显示完整 token，然后再手动复制到剪贴板。
+
 ### 安装依赖
 
 ```bash

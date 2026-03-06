@@ -21,6 +21,11 @@ table "oidc_clients" {
     type = jsonb
     comment = "允许的回调 URI 列表（JSON 数组）"
   }
+  column "login_url" {
+    null = true
+    type = character_varying(1024)
+    comment = "客户端登录入口页（发起 OIDC 的入口），需与 allowed_redirect_uris 同源"
+  }
   column "scopes" {
     null = true
     type = jsonb

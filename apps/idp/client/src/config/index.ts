@@ -1,23 +1,9 @@
 /**
- * 客户端登录入口配置
- * 用于从 IdP 门户跳转到各子系统的登录页面，以确保 PKCE 流程的安全性
+ * 客户端登录入口配置（改造为服务端跳转端点）
+ * - 前端仅持有 client_id 列表，点击时请求服务端执行重定向
  */
-const backofficeUrl = import.meta.env.CSISP_BACKOFFICE_URL;
-const adminUrl = import.meta.env.CSISP_FRONTEND_ADMIN_URL;
-if (!backofficeUrl) {
-  throw new Error('Missing environment variable: CSISP_BACKOFFICE_URL');
-}
-if (!adminUrl) {
-  throw new Error('Missing environment variable: CSISP_FRONTEND_ADMIN_URL');
-}
-export const CLIENT_LOGIN_URLS: Record<string, string> = {
-  // 管理后台 (Next.js)
-  backoffice: `${backofficeUrl}/login`,
-
-  // 教学平台/管理门户 (BFF + Vite)
-  'csisp-bff': `${adminUrl}/login`,
-
-  // 如果有其他系统，可以在此继续添加
+export const CLIENT_LOGIN_ENDPOINTS: Record<string, string> = {
+  backoffice: '/api/idp/oidc/entrance/backoffice',
 };
 
 export const config = {
@@ -25,6 +11,6 @@ export const config = {
     apiPrefix: '/api/idp',
   },
   login: {
-    targets: CLIENT_LOGIN_URLS,
+    targets: CLIENT_LOGIN_ENDPOINTS,
   },
 };

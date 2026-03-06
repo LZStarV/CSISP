@@ -27,11 +27,8 @@ export async function seedOidc(): Promise<void> {
   const sequelize = getSequelize();
   const qi: QueryInterface = sequelize.getQueryInterface();
   const kek = requireEnv('OIDC_KEK_SECRET');
-  const defaultClientId = requireEnv('CSISP_OIDC_DEFAULT_CLIENT_ID');
   const rpcPrefix = requireEnv('CSISP_RPC_PREFIX');
-  const bffRedirect = `${requireEnv('CSISP_BFF_URL')}${rpcPrefix}/bff/callback`;
   const backofficeRedirect = `${requireEnv('CSISP_BACKOFFICE_URL')}${rpcPrefix}/auth/callback`;
-  const allowedRedirects = [bffRedirect, backofficeRedirect];
 
   await sequelize.transaction(async transaction => {
     const existingKeys: Array<Partial<OidcKeys>> = (await sequelize.query(
@@ -71,40 +68,7 @@ export async function seedOidc(): Promise<void> {
       logger.info('oidc key exists, skip insert');
     }
 
-    const existingClient: Array<Partial<OidcClients>> = (await sequelize.query(
-      'SELECT client_id FROM "oidc_clients" WHERE client_id = :cid;',
-      {
-        type: 'SELECT',
-        transaction,
-        replacements: { cid: defaultClientId },
-      }
-    )) as any;
-    if (existingClient.length === 0) {
-      const redirectsJson = JSON.stringify(allowedRedirects);
-      const scopesJson = JSON.stringify(['openid', 'profile', 'email']);
-      await qi.bulkInsert(
-        'oidc_clients',
-        [
-          {
-            client_id: defaultClientId,
-            client_secret: null,
-            name: 'CSISP BFF',
-            allowed_redirect_uris: redirectsJson,
-            scopes: scopesJson,
-            status: 'active',
-            created_at: new Date(),
-            updated_at: new Date(),
-          },
-        ],
-        { transaction }
-      );
-      logger.info({ client_id: defaultClientId }, 'seed oidc client inserted');
-    } else {
-      logger.info(
-        { client_id: defaultClientId },
-        'oidc client exists, skip insert'
-      );
-    }
+    // 移除默认/BFF 客户端的回调地址与初始化逻辑（仅保留 backoffice）
 
     const backofficeClientId = 'backoffice';
     const existingBackoffice: Array<Partial<OidcClients>> =
@@ -129,6 +93,7 @@ export async function seedOidc(): Promise<void> {
             allowed_redirect_uris: redirectsJson,
             scopes: scopesJson,
             status: 'active',
+            login_url: 'http://182.92.140.128',
             created_at: new Date(),
             updated_at: new Date(),
           },

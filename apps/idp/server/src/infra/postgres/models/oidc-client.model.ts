@@ -36,6 +36,10 @@ export class OidcClientModel extends Model implements OidcClients {
   @Column(DataType.JSONB)
   scopes!: string[];
 
+  @AllowNull(true)
+  @Column(DataType.STRING)
+  login_url!: string | null;
+
   @Default('active')
   @AllowNull(false)
   @Column(DataType.STRING)

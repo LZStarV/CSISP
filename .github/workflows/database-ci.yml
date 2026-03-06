@@ -12,30 +12,94 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  apply-prod:
+  build-bundle:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Build ops bundle
+        run: |
+          set -e
+          mkdir -p ops-bundle/infra/database/src/schema ops-bundle/infra/database/src/migrations
+          cp infra/database/docker-compose.db.yml ops-bundle/infra/database/
+          cp infra/database/atlas.hcl ops-bundle/infra/database/
+          cp -r infra/database/src/schema/* ops-bundle/infra/database/src/schema/
+          cp -r infra/database/src/migrations/* ops-bundle/infra/database/src/migrations/
+          tar czf ops-bundle.tar.gz -C ops-bundle .
+          sha256sum ops-bundle.tar.gz > ops-bundle.tar.gz.sha256
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: infra-database-ops-bundle
+          path: |
+            ops-bundle.tar.gz
+            ops-bundle.tar.gz.sha256
 
-      - name: Deploy database migration via SSH
+  deploy:
+    needs: build-bundle
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: infra-database-ops-bundle
+          path: .
+
+      - name: Upload bundle to server
         env:
           DB_SSH_HOST: ${{ secrets.DB_SSH_HOST }}
           DB_SSH_PORT: ${{ secrets.DB_SSH_PORT }}
           DB_SSH_USER: ${{ secrets.DB_SSH_USER }}
           DB_SSH_KEY: ${{ secrets.DB_SSH_KEY }}
           DB_DEPLOY_PATH: ${{ vars.DB_DEPLOY_PATH }}
-          DB_DEPLOY_BRANCH: ${{ vars.DB_DEPLOY_BRANCH }}
+        run: |
+          echo "$DB_SSH_KEY" > ssh_key.pem
+          chmod 600 ssh_key.pem
+          scp -P "${DB_SSH_PORT:-22}" -i ssh_key.pem -o StrictHostKeyChecking=no \
+            ops-bundle.tar.gz ops-bundle.tar.gz.sha256 \
+            "$DB_SSH_USER@$DB_SSH_HOST:/tmp/"
+          ssh -p "${DB_SSH_PORT:-22}" -i ssh_key.pem -o StrictHostKeyChecking=no "$DB_SSH_USER@$DB_SSH_HOST" "
+            set -euo pipefail
+            mkdir -p '$DB_DEPLOY_PATH'
+            cd /tmp
+            sha256sum -c ops-bundle.tar.gz.sha256
+            tar xzf ops-bundle.tar.gz -C '$DB_DEPLOY_PATH'
+          "
+
+      - name: Start services & migrate
+        env:
+          DB_SSH_HOST: ${{ secrets.DB_SSH_HOST }}
+          DB_SSH_PORT: ${{ secrets.DB_SSH_PORT }}
+          DB_SSH_USER: ${{ secrets.DB_SSH_USER }}
+          DB_SSH_KEY: ${{ secrets.DB_SSH_KEY }}
+          DB_DEPLOY_PATH: ${{ vars.DB_DEPLOY_PATH }}
+          INFISICAL_API_URL: ${{ vars.INFISICAL_API_URL }}
+          DB_BIND_IP: ${{ vars.DB_BIND_IP }}
         run: |
           echo "$DB_SSH_KEY" > ssh_key.pem
           chmod 600 ssh_key.pem
           ssh -p "${DB_SSH_PORT:-22}" -i ssh_key.pem -o StrictHostKeyChecking=no "$DB_SSH_USER@$DB_SSH_HOST" "
             set -euo pipefail
             cd '$DB_DEPLOY_PATH'
-            git fetch --all
-            git reset --hard origin/\${DB_DEPLOY_BRANCH:-main}
-            pnpm -v
-            pnpm i -F @csisp/infra-database --frozen-lockfile
-            pnpm -F @csisp/infra-database prod:db:init
+
+            if [ -n \"\${DB_BIND_IP:-}\" ]; then
+              export DB_PORT=\"\${DB_BIND_IP}:5432\"
+              export REDIS_PORT=\"\${DB_BIND_IP}:6379\"
+              export MONGO_PORT=\"\${DB_BIND_IP}:27017\"
+            fi
+
+            pnpm exec infisical run --env=prod --domain \"$INFISICAL_API_URL\" --path=/database -- \
+              docker compose -f infra/database/docker-compose.db.yml up -d postgres redis mongo
+
+            pnpm exec infisical run --env=prod --domain \"$INFISICAL_API_URL\" --path=/database -- \
+              docker compose -f infra/database/docker-compose.db.yml run --rm atlas \
+                migrate apply --config file://infra/database/atlas.hcl --env local
+
+            pnpm exec infisical run --env=prod --domain \"$INFISICAL_API_URL\" --path=/database -- \
+              docker compose -f infra/database/docker-compose.db.yml run --rm atlas \
+                migrate status --config file://infra/database/atlas.hcl --env local
+
+            pnpm exec infisical run --env=prod --domain \"$INFISICAL_API_URL\" --path=/database -- \
+              bash -lc 'psql \"\$DATABASE_URL\" -c \"SELECT CURRENT_DATABASE(), CURRENT_USER, NOW()\"'
           "
