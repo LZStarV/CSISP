@@ -8,18 +8,7 @@
   },
   "scripts": {
     "db:seed": "tsx src/seed/index.ts",
-    "db:init:mac": "bash scripts/init_mac.sh",
-    "db:init:linux": "bash scripts/init_linux.sh",
-    "db:init:win": ".\\scripts\\init_windows.bat",
-    "dev:db:init": "bash scripts/init_mac.sh",
-    "prod:db:init": "bash scripts/init_server.sh",
-    "prod:db:migrate": "bash scripts/migrate_prod.sh",
-    "atlas:diff": "docker compose -f docker-compose.db.yml run --rm atlas schema diff --config file://infra/database/atlas.hcl --env local --from env://url --to file://infra/database/src/schema/",
-    "atlas:migrate:diff": "docker compose -f docker-compose.db.yml run --rm atlas migrate diff --config file://infra/database/atlas.hcl --env local",
-    "atlas:migrate:apply": "docker compose -f docker-compose.db.yml run --rm atlas migrate apply --config file://infra/database/atlas.hcl --env local",
-    "atlas:migrate:status": "docker compose -f docker-compose.db.yml run --rm atlas migrate status --config file://infra/database/atlas.hcl --env local",
-    "atlas:inspect": "docker compose -f docker-compose.db.yml run --rm atlas schema inspect --config file://infra/database/atlas.hcl --env local",
-    "types:build": "tsx src/cli/gen-types.ts"
+    "types:build": "infisical run --env=dev --path=/database -- tsx src/cli/gen-types.ts"
   },
   "dependencies": {
     "@csisp/utils": "workspace:*",

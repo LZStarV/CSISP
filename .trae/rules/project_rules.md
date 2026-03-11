@@ -22,6 +22,6 @@ CSISP 项目规则（Trae）
 - 服务端 -- 服务端之间采用 Thrift RPC 协议（路由前缀：/thrift/:sub-project-name）
 
 3. 开发流程 (SOP)
-   - 在进行 Node.js 服务端开发、处理数据库变更、IDL 接口定义或执行逻辑重构时，**必须调用** `csisp-node-sop` Skill。
-   - 遵循 Database-First (infra/database) 与 IDL-First (infra/idl) 原则。
+   - 在进行 Node.js 服务端开发、IDL 接口定义或执行逻辑重构时，**必须调用** `csisp-node-sop` Skill。
+   - 数据库由 Supabase 平台集中托管与变更管理；遵循 IDL-First (infra/idl) 原则。
    - 强制使用路径别名 (@infra, @modules, @common, @idp-types, @utils)，禁止使用多层级相对路径。
