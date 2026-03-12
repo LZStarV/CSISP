@@ -204,3 +204,6 @@ packages/*/dist/
 # Local configuration files
 config/local.*
 config/*.local.*
+
+# Agent skills (external, large, optional for contributors)
+.agents/skills/*

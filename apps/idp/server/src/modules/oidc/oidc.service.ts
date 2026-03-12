@@ -42,6 +42,7 @@ import { OidcKeyModel } from '@infra/postgres/models/oidc-key.model';
 import { RefreshTokenModel } from '@infra/postgres/models/refresh-token.model';
 import { UserModel } from '@infra/postgres/models/user.model';
 import { del as redisDel } from '@infra/redis';
+import { SupabaseDataAccess } from '@infra/supabase';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
 import { getApiBaseUrl } from '@utils/url';
@@ -138,12 +139,13 @@ export class OidcService {
       OidcKeys,
       'kid' | 'kty' | 'alg' | 'use' | 'public_pem' | 'status'
     >;
-    const rows = (await OidcKeyModel.findAll({
-      attributes: ['kid', 'kty', 'alg', 'use', 'public_pem', 'status'],
-      raw: true,
-    })) as KeyPick[];
+    const { data: rows } = await this.sda
+      .service()
+      .from('oidc_keys')
+      .select('kid,kty,alg,use,public_pem,status');
+    const list = (rows ?? []) as KeyPick[];
     const activeStatuses = new Set<string>(['active', 'retired']);
-    const keys = rows
+    const keys = list
       .filter(r => activeStatuses.has(r.status))
       .map(r => {
         const pub = crypto.createPublicKey(r.public_pem);
@@ -193,11 +195,12 @@ export class OidcService {
       throw new BadRequestException('PKCE S256 required');
     }
     type ClientPick = Pick<OidcClients, 'allowed_redirect_uris' | 'status'>;
-    const client = (await OidcClientModel.findOne({
-      where: { client_id },
-      attributes: ['allowed_redirect_uris', 'status'],
-      raw: true,
-    })) as ClientPick | null;
+    const { data: client } = await this.sda
+      .service()
+      .from('oidc_clients')
+      .select('allowed_redirect_uris,status')
+      .eq('client_id', client_id)
+      .maybeSingle<ClientPick>();
     if (!client || client.status !== 'active') {
       throw new BadRequestException('Unknown or inactive client');
     }
@@ -241,11 +244,12 @@ export class OidcService {
     const req = await this.ticketIssuer.verify(ticket);
     if (!req) throw new BadRequestException('Invalid ticket');
 
-    const client = await OidcClientModel.findOne({
-      where: { client_id: req.client_id },
-      attributes: ['name'],
-      raw: true,
-    });
+    const { data: client } = await this.sda
+      .service()
+      .from('oidc_clients')
+      .select('name')
+      .eq('client_id', req.client_id)
+      .maybeSingle<{ name: string | null }>();
 
     return new AuthorizationRequestInfo({
       client_id: req.client_id,
@@ -268,6 +272,8 @@ export class OidcService {
    * - 授权码模式校验 code_verifier/redirect_uri 等并签发令牌
    * - 刷新模式进行 RT 轮换与防重放
    */
+  constructor(private readonly sda: SupabaseDataAccess) {}
+
   async exchangeToken(
     params: ITokenRequest | TokenRefreshRequest
   ): Promise<ITokenResponse> {
@@ -330,23 +336,32 @@ export class OidcService {
         .update(refresh_token)
         .digest('hex');
       type RtPick = Pick<RefreshTokens, 'id' | 'status' | 'sub_hash'>;
-      const cur = (await RefreshTokenModel.findOne({
-        where: { rt_hash: rtHash },
-        attributes: ['id', 'status', 'sub_hash'],
-        raw: true,
-      })) as RtPick | null;
+      const { data: cur } = await this.sda
+        .service()
+        .from('refresh_tokens')
+        .select('id,status,sub_hash')
+        .eq('rt_hash', rtHash)
+        .maybeSingle<RtPick>();
       if (!cur) throw new BadRequestException('Invalid refresh token');
       if (cur.status !== 'active') {
-        await RefreshTokenModel.update(
-          { status: 'revoked' },
-          { where: { client_id, sub_hash: cur.sub_hash } }
-        );
+        {
+          const { error } = await this.sda
+            .service()
+            .rpc('auth_revoke_client_rt', {
+              p_client_id: client_id,
+              p_sub: cur.sub_hash,
+            });
+          if (error) throw new BadRequestException('Refresh token revoked');
+        }
         throw new BadRequestException('Refresh token reused or revoked');
       }
-      await RefreshTokenModel.update(
-        { status: 'rotated', last_used_at: new Date() },
-        { where: { id: cur.id } }
-      );
+      {
+        const { error } = await this.sda.service().rpc('auth_mark_rt_used', {
+          p_id: cur.id,
+          p_used_at: new Date().toISOString(),
+        });
+        if (error) throw new BadRequestException('Failed to mark token used');
+      }
       const sub = cur.sub_hash;
       const issued = await this.issueTokens(
         client_id,
@@ -361,14 +376,16 @@ export class OidcService {
         .createHash('sha256')
         .update(String(issued.refresh_token))
         .digest('hex');
-      await RefreshTokenModel.create({
-        client_id,
-        sub_hash: sub,
-        rt_hash: newHash,
-        status: 'active',
-        prev_id: cur.id,
-        created_at: new Date(),
-      });
+      {
+        const { error } = await this.sda
+          .service()
+          .rpc('auth_issue_refresh_token', {
+            p_client_id: client_id,
+            p_sub: sub,
+            p_rt_hash: newHash,
+          });
+        if (error) throw new BadRequestException('Failed to rotate token');
+      }
       return issued;
     }
     throw new BadRequestException('Unsupported grant_type');
@@ -393,11 +410,12 @@ export class OidcService {
       OidcKeys,
       'kid' | 'public_pem' | 'private_pem_enc' | 'status'
     >;
-    const keyRow = (await OidcKeyModel.findOne({
-      where: { status: 'active' },
-      attributes: ['kid', 'public_pem', 'private_pem_enc'],
-      raw: true,
-    })) as Omit<KeyPick, 'status'> | null;
+    const { data: keyRow } = await this.sda
+      .service()
+      .from('oidc_keys')
+      .select('kid,public_pem,private_pem_enc')
+      .eq('status', 'active')
+      .maybeSingle<Omit<KeyPick, 'status'>>();
     if (!keyRow) {
       logger.error('No active signing key found');
       throw new BadRequestException('No active signing key');
@@ -415,11 +433,18 @@ export class OidcService {
       logger.info({ sub, idNum }, 'Fetching user details for token');
       const user =
         Number.isFinite(idNum) && idNum > 0
-          ? await UserModel.findOne({
-              where: { id: idNum },
-              attributes: ['roles', 'username', 'real_name'],
-              raw: true,
-            })
+          ? ((
+              await this.sda
+                .service()
+                .from('user')
+                .select('roles,username,real_name')
+                .eq('id', idNum)
+                .maybeSingle<{
+                  roles: any;
+                  username: string | null;
+                  real_name: string | null;
+                }>()
+            ).data ?? null)
           : null;
 
       logger.info('Signing tokens...');
@@ -443,13 +468,17 @@ export class OidcService {
         .createHash('sha256')
         .update(tokens.refresh_token)
         .digest('hex');
-      await RefreshTokenModel.create({
-        client_id,
-        sub_hash: sub,
-        rt_hash: rtHash,
-        status: 'active',
-        created_at: new Date(),
-      });
+      {
+        const { error } = await this.sda
+          .service()
+          .rpc('auth_issue_refresh_token', {
+            p_client_id: client_id,
+            p_sub: sub,
+            p_rt_hash: rtHash,
+          });
+        if (error)
+          throw new BadRequestException('Failed to record refresh token');
+      }
       logger.info('Refresh token recorded');
       return new TokenResponse({
         ...tokens,
@@ -468,16 +497,19 @@ export class OidcService {
   async revokeToken(token: string): Promise<IRevocationResult> {
     const rtHash = crypto.createHash('sha256').update(token).digest('hex');
     type RtPick = Pick<RefreshTokens, 'id'>;
-    const cur = (await RefreshTokenModel.findOne({
-      where: { rt_hash: rtHash },
-      attributes: ['id'],
-      raw: true,
-    })) as RtPick | null;
+    const { data: cur } = await this.sda
+      .service()
+      .from('refresh_tokens')
+      .select('id')
+      .eq('rt_hash', rtHash)
+      .maybeSingle<RtPick>();
     if (!cur) return new RevocationResult({ ok: true });
-    await RefreshTokenModel.update(
-      { status: 'revoked' },
-      { where: { id: cur.id as number } }
-    );
+    {
+      const { error } = await this.sda
+        .service()
+        .rpc('auth_revoke_rt_by_id', { p_id: cur.id as number });
+      if (error) throw new BadRequestException('Failed to revoke token');
+    }
     return new RevocationResult({ ok: true });
   }
 
@@ -492,12 +524,14 @@ export class OidcService {
       Buffer.from(h.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()
     );
     const kid = header.kid;
-    const row = await OidcKeyModel.findOne({
-      where: { kid },
-      attributes: ['public_pem'],
-    });
-    if (!row) throw new BadRequestException('Unknown key');
-    const pubPem = String(row.public_pem);
+    const { data: keyRow } = await this.sda
+      .service()
+      .from('oidc_keys')
+      .select('public_pem')
+      .eq('kid', kid)
+      .maybeSingle<{ public_pem: string }>();
+    if (!keyRow) throw new BadRequestException('Unknown key');
+    const pubPem = String(keyRow.public_pem);
 
     const payload = verifyToken(token, pubPem, { algorithms: ['RS256'] });
     const sub = payload.sub;
@@ -509,11 +543,14 @@ export class OidcService {
     >;
     const user =
       Number.isFinite(idNum) && idNum > 0
-        ? ((await UserModel.findOne({
-            where: { id: idNum },
-            attributes: ['id', 'username', 'real_name', 'email', 'roles'],
-            raw: true,
-          })) as UserPick | null)
+        ? ((
+            await this.sda
+              .service()
+              .from('user')
+              .select('id,username,real_name,email,roles')
+              .eq('id', idNum)
+              .maybeSingle<UserPick>()
+          ).data ?? null)
         : null;
     const claims: any = { sub };
     if (user) {
@@ -555,21 +592,26 @@ export class OidcService {
       Buffer.from(h.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()
     );
     const kid = header.kid;
-    const row = await OidcKeyModel.findOne({
-      where: { kid },
-      attributes: ['public_pem'],
-    });
-    if (!row) throw new BadRequestException('Unknown key');
-    const pubPem = row.public_pem as string;
+    const { data: row2 } = await this.sda
+      .service()
+      .from('oidc_keys')
+      .select('public_pem')
+      .eq('kid', kid)
+      .maybeSingle<{ public_pem: string }>();
+    if (!row2) throw new BadRequestException('Unknown key');
+    const pubPem = row2.public_pem as string;
 
     const payload = verifyToken(logout_token, pubPem, {
       algorithms: ['RS256'],
     });
     const sub = payload.sub;
-    await RefreshTokenModel.update(
-      { status: 'revoked' },
-      { where: { sub_hash: sub } }
-    );
+    {
+      const { error } = await this.sda
+        .service()
+        .rpc('auth_revoke_rt_by_sub', { p_sub: sub as string });
+      if (error)
+        throw new BadRequestException('Failed to revoke tokens by sub');
+    }
     return new RevocationResult({ ok: true });
   }
 
@@ -579,12 +621,13 @@ export class OidcService {
       'client_id' | 'name' | 'allowed_redirect_uris' | 'scopes'
     >;
     logger.info('listClients started');
-    const rows = (await OidcClientModel.findAll({
-      attributes: ['client_id', 'name', 'allowed_redirect_uris', 'scopes'],
-      raw: true,
-    })) as ClientPick[];
-    logger.info({ count: rows.length }, 'Clients fetched');
-    return rows.map(r => {
+    const { data: rows2 } = await this.sda
+      .service()
+      .from('oidc_clients')
+      .select('client_id,name,allowed_redirect_uris,scopes');
+    const list = (rows2 ?? []) as ClientPick[];
+    logger.info({ count: list.length }, 'Clients fetched');
+    return list.map(r => {
       let scopes: OIDCScope[] = [];
       if (Array.isArray(r.scopes)) {
         scopes = r.scopes as OIDCScope[];

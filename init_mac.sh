@@ -33,6 +33,36 @@ else
   fi
 fi
 
+log_info "正在检查 Supabase CLI"
+if command -v supabase >/dev/null 2>&1; then
+  SUPABASE_VERSION=$(supabase --version 2>/dev/null || echo "")
+  SUPABASE_STATUS="已安装: $SUPABASE_VERSION"
+  SUPABASE_OK=1
+  log_success "$SUPABASE_STATUS"
+else
+  log_warn "未检测到 Supabase CLI"
+  if command -v brew >/dev/null 2>&1; then
+    log_info "尝试通过 Homebrew 安装: brew install supabase/tap/supabase"
+    if brew install supabase/tap/supabase >/dev/null 2>&1; then
+      if command -v supabase >/dev/null 2>&1; then
+        SUPABASE_VERSION=$(supabase --version 2>/dev/null || echo "")
+        SUPABASE_STATUS="已安装 Supabase CLI: $SUPABASE_VERSION"
+        SUPABASE_OK=1
+        log_success "$SUPABASE_STATUS"
+      else
+        SUPABASE_STATUS="安装完成但未检测到命令，请手动检查 PATH"
+        log_warn "$SUPABASE_STATUS"
+      fi
+    else
+      SUPABASE_STATUS="通过 Homebrew 安装 Supabase CLI 失败，请手动安装: https://supabase.com/docs/guides/cli"
+      log_error "$SUPABASE_STATUS"
+    fi
+  else
+    SUPABASE_STATUS="未检测到 Homebrew，请手动安装 Supabase CLI: https://supabase.com/docs/guides/cli"
+    log_error "$SUPABASE_STATUS"
+  fi
+fi
+
 if [ -f ".nvmrc" ]; then
   REQUIRED_NODE_MAJOR=$(tr -d ' v' < .nvmrc)
 else
@@ -51,6 +81,8 @@ DOCKER_STATUS="未检查"
 DOCKER_OK=0
 GIT_STATUS="未检查"
 GIT_OK=0
+SUPABASE_STATUS="未检查"
+SUPABASE_OK=0
 
 if [ -z "${NVM_DIR:-}" ]; then
   NVM_DIR="$HOME/.nvm"
@@ -201,12 +233,13 @@ else
   log_error "$GIT_STATUS"
 fi
 
-TOTAL=4
+TOTAL=5
 COMPLETED=0
 if [ "$NODE_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$PNPM_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$DOCKER_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$GIT_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
+if [ "$SUPABASE_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 
 printf "\n======== 环境检查结果汇总 [%d / %d] ========\n" "$COMPLETED" "$TOTAL"
 
@@ -230,5 +263,8 @@ else
   fi
   if [ "$GIT_OK" -ne 1 ]; then
     printf "%s- Git: %s%s\n" "$RED" "$GIT_STATUS" "$RESET"
+  fi
+  if [ "$SUPABASE_OK" -ne 1 ]; then
+    printf "%s- Supabase CLI: %s%s\n" "$RED" "$SUPABASE_STATUS" "$RESET"
   fi
 fi

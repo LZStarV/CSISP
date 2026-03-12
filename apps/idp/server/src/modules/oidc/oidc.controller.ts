@@ -9,7 +9,7 @@ import {
   OIDCGrantType,
   OIDCScope,
 } from '@csisp/idl/idp';
-import { OidcClientModel } from '@infra/postgres/models/oidc-client.model';
+import { SupabaseDataAccess } from '@infra/supabase';
 import { Body, Post, UseInterceptors, Param, Res } from '@nestjs/common';
 import { BadRequestException } from '@nestjs/common';
 import type { Response } from 'express';
@@ -23,7 +23,10 @@ import { OidcService } from './oidc.service';
 @ApiIdpController('oidc')
 @UseInterceptors(JsonRpcInterceptor)
 export class OidcController {
-  constructor(private readonly svc: OidcService) {}
+  constructor(
+    private readonly svc: OidcService,
+    private readonly sda: SupabaseDataAccess
+  ) {}
 
   @Post('authorize')
   async authorize(@Body(RpcRequestPipe) { params }: any) {
@@ -120,11 +123,16 @@ export class OidcController {
   @Post('entrance/:client_id')
   async entrance(@Param('client_id') clientId: string, @Res() res: Response) {
     if (!clientId) throw new BadRequestException('Missing client_id');
-    const row = await OidcClientModel.findOne({
-      where: { client_id: clientId },
-      attributes: ['login_url', 'allowed_redirect_uris', 'status'],
-      raw: true,
-    });
+    const { data: row } = await this.sda
+      .service()
+      .from('oidc_clients')
+      .select('login_url,allowed_redirect_uris,status')
+      .eq('client_id', clientId)
+      .maybeSingle<{
+        login_url: string | null;
+        allowed_redirect_uris: any;
+        status: string | null;
+      }>();
     if (!row || row.status !== 'active') {
       throw new BadRequestException('Unknown or inactive client');
     }
