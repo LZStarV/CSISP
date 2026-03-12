@@ -9,8 +9,6 @@
     "lint:staged": "lint-staged",
     "prepare": "husky",
     "infisical:login": "infisical login --domain \"$npm_config_INFISICAL_API_URL\"",
-    "dev:infra": "infisical run -- turbo run db:init --filter=@csisp/infra-database && infisical run -- turbo run idl:gen --filter=@csisp/idl",
-    "dev:infra:win": "infisical run -- pnpm -F @csisp/infra-database db:init:win && infisical run -- pnpm -F @csisp/idl idl:gen",
     "dev:backend-integrated": "infisical run -- turbo run dev --filter=@csisp/backend-integrated",
     "dev:backoffice": "infisical run -- turbo run dev --filter=@csisp/backoffice",
     "dev:idp:server": "infisical run -- turbo run dev --filter=@csisp/idp-server",
@@ -21,7 +19,7 @@
     "dev:portal": "infisical run -- turbo run dev --filter=@csisp/frontend-portal",
     "build": "turbo build"
   },
-  "packageManager": "pnpm@10.29.3+sha256.a74f4dbd3f5a7ca874d004135271f0b697b683bf1fd2fc2133961161cd25b29c",
+  "packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be",
   "workspaces": [
     "apps/*",
     "packages/*",

@@ -8,8 +8,8 @@
 
 - **数据库类型**：PostgreSQL 15
 - **使用场景**：所有结构化业务数据（用户、课程、班级、子课程、时间段、考勤、作业、作业附件、通知等）
-- **连接方式**：通过 Sequelize 由 backend-integrated 与 BFF 间接访问，不允许业务代码直接写 SQL
-- **schema 来源**：`infra/database/src/migrations/` 中的 TypeScript 迁移（由 @csisp/infra-database 执行）
+- **连接方式**：通过 supabase-js（由 packages/supabase-sdk 暴露的 SupabaseDataAccess）访问；不允许业务代码直接写裸 SQL
+- **schema 来源**：`/supabase/migrations/`（Supabase CLI 管理，唯一事实来源）
 
 整体数据流：
 
@@ -18,42 +18,33 @@ flowchart LR
   FE[前端应用
 frontend-admin / frontend-portal] --> BFF[bff]
   BFF --> BE[backend-integrated]
-  BE --> ORM[Sequelize Models]
-  ORM --> PG[(PostgreSQL 15)]
+  BE --> DA[SupabaseDataAccess]
+  DA --> PG[(PostgreSQL 15 via Supabase)]
 ```
 
 ---
 
 ## 2. 环境与连接配置
 
-### 2.1 环境变量
+### 2.1 环境变量（Infisical）
 
-根 `.env` 中与 PostgreSQL 相关的变量（示例）：
+根环境通过 Infisical 注入，示例（dev）：
 
-- `DB_HOST`：数据库主机名（本地开发通常为 `localhost` 或 docker 服务名 `postgres`）
-- `DB_PORT`：数据库端口（默认为 `5433`，与 `infra/database` 中映射保持一致）
-- `DB_NAME`：应用使用的数据库名，例如 `csisp`
-- `DB_USER`：应用连接用户名，例如 `admin` 或 `postgres`
-- `DB_PASSWORD`：应用连接用户密码
+- `SUPABASE_URL`：项目 URL
+- `SUPABASE_SERVICE_ROLE_KEY`：服务端写路径密钥（仅服务端）
+- `SUPABASE_ANON_KEY`：用户态受 RLS 访问的 anon key
 
-在容器初始化阶段（由 `infra/database` 中的脚本使用）还可能涉及：
+### 2.2 迁移
 
-- `POSTGRES_DB`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-
-### 2.2 迁移与种子
-
-所有表结构与基础种子数据不在 backend-integrated 内部重复定义，而是统一由 `infra/database/src/migrations` 维护，并通过 `@csisp/infra-database` 执行：
-
-- **迁移**：`infra/database/src/migrations/*-create-*.ts`
-- **基础种子**：`infra/database/src/migrations/*-seed-base-*.ts`
-
-推荐使用方式（在仓库根目录）：
+所有表结构统一由 `/supabase/migrations` 维护并受 Supabase CLI 管理：
 
 ```bash
-# 启动数据库基础设施并执行 PostgreSQL 迁移 + 基础种子
-bash infra/database/scripts/init_[os].[ext]
+# 连接并拉取（需已配置 SUPABASE_*）
+pnpm -C supabase run link:stag
+pnpm -C supabase run db:pull:stag
+
+# 本地重置验证（如需）
+pnpm -C supabase run db:reset:dev
 ```
 
 ### 2.1 内容数据归属说明
@@ -63,9 +54,9 @@ bash infra/database/scripts/init_[os].[ext]
 
 backend-integrated 在运行时只负责：
 
-- 通过 `SequelizePostgresModule` 使用 `@nestjs/sequelize` 创建 Sequelize 连接；
-- 加载 `apps/backend-integrated/src/infra/postgres/models/*.model.ts` 中的 `sequelize-typescript` 模型类并注册到连接；
-- 通过 `@InjectModel(ModelClass)` 将模型注入各业务 Service。
+- 通过 `@csisp/supabase-sdk` 注册 `SupabaseModule`，同时获得服务端与用户态客户端；
+- Service 层通过 `SupabaseDataAccess.service()`（服务端、RPC 写入）与 `SupabaseDataAccess.user(jwt)`（RLS 读取）访问数据库；
+- 写路径通过 SECURITY DEFINER RPC 保证原子性与审计。
 
 ---
 
@@ -202,7 +193,7 @@ export class User extends Model {
 
 ### 4.3 索引与性能
 
-索引定义位于 `infra/database/src/migrations` 的迁移中，主要遵循：
+索引定义位于 `/supabase/migrations` 的迁移中，主要遵循：
 
 - 常用查询条件字段建立单列索引：
   - 用户：`username`、`email`、`student_id`、`status`
@@ -213,18 +204,18 @@ export class User extends Model {
 
 backend-integrated 中应遵循：
 
-- 分页查询使用 `findAndCountAll` 或 `count + findAll`，并利用已有索引字段
+- 分页查询使用 `.range()` 或基于主键/索引列的 keyset pagination
 - 避免在高频接口中做全表扫描或复杂的 `LIKE '%xxx%'` 组合查询
 
 ---
 
 ## 5. 注意事项
 
-1. 所有表的新增/修改必须通过 `infra/database/src/migrations` 的迁移完成，不允许直接在生产库修改结构。
+1. 所有表的新增/修改必须通过 `/supabase/migrations` 的迁移完成，不允许直接在生产库修改结构。
 2. 当修改字段或添加新表时：
    - 同步更新：
-     - 迁移文件
+     - Supabase 迁移文件
      - `@csisp/types` 中对应类型
-     - backend-integrated 中 Service 层映射与业务逻辑
+     - backend-integrated 中 Service 层与 RPC 调用参数
    - 如影响 BFF/前端，需同步更新相关接口文档。
-3. 禁止在业务代码中编写原生 SQL，统一通过 Sequelize 模型访问。
+3. 禁止在业务代码中编写原生 SQL，统一通过 supabase-js（表/视图/RPC）访问。

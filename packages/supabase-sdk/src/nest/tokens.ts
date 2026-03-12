@@ -1,0 +1,2 @@
+export const SUPABASE_SERVICE = Symbol('SUPABASE_SERVICE');
+export const SUPABASE_USER_FACTORY = Symbol('SUPABASE_USER_FACTORY');

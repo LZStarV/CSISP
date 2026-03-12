@@ -171,7 +171,6 @@ if command -v docker >/dev/null 2>&1; then
     done
     if [ "$DOCKER_OK" -ne 1 ]; then
       log_warn "Docker 服务仍未就绪，请手动启动并确保当前用户有权限运行 docker"
-      log_info "可以在项目根目录执行: bash infra/database/scripts/init_linux.sh，启动数据库相关容器并等待就绪"
     fi
   fi
 else
@@ -225,8 +224,8 @@ if [ "$COMPLETED" -eq "$TOTAL" ]; then
   printf "\n%s所有必需环境组件已就绪，可以继续进行项目开发。%s\n" "$GREEN" "$RESET"
   printf "\n推荐的后续操作：\n"
   printf "1) 安装依赖:\n   pnpm i\n"
-  printf "2) 启动数据库基础设施:\n   bash infra/database/scripts/init_linux.sh\n"
-  printf "3) 初始化数据库结构与种子数据:\n   pnpm -F @csisp/db-schema run migrate\n   pnpm -F @csisp/db-schema run seed\n"
+  printf "2) Supabase 本地链路（需已配置 Infisical SUPABASE_*）:\n   pnpm run supabase:link:stag && pnpm run supabase:pull:stag\n"
+  printf "3) 生成 IDL （可选）:\n   pnpm run idl:gen\n"
 printf "4) 启动 BFF 与 backend-integrated:\n   pnpm -F @csisp/bff dev\n   pnpm -F @csisp/backend-integrated dev\n"
   printf "5) 启动前端项目:\n   pnpm -F @csisp/frontend-admin dev\n   pnpm -F @csisp/frontend-portal dev\n"
 else

@@ -9,7 +9,7 @@
 - **类型**：Redis 7.x（单实例）
 - **用途**：缓存、限流、简单状态存储（不做权威数据源）
 - **访问方式**：统一通过 `@csisp/redis` 封装，backend-integrated 再经 `@infra/redis` 使用
-- **部署方式**：本地通过 `infra/database/docker-compose.db.yml` 启动，与 PostgreSQL 一起运行
+- **部署方式**：本地可通过 Docker 单独启动（或接入托管实例），与 Supabase 管理的 PostgreSQL 解耦
 
 Redis 只承载“加速”和“辅助”角色：任何持久业务数据仍以 PostgreSQL 为准。
 

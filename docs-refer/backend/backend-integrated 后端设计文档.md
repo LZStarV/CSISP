@@ -10,7 +10,7 @@
 
 backend-integrated 是新一代后端实现：
 
-- 使用 NestJS + TypeScript + Sequelize（@nestjs/sequelize + sequelize-typescript）+ PostgreSQL + Redis + MongoDB（内容域，Mongoose）
+- 使用 NestJS + TypeScript + supabase-js（通过 packages/supabase-sdk）+ PostgreSQL（Supabase 托管）+ Redis + MongoDB（内容域，Mongoose）
 - 通过统一的 RESTful API 对接 BFF（Koa）与前端应用
 
 ### 1.2 设计目标

@@ -14,8 +14,6 @@ import {
   VerifyResult,
   RecoveryUnavailableReason,
 } from '@csisp/idl/idp';
-import type MfaSettings from '@csisp/infra-database/public/MfaSettings';
-import type User from '@csisp/infra-database/public/User';
 import { RedisPrefix } from '@idp-types/redis';
 import { verifyPassword, hashPasswordScrypt } from '@infra/crypto/password';
 import { getPublicKey } from '@infra/crypto/rsa';
@@ -35,6 +33,15 @@ import { EnterDto } from './dto/enter.dto';
 import { LoginDto } from './dto/login.dto';
 import { MultifactorDto } from './dto/multifactor.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+
+type MfaSettingsPick = {
+  sms_enabled: boolean | null;
+  email_enabled: boolean | null;
+  fido2_enabled: boolean | null;
+  otp_enabled: boolean | null;
+  phone_number: string | null;
+  required: boolean | null;
+};
 
 type RpcParams = Record<string, any>;
 
@@ -94,15 +101,7 @@ export class AuthService {
       { type: MFAType.Otp, enabled: false },
     ];
 
-    type MfaPick = Pick<
-      MfaSettings,
-      | 'sms_enabled'
-      | 'email_enabled'
-      | 'fido2_enabled'
-      | 'otp_enabled'
-      | 'phone_number'
-      | 'required'
-    >;
+    type MfaPick = MfaSettingsPick;
 
     const { data: mfaSettings, error } = await this.sda
       .service()
@@ -345,16 +344,7 @@ export class AuthService {
         'sms_enabled,email_enabled,fido2_enabled,otp_enabled,phone_number'
       )
       .eq('user_id', user.id)
-      .maybeSingle<
-        Pick<
-          MfaSettings,
-          | 'sms_enabled'
-          | 'email_enabled'
-          | 'fido2_enabled'
-          | 'otp_enabled'
-          | 'phone_number'
-        >
-      >();
+      .maybeSingle<MfaSettingsPick>();
     const boundPhone = user.phone ?? cfg?.phone_number ?? null;
     // SMS
     {
@@ -440,7 +430,7 @@ export class AuthService {
           .from('mfa_settings')
           .select('phone_number')
           .eq('user_id', user.id)
-          .maybeSingle<Pick<MfaSettings, 'phone_number'>>()
+          .maybeSingle<{ phone_number: string | null }>()
       : { data: null as any };
     const boundPhone = user?.phone ?? cfg?.phone_number ?? null;
     let api: unknown = null;
@@ -482,7 +472,7 @@ export class AuthService {
           .from('mfa_settings')
           .select('phone_number')
           .eq('user_id', user.id)
-          .maybeSingle<Pick<MfaSettings, 'phone_number'>>()
+          .maybeSingle<{ phone_number: string | null }>()
       : { data: null as any };
     const boundPhone = user?.phone ?? cfg?.phone_number ?? null;
     if (!boundPhone) throw new HttpException('No phone bound', 400);
@@ -510,7 +500,7 @@ export class AuthService {
   async resetPassword(
     _params: ResetPasswordDto & { reason: ResetReason }
   ): Promise<Next> {
-    type UserPick = Pick<User, 'id' | 'student_id'>;
+    type UserPick = { id: number; student_id: string | null };
     const { data: user } = await this.sda
       .service()
       .from('user')

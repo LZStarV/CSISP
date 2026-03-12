@@ -7,7 +7,6 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
-    "db:types": "pnpm -F @csisp/infra-database types:build",
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
@@ -44,7 +43,6 @@
     "zod": "catalog:node"
   },
   "devDependencies": {
-    "@csisp/infra-database": "workspace:*",
     "@nestjs/cli": "catalog:node",
     "@types/cookie-parser": "catalog:dev",
     "@types/express": "catalog:dev",

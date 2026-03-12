@@ -202,7 +202,6 @@ if command -v docker >/dev/null 2>&1; then
     done
     if [ "$DOCKER_OK" -ne 1 ]; then
       log_warn "Docker 服务仍未就绪，请手动启动 Docker Desktop"
-      log_info "可以在项目根目录执行: bash infra/database/scripts/init_mac.sh，启动数据库相关容器并等待就绪"
     fi
   fi
 else
@@ -247,9 +246,10 @@ if [ "$COMPLETED" -eq "$TOTAL" ]; then
   printf "\n%s所有必需环境组件已就绪，可以继续进行项目开发。%s\n" "$GREEN" "$RESET"
   printf "\n推荐的后续操作：\n"
   printf "1) 安装依赖:\n   pnpm i\n"
-  printf "2) 启动基础设施与生成 IDL:\n   pnpm run dev:infra\n"
-  printf "3) 启动后端集成服务:\n   pnpm run dev:backend-integrated\n"
-  printf "4) 启动前端项目（管理端与门户）:\n   pnpm run dev:admin\n   pnpm run dev:portal\n"
+  printf "2) Supabase 本地链路（需已配置 Infisical SUPABASE_*）:\n   pnpm run supabase:link:stag && pnpm run supabase:pull:stag\n"
+  printf "3) 生成 IDL （可选）:\n   pnpm run idl:gen\n"
+  printf "4) 启动后端集成服务:\n   pnpm run dev:backend-integrated\n"
+  printf "5) 启动前端项目（管理端与门户）:\n   pnpm run dev:admin\n   pnpm run dev:portal\n"
 else
   printf "\n%s未完成的环境组件及建议操作：%s\n" "$RED" "$RESET"
   if [ "$NODE_OK" -ne 1 ]; then

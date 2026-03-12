@@ -1,0 +1,27 @@
+{
+  "name": "@csisp/supabase-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/"
+  ],
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.1"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=9"
+  }
+}

@@ -296,6 +296,9 @@ importers:
       '@csisp/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@csisp/supabase-sdk':
+        specifier: workspace:*
+        version: link:../../packages/supabase-sdk
       '@csisp/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -311,9 +314,6 @@ importers:
       '@nestjs/platform-express':
         specifier: catalog:node
         version: 10.4.22(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)
-      '@nestjs/sequelize':
-        specifier: catalog:node
-        version: 10.0.1(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)(sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7))(sequelize@6.37.7)
       bcrypt:
         specifier: catalog:node
         version: 6.0.0
@@ -341,19 +341,10 @@ importers:
       rxjs:
         specifier: catalog:node
         version: 7.8.2
-      sequelize:
-        specifier: catalog:node
-        version: 6.37.7(pg-hstore@2.3.4)(pg@8.18.0)
-      sequelize-typescript:
-        specifier: catalog:node
-        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7)
       zod:
         specifier: catalog:node
         version: 3.25.76
     devDependencies:
-      '@csisp/infra-database':
-        specifier: workspace:*
-        version: link:../../infra/database
       '@nestjs/cli':
         specifier: catalog:node
         version: 10.4.9
@@ -700,7 +691,7 @@ importers:
         version: 10.4.22(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)
       '@nestjs/sequelize':
         specifier: catalog:node
-        version: 10.0.1(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)(sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7))(sequelize@6.37.7)
+        version: 10.0.1(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)(sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0)))(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0))
       '@nestjs/serve-static':
         specifier: ^4.0.0
         version: 4.0.2(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(express@4.22.1)
@@ -739,7 +730,7 @@ importers:
         version: 6.37.7(pg-hstore@2.3.4)(pg@8.18.0)
       sequelize-typescript:
         specifier: catalog:node
-        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7)
+        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0))
       zod:
         specifier: catalog:node
         version: 3.25.76
@@ -800,7 +791,7 @@ importers:
         version: 6.37.7(pg-hstore@2.3.4)(pg@8.18.0)
       sequelize-typescript:
         specifier: catalog:node
-        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7)
+        version: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0))
       umzug:
         specifier: ^3.8.0
         version: 3.8.2(@types/node@18.19.130)
@@ -924,6 +915,15 @@ importers:
       '@types/express':
         specifier: ^4.17.21
         version: 4.17.25
+
+  packages/supabase-sdk:
+    dependencies:
+      '@nestjs/common':
+        specifier: '>=9'
+        version: 11.1.13(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@supabase/supabase-js':
+        specifier: ^2.99.1
+        version: 2.99.1
 
   packages/types: {}
 
@@ -8915,14 +8915,14 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@nestjs/sequelize@10.0.1(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)(sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7))(sequelize@6.37.7)':
+  '@nestjs/sequelize@10.0.1(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)(sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0)))(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0))':
     dependencies:
       '@nestjs/common': 10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 10.4.22(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
       sequelize: 6.37.7(pg-hstore@2.3.4)(pg@8.18.0)
-      sequelize-typescript: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7)
+      sequelize-typescript: 2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0))
       uuid: 9.0.1
 
   '@nestjs/serve-static@4.0.2(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(express@4.22.1)':
@@ -13922,7 +13922,7 @@ snapshots:
 
   sequelize-pool@7.1.0: {}
 
-  sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7):
+  sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.7(pg-hstore@2.3.4)(pg@8.18.0)):
     dependencies:
       '@types/node': 18.19.130
       '@types/validator': 13.15.10

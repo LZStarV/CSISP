@@ -7,18 +7,17 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
-    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write .",
-    "db:types": "pnpm -F @csisp/infra-database types:build"
+    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
     "@csisp/auth": "workspace:*",
     "@csisp/config": "workspace:*",
+    "@csisp/supabase-sdk": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@nestjs/common": "catalog:node",
     "@nestjs/core": "catalog:node",
     "@nestjs/mongoose": "catalog:node",
     "@nestjs/platform-express": "catalog:node",
-    "@nestjs/sequelize": "catalog:node",
     "bcrypt": "catalog:node",
     "class-transformer": "catalog:node",
     "class-validator": "catalog:node",
@@ -28,12 +27,9 @@
     "redis": "catalog:node",
     "reflect-metadata": "catalog:node",
     "rxjs": "catalog:node",
-    "sequelize": "catalog:node",
-    "sequelize-typescript": "catalog:node",
     "zod": "catalog:node"
   },
   "devDependencies": {
-    "@csisp/infra-database": "workspace:*",
     "@nestjs/cli": "catalog:node",
     "@types/bcrypt": "catalog:dev",
     "@types/node": "catalog:dev"

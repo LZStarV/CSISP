@@ -31,10 +31,6 @@ import {
   OIDCScope,
   OIDCClaim,
 } from '@csisp/idl/idp';
-import type OidcClients from '@csisp/infra-database/public/OidcClients';
-import type OidcKeys from '@csisp/infra-database/public/OidcKeys';
-import type RefreshTokens from '@csisp/infra-database/public/RefreshTokens';
-import type User from '@csisp/infra-database/public/User';
 import { RedisPrefix } from '@idp-types/redis';
 import { getIdpLogger } from '@infra/logger';
 import { del as redisDel } from '@infra/redis';
@@ -45,6 +41,36 @@ import { getApiBaseUrl } from '@utils/url';
 
 import { OidcPolicyHelper } from './helpers/oidc.policy';
 import { OidcTokenSigner } from './helpers/token.signer';
+type OidcKeyPick = {
+  kid: string;
+  kty: string;
+  alg: string;
+  use: string;
+  public_pem: string;
+  status?: string;
+};
+type OidcClientStatusPick = {
+  allowed_redirect_uris: string[] | string | null;
+  status: string;
+};
+type OidcClientPick = {
+  client_id: string;
+  name: string | null;
+  allowed_redirect_uris: string[] | string | null;
+  scopes: OIDCScope[] | null;
+};
+type RefreshTokenPick = {
+  id: number;
+  status?: string;
+  sub_hash: string;
+};
+type UserInfoPick = {
+  id: number;
+  username: string | null;
+  real_name: string | null;
+  email: string | null;
+  roles: any;
+};
 
 const logger = getIdpLogger('oidc-service');
 const accessTokenExpiresIn = config.auth.accessTokenExpiresIn;
@@ -131,10 +157,7 @@ export class OidcService {
    * - 仅返回状态为 active/retired 的密钥
    */
   async getJwks(): Promise<IJWKSet> {
-    type KeyPick = Pick<
-      OidcKeys,
-      'kid' | 'kty' | 'alg' | 'use' | 'public_pem' | 'status'
-    >;
+    type KeyPick = OidcKeyPick;
     const { data: rows } = await this.sda
       .service()
       .from('oidc_keys')
@@ -142,7 +165,7 @@ export class OidcService {
     const list = (rows ?? []) as KeyPick[];
     const activeStatuses = new Set<string>(['active', 'retired']);
     const keys = list
-      .filter(r => activeStatuses.has(r.status))
+      .filter(r => r.status != null && activeStatuses.has(r.status))
       .map(r => {
         const pub = crypto.createPublicKey(r.public_pem);
         const jwk = pub.export({ format: 'jwk' }) as {
@@ -190,7 +213,7 @@ export class OidcService {
     if (!code_challenge || code_challenge_method !== OIDCPKCEMethod.S256) {
       throw new BadRequestException('PKCE S256 required');
     }
-    type ClientPick = Pick<OidcClients, 'allowed_redirect_uris' | 'status'>;
+    type ClientPick = OidcClientStatusPick;
     const { data: client } = await this.sda
       .service()
       .from('oidc_clients')
@@ -331,7 +354,7 @@ export class OidcService {
         .createHash('sha256')
         .update(refresh_token)
         .digest('hex');
-      type RtPick = Pick<RefreshTokens, 'id' | 'status' | 'sub_hash'>;
+      type RtPick = Pick<RefreshTokenPick, 'id' | 'status' | 'sub_hash'>;
       const { data: cur } = await this.sda
         .service()
         .from('refresh_tokens')
@@ -402,10 +425,12 @@ export class OidcService {
     scope?: string
   ): Promise<TokenResponse> {
     logger.info({ client_id, sub, scope }, 'issueTokens started');
-    type KeyPick = Pick<
-      OidcKeys,
-      'kid' | 'public_pem' | 'private_pem_enc' | 'status'
-    >;
+    type KeyPick = {
+      kid: string;
+      public_pem: string;
+      private_pem_enc: string | Buffer;
+      status?: string;
+    };
     const { data: keyRow } = await this.sda
       .service()
       .from('oidc_keys')
@@ -435,11 +460,9 @@ export class OidcService {
                 .from('user')
                 .select('roles,username,real_name')
                 .eq('id', idNum)
-                .maybeSingle<{
-                  roles: any;
-                  username: string | null;
-                  real_name: string | null;
-                }>()
+                .maybeSingle<
+                  Pick<UserInfoPick, 'roles' | 'username' | 'real_name'>
+                >()
             ).data ?? null)
           : null;
 
@@ -492,7 +515,7 @@ export class OidcService {
    */
   async revokeToken(token: string): Promise<IRevocationResult> {
     const rtHash = crypto.createHash('sha256').update(token).digest('hex');
-    type RtPick = Pick<RefreshTokens, 'id'>;
+    type RtPick = Pick<RefreshTokenPick, 'id'>;
     const { data: cur } = await this.sda
       .service()
       .from('refresh_tokens')
@@ -533,10 +556,13 @@ export class OidcService {
     const sub = payload.sub;
     const scope = payload.scope as string | undefined;
     const idNum = Number(sub);
-    type UserPick = Pick<
-      User,
-      'id' | 'username' | 'real_name' | 'email' | 'roles'
-    >;
+    type UserPick = {
+      id: number;
+      username: string | null;
+      real_name: string | null;
+      email: string | null;
+      roles: any;
+    };
     const user =
       Number.isFinite(idNum) && idNum > 0
         ? ((
@@ -612,10 +638,7 @@ export class OidcService {
   }
 
   async listClients(): Promise<IClientInfo[]> {
-    type ClientPick = Pick<
-      OidcClients,
-      'client_id' | 'name' | 'allowed_redirect_uris' | 'scopes'
-    >;
+    type ClientPick = OidcClientPick;
     logger.info('listClients started');
     const { data: rows2 } = await this.sda
       .service()

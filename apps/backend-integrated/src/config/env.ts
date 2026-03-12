@@ -11,6 +11,9 @@ import { z } from 'zod';
 export const backendIntegratedEnvSchema = z.object({
   CSISP_BACKEND_INTEGRATED_PORT: envIntString(),
   DATABASE_URL: envString(),
+  SUPABASE_URL: envString(),
+  SUPABASE_SERVICE_ROLE_KEY: envString(),
+  SUPABASE_ANON_KEY: envString(),
   JWT_SECRET: envString(),
   CSISP_IDP_THRIFT_URL: envUrlString(),
   MONGODB_URI: envString(),

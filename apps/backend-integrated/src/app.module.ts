@@ -1,9 +1,9 @@
 import { IdpAuthModule } from '@csisp/auth/server';
+import { SupabaseModule } from '@csisp/supabase-sdk';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { config } from './config';
-import { SequelizePostgresModule } from './infra/postgres/sequelize.module';
 import { DomainModules } from './modules';
 
 @Module({
@@ -16,7 +16,11 @@ import { DomainModules } from './modules';
         jwtSecret: config.auth.jwtSecret,
       },
     }),
-    SequelizePostgresModule,
+    SupabaseModule.register({
+      url: config.supabase.url,
+      serviceRoleKey: config.supabase.serviceRoleKey,
+      anonKey: config.supabase.anonKey,
+    }),
     MongooseModule.forRoot(config.mongo.uri, {
       dbName: config.mongo.dbName,
     }),

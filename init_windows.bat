@@ -127,12 +127,8 @@ if !TOTAL! equ 4 (
     echo 1. Install dependencies:
     echo    pnpm i
     echo.
-    echo 2. Start database infrastructure:
-    echo    bash infra/database/scripts/init_mac.sh
-    echo.
-    echo 3. Initialize database:
-    echo    pnpm run -F @csisp/db-schema migrate
-    echo    pnpm run -F @csisp/db-schema seed
+    echo 2. Supabase local workflow (requires Infisical SUPABASE_*):
+    echo    pnpm run supabase:link:stag ^&^& pnpm run supabase:pull:stag
     echo.
     echo 4. Start backend services:
     echo    pnpm run -F @csisp/bff dev
