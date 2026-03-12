@@ -1,0 +1,36 @@
+name: Migrate Supabase Prod
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  migrate-prod:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_URL_REF: ${{ secrets.SUPABASE_URL_REF }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Supabase CLI
+        run: npm i -g supabase
+      - name: Link to Prod Project
+        run: supabase link --project-ref "$SUPABASE_URL_REF"
+        working-directory: supabase
+      - name: Show Migration History (Before)
+        run: supabase migration list
+        working-directory: supabase
+      - name: Apply Migrations to Prod
+        run: supabase migration up
+        working-directory: supabase
+      - name: Show Migration History (After)
+        run: supabase migration list
+        working-directory: supabase

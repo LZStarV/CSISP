@@ -8,7 +8,8 @@
   },
   "scripts": {
     "db:seed": "tsx src/seed/index.ts",
-    "types:build": "infisical run --env=dev --path=/database -- tsx src/cli/gen-types.ts"
+    "types:build": "infisical run --env=dev --path=/database -- tsx src/cli/gen-types.ts",
+    "supabase:gen:types": "supabase gen types typescript --linked --schema public,auth,storage > src/public/supabase.types.ts"
   },
   "dependencies": {
     "@csisp/utils": "workspace:*",

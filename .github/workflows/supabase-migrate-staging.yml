@@ -1,0 +1,49 @@
+name: Migrate Supabase Staging
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - 'supabase/seed.sql'
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - 'supabase/seed.sql'
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-staging-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_URL_REF: ${{ secrets.SUPABASE_URL_REF }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Supabase CLI
+        run: npm i -g supabase
+      - name: Link to Staging Project
+        run: supabase link --project-ref "$SUPABASE_URL_REF"
+        working-directory: supabase
+      - name: Show Migration History (Before)
+        run: supabase migration list
+        working-directory: supabase
+      - name: Apply Migrations to Staging
+        run: supabase migration up
+        working-directory: supabase
+      - name: Show Migration History (After)
+        run: supabase migration list
+        working-directory: supabase

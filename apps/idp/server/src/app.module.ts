@@ -1,6 +1,7 @@
 import { join } from 'path';
 
 import { ThriftRawBodyMiddleware } from '@csisp/rpc/server-nest';
+import { SupabaseModule } from '@infra/supabase';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -19,6 +20,7 @@ import { DomainModules } from './modules';
     }),
     SequelizePostgresModule,
     RedisModule,
+    SupabaseModule,
     ...DomainModules,
   ],
   providers: [
