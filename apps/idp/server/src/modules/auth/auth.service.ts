@@ -20,11 +20,9 @@ import { RedisPrefix } from '@idp-types/redis';
 import { verifyPassword, hashPasswordScrypt } from '@infra/crypto/password';
 import { getPublicKey } from '@infra/crypto/rsa';
 import { getIdpLogger } from '@infra/logger';
-import { MfaSettingsModel, UserModel } from '@infra/postgres/models';
 import { SmsService } from '@infra/sms/sms.service';
 import { SupabaseDataAccess } from '@infra/supabase';
 import { Injectable, HttpException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
 import {
   SessionIssuer,
   defaultSessionOptions,
@@ -73,9 +71,6 @@ export class AuthService {
   });
 
   constructor(
-    @InjectModel(UserModel) private readonly userModel: typeof UserModel,
-    @InjectModel(MfaSettingsModel)
-    private readonly mfaSettingsModel: typeof MfaSettingsModel,
     private readonly smsService: SmsService,
     private readonly sda: SupabaseDataAccess
   ) {}
@@ -516,11 +511,12 @@ export class AuthService {
     _params: ResetPasswordDto & { reason: ResetReason }
   ): Promise<Next> {
     type UserPick = Pick<User, 'id' | 'student_id'>;
-    const user = (await this.userModel.findOne({
-      where: { student_id: _params.studentId },
-      attributes: ['id', 'student_id'],
-      raw: true,
-    })) as UserPick | null;
+    const { data: user } = await this.sda
+      .service()
+      .from('user')
+      .select('id,student_id')
+      .eq('student_id', _params.studentId)
+      .maybeSingle<UserPick>();
     if (!user) throw new HttpException('User not found', 404);
 
     // 校验重置令牌（使用 TicketIssuer）

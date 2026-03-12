@@ -18,9 +18,6 @@ export const config = {
   issuer: {
     baseUrl: normalizeBaseUrl(env.CSISP_IDP_RPC_URL),
   },
-  db: {
-    url: env.DATABASE_URL,
-  },
   supabase: {
     url: env.SUPABASE_URL,
     serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,

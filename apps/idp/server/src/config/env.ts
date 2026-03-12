@@ -12,7 +12,6 @@ export const idpServerEnvSchema = z.object({
   NODE_ENV: envOptionalString(),
   CSISP_IDP_PORT: envIntString(),
   CSISP_IDP_RPC_URL: envUrlString(),
-  DATABASE_URL: envString(),
   JWT_SECRET: envString(),
   OIDC_KEK_SECRET: envString(),
   SUPABASE_URL: envString(),

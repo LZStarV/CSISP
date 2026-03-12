@@ -1,4 +1,3 @@
-import { SequelizePostgresModule } from '@infra/postgres/sequelize.module';
 import { SmsService } from '@infra/sms/sms.service';
 import { Module } from '@nestjs/common';
 
@@ -6,7 +5,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
 @Module({
-  imports: [SequelizePostgresModule],
+  imports: [],
   controllers: [AuthController],
   providers: [AuthService, SmsService],
 })

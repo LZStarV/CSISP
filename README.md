@@ -72,6 +72,35 @@ pnpm -F [sub-application-name] dev
 pnpm run dev:backend-integrated
 ```
 
+### 服务端开发策略（Supabase + Infisical）
+
+- 环境选择（按需切换）
+  - 日常联调：使用 stag:[project]:server（连接预发布数据库）。
+  - 结构变更/本地验证：使用 dev:[project]:server（连接本地 Supabase 栈或开发数据库）。
+  - 启动示例（根据你的脚本习惯选择相应环境）：
+    - infisical run --env=staging pnpm -F @csisp/idp-server dev
+    - infisical run --env=dev pnpm -F @csisp/idp-server dev
+- 个人化密钥（Infisical Personal Override）
+  - 为 SUPABASE_ANON_KEY 与 SUPABASE_SERVICE_ROLE_KEY 启用个人覆盖（Personal override），确保每位开发者可使用自己本机 Supabase 栈的 Key，而不影响他人。
+  - 推荐做法：
+    - 在 Infisical → Environments → 选择 dev
+    - 新增或选中变量：SUPABASE_ANON_KEY、SUPABASE_SERVICE_ROLE_KEY
+    - 切换为 Personal，填入你本机 supabase start 输出的：
+      - Publishable → SUPABASE*ANON_KEY（以 sb_publishable* 开头）
+      - Secret → SUPABASE*SERVICE_ROLE_KEY（以 sb_secret* 开头，服务端查询走此 Key，避免被 RLS 拦截）
+    - 保存后用 infisical run --env=dev 启动即可按个人值注入
+  - 注意事项：
+    - 不要将上述变量在任何环境里设置为空字符串（空值会覆盖进程环境导致校验失败）。
+    - 预发布/生产环境通常使用共享远端 Key；仅 dev 环境建议使用 Personal 覆盖来接入本地栈。
+- 本地栈连接参考（仅本地开发时使用）
+  - SUPABASE_URL=http://127.0.0.1:54321
+  - SUPABASE_ANON_KEY/ SUPABASE_SERVICE_ROLE_KEY：来自 supabase start 的终端输出
+- 快速排障提示
+  - 看到 “No suitable key or wrong key type” 多为使用了 anon key 访问受 RLS 保护的表；替换为 service role key。
+  - 本地 DB 直接校验（可选）：
+    - psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable"
+    - select id, student_id, username, status from public."user" where student_id = '20232131082';
+
 ### 开发前端项目
 
 ```bash

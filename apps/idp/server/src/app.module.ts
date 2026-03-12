@@ -8,7 +8,6 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { RateLimitInterceptor } from './common/interceptors/rate-limit.interceptor';
-import { SequelizePostgresModule } from './infra/postgres/sequelize.module';
 import { RedisModule } from './infra/redis/redis.module';
 import { DomainModules } from './modules';
 
@@ -18,7 +17,6 @@ import { DomainModules } from './modules';
       rootPath: join(__dirname, '../../client/dist'),
       serveRoot: '/',
     }),
-    SequelizePostgresModule,
     RedisModule,
     SupabaseModule,
     ...DomainModules,

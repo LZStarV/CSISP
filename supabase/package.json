@@ -3,11 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "login": "infisical run -- supabase login",
-    "link:dev": "infisical run -- sh -lc 'supabase link --project-ref \"$SUPABASE_URL_REF\"'",
-    "db:pull:dev": "supabase db pull",
-    "db:diff:dev": "infisical run -- supabase db diff -f \"$NAME\"",
-    "db:reset:local": "supabase db reset",
+    "login": "supabase login",
+    "start:dev": "supabase start",
+    "link:stag": "infisical run  --env=staging -- sh -lc 'supabase link --project-ref \"$SUPABASE_URL_REF\"'",
+    "db:pull:stag": "supabase db pull",
+    "db:diff:stag": "infisical run  --env=staging -- supabase db diff -f \"$NAME\"",
+    "db:reset:dev": "supabase db reset",
     "migrations:list": "supabase migration list"
   }
 }
