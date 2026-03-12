@@ -29,12 +29,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
         with:
-          node-version: '24'
-      - name: Install Supabase CLI
-        run: npm i -g supabase
+          version: latest
       - name: Link to Staging Project
         run: supabase link --project-ref "$SUPABASE_URL_REF"
         working-directory: supabase
