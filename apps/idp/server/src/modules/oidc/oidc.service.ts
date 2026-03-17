@@ -31,11 +31,12 @@ import {
   OIDCScope,
   OIDCClaim,
 } from '@csisp/idl/idp';
+import type { RedisKV } from '@csisp/redis-sdk';
+import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import { RedisPrefix } from '@idp-types/redis';
 import { getIdpLogger } from '@infra/logger';
-import { del as redisDel } from '@infra/redis';
 import { SupabaseDataAccess } from '@infra/supabase';
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException } from '@nestjs/common';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
 import { getApiBaseUrl } from '@utils/url';
 
@@ -95,21 +96,11 @@ interface AuthorizationRequestData {
 
 @Injectable()
 export class OidcService {
-  private readonly ticketIssuer = new TicketIssuer<AuthorizationRequestData>({
-    prefix: RedisPrefix.OidcTicket,
-    ttl: 600,
-    idType: TicketIdType.UUID,
-  });
+  private readonly ticketIssuer: TicketIssuer<AuthorizationRequestData>;
 
-  private readonly authReqIssuer = new TicketIssuer<AuthorizationRequestData>({
-    prefix: RedisPrefix.OidcAuthReq,
-    ttl: 600,
-  });
+  private readonly authReqIssuer: TicketIssuer<AuthorizationRequestData>;
 
-  private readonly codeIssuer = new TicketIssuer<any>({
-    prefix: RedisPrefix.OidcCode,
-    ttl: 600,
-  });
+  private readonly codeIssuer: TicketIssuer<any>;
 
   private readonly tokenSigner = new OidcTokenSigner({
     issuer: getApiBaseUrl(),
@@ -291,7 +282,23 @@ export class OidcService {
    * - 授权码模式校验 code_verifier/redirect_uri 等并签发令牌
    * - 刷新模式进行 RT 轮换与防重放
    */
-  constructor(private readonly sda: SupabaseDataAccess) {}
+  constructor(
+    private readonly sda: SupabaseDataAccess,
+    @Inject(REDIS_KV) private readonly kv: RedisKV
+  ) {
+    this.ticketIssuer = new TicketIssuer<AuthorizationRequestData>(
+      { prefix: RedisPrefix.OidcTicket, ttl: 600, idType: TicketIdType.UUID },
+      kv
+    );
+    this.authReqIssuer = new TicketIssuer<AuthorizationRequestData>(
+      { prefix: RedisPrefix.OidcAuthReq, ttl: 600 },
+      kv
+    );
+    this.codeIssuer = new TicketIssuer<any>(
+      { prefix: RedisPrefix.OidcCode, ttl: 600 },
+      kv
+    );
+  }
 
   async exchangeToken(
     params: ITokenRequest | TokenRefreshRequest
@@ -326,7 +333,7 @@ export class OidcService {
         .digest('base64url');
       if (calc !== expectedChallenge)
         throw new BadRequestException('Invalid code_verifier');
-      await redisDel(`oidc:code:${code}`);
+      await this.kv.del(`oidc:code:${code}`);
       const sub = authObj.sub;
       const acr = authObj.acr;
       const amr = authObj.amr;

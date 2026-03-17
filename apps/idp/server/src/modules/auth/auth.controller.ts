@@ -8,9 +8,11 @@ import {
   ResetReason,
   SessionResult,
 } from '@csisp/idl/idp';
+import type { RedisKV } from '@csisp/redis-sdk';
+import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import { parseEnum } from '@csisp/utils';
 import { RedisPrefix } from '@idp-types/redis';
-import { del as redisDel } from '@infra/redis';
+import { Inject } from '@nestjs/common';
 import { BadRequestException } from '@nestjs/common';
 import {
   Body,
@@ -40,7 +42,10 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 @UseGuards(IdpSessionGuard)
 @UseInterceptors(JsonRpcInterceptor)
 export class AuthController {
-  constructor(private readonly service: AuthService) {}
+  constructor(
+    private readonly service: AuthService,
+    @Inject(REDIS_KV) private readonly kv: RedisKV
+  ) {}
 
   @Post('rsatoken')
   async rsatoken() {
@@ -170,7 +175,7 @@ export class AuthController {
     const sid = req.idpSession;
     if (logout && sid) {
       try {
-        await redisDel(`${RedisPrefix.IdpSession}${sid}`);
+        await this.kv.del(`${RedisPrefix.IdpSession}${sid}`);
       } catch {}
       response.clearCookie?.('idp_session');
       return new SessionResult({ logged: false });

@@ -1,5 +1,5 @@
+import type { RedisKV } from '@csisp/redis-sdk';
 import { RedisPrefix } from '@idp-types/redis';
-import { set as redisSet, get as redisGet } from '@infra/redis';
 import type { Response } from 'express';
 
 import { config } from '../config';
@@ -36,7 +36,10 @@ export interface SessionOptions {
 }
 
 export class SessionIssuer {
-  constructor(private readonly opts: SessionOptions) {}
+  constructor(
+    private readonly opts: SessionOptions,
+    private readonly kv: RedisKV
+  ) {}
 
   /**
    * 生成随机 sid
@@ -62,7 +65,7 @@ export class SessionIssuer {
       mode === SessionMode.Short ? this.opts.ttlShort : this.opts.ttlLong;
 
     // 1. 写入 Redis
-    await redisSet(`${this.opts.redisPrefix}${sid}`, String(uid), ttl);
+    await this.kv.set(`${this.opts.redisPrefix}${sid}`, String(uid), ttl);
 
     // 2. 设置 Cookie
     res.cookie(this.opts.cookie.name, sid, {
@@ -79,7 +82,7 @@ export class SessionIssuer {
    */
   async get(sid: string): Promise<string | null> {
     const key = `${this.opts.redisPrefix}${sid}`;
-    return redisGet(key);
+    return this.kv.get(key);
   }
 }
 

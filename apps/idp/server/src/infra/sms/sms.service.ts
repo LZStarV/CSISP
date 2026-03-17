@@ -3,9 +3,10 @@ import Dypnsapi20170525, * as $Dypnsapi20170525 from '@alicloud/dypnsapi20170525
 import * as $OpenApi from '@alicloud/openapi-client';
 import * as $Util from '@alicloud/tea-util';
 import { config } from '@config';
+import type { RedisKV } from '@csisp/redis-sdk';
+import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import { getIdpLogger } from '@infra/logger';
-import { set as redisSet, get as redisGet } from '@infra/redis';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 const OTP_MINUTES = 5;
 
@@ -20,13 +21,12 @@ type SmsSendResult = {
 
 @Injectable()
 export class SmsService {
+  constructor(@Inject(REDIS_KV) private readonly kv: RedisKV) {
+    this.client = this.createClient();
+  }
   private logger = getIdpLogger('sms-service');
 
   private client: Dypnsapi20170525;
-
-  constructor() {
-    this.client = this.createClient();
-  }
 
   private createClient(): Dypnsapi20170525 {
     const credential = new Credential();
@@ -44,7 +44,7 @@ export class SmsService {
   // 发送 OTP 短信验证码
   async sendOtp(phone: string): Promise<SmsSendResult> {
     const code = this.generateCode();
-    await redisSet(`idp:otp:${phone}`, code, OTP_MINUTES * 60);
+    await this.kv.set(`idp:otp:${phone}`, code, OTP_MINUTES * 60);
     const client = this.createClient();
     const { signName, templateCode, schemeName } = config.sms;
     const params = JSON.stringify({ code, min: String(OTP_MINUTES) });
@@ -92,7 +92,7 @@ export class SmsService {
   // 校验 OTP 短信验证码
   async verifyOtp(phone: string, code: string): Promise<boolean> {
     if (!phone || !code) return false;
-    const expected = await redisGet(`idp:otp:${phone}`);
+    const expected = await this.kv.get<string>(`idp:otp:${phone}`);
     this.logger.info({ phone, expected, code }, 'verify otp');
     return !!expected && expected === code;
   }

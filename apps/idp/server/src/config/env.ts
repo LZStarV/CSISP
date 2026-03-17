@@ -23,6 +23,8 @@ export const idpServerEnvSchema = z.object({
   SMS_SIGN_NAME: envOptionalString(),
   SMS_TEMPLATE_CODE: envOptionalString(),
   SMS_SCHEME_NAME: envOptionalString(),
+  UPSTASH_REDIS_REST_URL: envOptionalString(),
+  UPSTASH_REDIS_REST_TOKEN: envOptionalString(),
   REDIS_HOST: envString(),
   REDIS_PORT: envIntString(),
   REDIS_DB: envNonNegativeIntString(),

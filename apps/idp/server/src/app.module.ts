@@ -1,5 +1,6 @@
 import { join } from 'path';
 
+import { RedisModule } from '@csisp/redis-sdk/nest';
 import { ThriftRawBodyMiddleware } from '@csisp/rpc/server-nest';
 import { SupabaseModule } from '@infra/supabase';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
@@ -8,7 +9,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { RateLimitInterceptor } from './common/interceptors/rate-limit.interceptor';
-import { RedisModule } from './infra/redis/redis.module';
+import { config } from './config';
 import { DomainModules } from './modules';
 
 @Module({
@@ -17,7 +18,11 @@ import { DomainModules } from './modules';
       rootPath: join(__dirname, '../../client/dist'),
       serveRoot: '/',
     }),
-    RedisModule,
+    RedisModule.forRoot({
+      url: config.redis.upstash.url,
+      token: config.redis.upstash.token,
+      namespace: config.redis.namespace,
+    }),
     SupabaseModule,
     ...DomainModules,
   ],

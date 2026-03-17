@@ -1,10 +1,6 @@
 import { randomUUID } from 'crypto';
 
-import {
-  set as redisSet,
-  get as redisGet,
-  del as redisDel,
-} from '../infra/redis';
+import type { RedisKV } from '@csisp/redis-sdk';
 
 /**
  * 票据标识符类型
@@ -25,7 +21,10 @@ export interface TicketOptions {
  * 适用于 OIDC Ticket, Auth Request, Password Reset Token, OTP 等场景
  */
 export class TicketIssuer<T = string> {
-  constructor(private readonly opts: TicketOptions) {}
+  constructor(
+    private readonly opts: TicketOptions,
+    private readonly kv: RedisKV
+  ) {}
 
   /**
    * 生成唯一标识符
@@ -48,7 +47,7 @@ export class TicketIssuer<T = string> {
     const id = customId ?? this.genId();
     const key = `${this.opts.prefix}${id}`;
     const val = typeof data === 'string' ? data : JSON.stringify(data);
-    await redisSet(key, val, this.opts.ttl);
+    await this.kv.set(key, val, this.opts.ttl);
     return id;
   }
 
@@ -57,7 +56,7 @@ export class TicketIssuer<T = string> {
    */
   async verify(id: string): Promise<T | null> {
     const key = `${this.opts.prefix}${id}`;
-    const raw = await redisGet(key);
+    const raw = await this.kv.get<string>(key);
     if (!raw) return null;
 
     try {
@@ -73,7 +72,7 @@ export class TicketIssuer<T = string> {
   async consume(id: string): Promise<T | null> {
     const data = await this.verify(id);
     if (data !== null) {
-      await redisDel(`${this.opts.prefix}${id}`);
+      await this.kv.del(`${this.opts.prefix}${id}`);
     }
     return data;
   }

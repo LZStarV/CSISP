@@ -15,4 +15,12 @@ export class HealthController {
   status() {
     return this.service.getStatus();
   }
+
+  @Get('upstash')
+  /**
+   * Upstash Redis 联通检查（通过 Supabase Edge Function）
+   */
+  upstash() {
+    return this.service.upstash();
+  }
 }

@@ -1,0 +1,35 @@
+{
+  "name": "@csisp/redis-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./nest": {
+      "types": "./dist/nest/index.d.ts",
+      "import": "./dist/nest/index.js",
+      "require": "./dist/nest/index.js"
+    }
+  },
+  "files": [
+    "dist/"
+  ],
+  "dependencies": {
+    "@upstash/redis": "^1.28.4"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=9"
+  },
+  "devDependencies": {
+    "@nestjs/common": "catalog:node"
+  }
+}

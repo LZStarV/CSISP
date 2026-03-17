@@ -4,10 +4,8 @@ import cookieParser from 'cookie-parser';
 
 import { AppModule } from './app.module';
 import { config } from './config';
-import { connect as connectRedis } from './infra/redis';
 
 async function bootstrap() {
-  await connectRedis({});
   const app = await NestFactory.create(AppModule);
 
   app.use(cookieParser());

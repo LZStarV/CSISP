@@ -44,5 +44,9 @@ export const config = {
     db: env.REDIS_DB,
     namespace: env.REDIS_NAMESPACE,
     password: redisPassword,
+    upstash: {
+      url: env.UPSTASH_REDIS_REST_URL || '',
+      token: env.UPSTASH_REDIS_REST_TOKEN || '',
+    },
   },
 };

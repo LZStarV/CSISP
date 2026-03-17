@@ -14,6 +14,8 @@ import {
   VerifyResult,
   RecoveryUnavailableReason,
 } from '@csisp/idl/idp';
+import type { RedisKV } from '@csisp/redis-sdk';
+import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import { RedisPrefix } from '@idp-types/redis';
 import { verifyPassword, hashPasswordScrypt } from '@infra/crypto/password';
 import { getPublicKey } from '@infra/crypto/rsa';
@@ -21,6 +23,7 @@ import { getIdpLogger } from '@infra/logger';
 import { SmsService } from '@infra/sms/sms.service';
 import { SupabaseDataAccess } from '@infra/supabase';
 import { Injectable, HttpException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   SessionIssuer,
   defaultSessionOptions,
@@ -55,32 +58,38 @@ type RpcParams = Record<string, any>;
  */
 @Injectable()
 export class AuthService {
-  private readonly sessionIssuer = new SessionIssuer(defaultSessionOptions);
-  private readonly resetTicketIssuer = new TicketIssuer({
-    prefix: RedisPrefix.IdpReset,
-    ttl: 900,
-  });
+  private readonly sessionIssuer: SessionIssuer;
+  private readonly resetTicketIssuer: TicketIssuer;
 
-  private readonly oidcTicketIssuer = new TicketIssuer<any>({
-    prefix: RedisPrefix.OidcTicket,
-    ttl: 600,
-    idType: TicketIdType.UUID,
-  });
+  private readonly oidcTicketIssuer: TicketIssuer<any>;
 
-  private readonly oidcAuthReqIssuer = new TicketIssuer<any>({
-    prefix: RedisPrefix.OidcAuthReq,
-    ttl: 600,
-  });
+  private readonly oidcAuthReqIssuer: TicketIssuer<any>;
 
-  private readonly oidcCodeIssuer = new TicketIssuer<any>({
-    prefix: RedisPrefix.OidcCode,
-    ttl: 600,
-  });
+  private readonly oidcCodeIssuer: TicketIssuer<any>;
 
   constructor(
     private readonly smsService: SmsService,
-    private readonly sda: SupabaseDataAccess
-  ) {}
+    private readonly sda: SupabaseDataAccess,
+    @Inject(REDIS_KV) private readonly kv: RedisKV
+  ) {
+    this.sessionIssuer = new SessionIssuer(defaultSessionOptions, kv);
+    this.resetTicketIssuer = new TicketIssuer(
+      { prefix: RedisPrefix.IdpReset, ttl: 900 },
+      kv
+    );
+    this.oidcTicketIssuer = new TicketIssuer<any>(
+      { prefix: RedisPrefix.OidcTicket, ttl: 600, idType: TicketIdType.UUID },
+      kv
+    );
+    this.oidcAuthReqIssuer = new TicketIssuer<any>(
+      { prefix: RedisPrefix.OidcAuthReq, ttl: 600 },
+      kv
+    );
+    this.oidcCodeIssuer = new TicketIssuer<any>(
+      { prefix: RedisPrefix.OidcCode, ttl: 600 },
+      kv
+    );
+  }
 
   /**
    * 获取用户的多因子配置列表
