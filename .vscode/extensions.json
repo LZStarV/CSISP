@@ -1,15 +1,3 @@
 {
-  "recommendations": [
-    "dbaeumer.vscode-eslint",
-    "editorconfig.editorconfig",
-    "ms-azuretools.vscode-docker",
-    "esbenp.prettier-vscode",
-    "vue.volar",
-    "stylelint.vscode-stylelint",
-    "dariofuzinato.vue-peek",
-    "bradlc.vscode-tailwindcss",
-    "hashicorp.hcl",
-    "shellomo.enhanced-toml",
-    "cduruk.thrift"
-  ]
+  "recommendations": ["denoland.vscode-deno"]
 }
