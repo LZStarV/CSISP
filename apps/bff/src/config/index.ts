@@ -7,9 +7,6 @@ const env = getBffEnv();
 const rpcPrefix = normalizePrefix(env.CSISP_RPC_PREFIX);
 const basePrefix = normalizePrefix(joinUrl(rpcPrefix, 'bff'));
 
-const redisPassword =
-  env.REDIS_PASSWORD === '' ? undefined : env.REDIS_PASSWORD;
-
 const enabledSubProjects = String(env.BFF_ENABLED_SUBPROJECTS ?? 'portal,admin')
   .split(',')
   .map(s => s.trim())
@@ -23,11 +20,8 @@ export type BffConfig = {
   auth: { jwtSecret: string };
   features: { enabledSubProjects: string[] };
   redis: {
-    host: string;
-    port: number;
-    db: number;
     namespace: string;
-    password?: string;
+    upstash: { url: string; token: string };
   };
 };
 
@@ -53,11 +47,7 @@ export const config: BffConfig = {
     enabledSubProjects,
   },
   redis: {
-    host: env.REDIS_HOST,
-    port: env.REDIS_PORT,
-    db: env.REDIS_DB,
     namespace: env.REDIS_NAMESPACE,
-    password: redisPassword,
     upstash: {
       url: env.UPSTASH_REDIS_REST_URL || '',
       token: env.UPSTASH_REDIS_REST_TOKEN || '',

@@ -15,11 +15,7 @@ export const bffEnvSchema = z.object({
   CSISP_RPC_PREFIX: envString(),
   CSISP_BACKEND_INTEGRATED_URL: envUrlString(),
   JWT_SECRET: envString(),
-  REDIS_HOST: envString(),
-  REDIS_PORT: envIntString(),
-  REDIS_DB: envNonNegativeIntString(),
   REDIS_NAMESPACE: envString(),
-  REDIS_PASSWORD: envOptionalString(),
   UPSTASH_REDIS_REST_URL: envOptionalString(),
   UPSTASH_REDIS_REST_TOKEN: envOptionalString(),
 });

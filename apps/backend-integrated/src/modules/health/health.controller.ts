@@ -18,4 +18,16 @@ export class HealthController {
     const result = this.service.ping();
     return ok(req.id, result);
   }
+
+  @Post('mongo')
+  mongo(@Body(new RpcRequestPipe()) req: RPCRequest): RPCResponse<{
+    ok: boolean;
+    state: number;
+    stateText: string;
+    db?: string;
+    host?: string | null;
+  }> {
+    const result = this.service.mongo();
+    return ok(req.id, result);
+  }
 }

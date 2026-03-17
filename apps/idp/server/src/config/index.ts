@@ -4,9 +4,6 @@ import { getIdpServerEnv } from './env';
 
 const env = getIdpServerEnv();
 
-const redisPassword =
-  env.REDIS_PASSWORD === '' ? undefined : env.REDIS_PASSWORD;
-
 export const config = {
   runtime: {
     nodeEnv: env.NODE_ENV,
@@ -39,11 +36,7 @@ export const config = {
     schemeName: env.SMS_SCHEME_NAME || 'CSISP',
   },
   redis: {
-    host: env.REDIS_HOST,
-    port: env.REDIS_PORT,
-    db: env.REDIS_DB,
     namespace: env.REDIS_NAMESPACE,
-    password: redisPassword,
     upstash: {
       url: env.UPSTASH_REDIS_REST_URL || '',
       token: env.UPSTASH_REDIS_REST_TOKEN || '',

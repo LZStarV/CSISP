@@ -8,7 +8,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { RateLimitInterceptor } from './common/interceptors/rate-limit.interceptor';
 import { config } from './config';
-import { DomainModules } from './modules';
 
 @Module({
   imports: [
@@ -30,10 +29,7 @@ import { DomainModules } from './modules';
       token: config.redis.upstash.token,
       namespace: config.redis.namespace,
     }),
-    MongooseModule.forRoot(config.mongo.uri, {
-      dbName: config.mongo.dbName,
-    }),
-    ...DomainModules,
+    MongooseModule.forRoot(config.mongo.uri),
   ],
   providers: [
     {

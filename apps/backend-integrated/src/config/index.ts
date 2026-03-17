@@ -3,10 +3,6 @@ import { normalizeBaseUrl } from '@csisp/config';
 import { getBackendIntegratedEnv } from './env';
 
 const env = getBackendIntegratedEnv();
-
-const redisPassword =
-  env.REDIS_PASSWORD === '' ? undefined : env.REDIS_PASSWORD;
-
 const baseOrigins = [
   env.CSISP_BFF_URL,
   env.CSISP_BACKOFFICE_URL,
@@ -36,7 +32,6 @@ export const config = {
   },
   mongo: {
     uri: env.MONGODB_URI,
-    dbName: env.MONGODB_DB,
   },
   auth: {
     jwtSecret: env.JWT_SECRET,
@@ -46,11 +41,7 @@ export const config = {
     allowedOrigins,
   },
   redis: {
-    host: env.REDIS_HOST,
-    port: env.REDIS_PORT,
-    db: env.REDIS_DB,
     namespace: env.REDIS_NAMESPACE,
-    password: redisPassword,
     upstash: {
       url: env.UPSTASH_REDIS_REST_URL || '',
       token: env.UPSTASH_REDIS_REST_TOKEN || '',
