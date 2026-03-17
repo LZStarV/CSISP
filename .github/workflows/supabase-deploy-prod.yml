@@ -1,4 +1,4 @@
-name: Migrate Supabase Prod
+name: Deploy Supabase Prod
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  migrate-prod:
+  deploy-prod:
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -33,13 +33,13 @@ jobs:
       - name: Link to Prod Project
         run: supabase link --project-ref "$SUPABASE_URL_REF" --debug
         working-directory: supabase
-      - name: Show Migration History (Before)
+      - name: Show Supabase Migration History (Before)
         run: supabase migration list --db-url "$DATABASE_URL"
         working-directory: supabase
-      - name: Apply Migrations to Prod
+      - name: Apply Supabase Migrations (Prod)
         run: supabase migration up --db-url "$DATABASE_URL"
         working-directory: supabase
-      - name: Show Migration History (After)
+      - name: Show Supabase Migration History (After)
         run: supabase migration list --db-url "$DATABASE_URL"
         working-directory: supabase
       - name: Set Supabase Function Secrets (production)

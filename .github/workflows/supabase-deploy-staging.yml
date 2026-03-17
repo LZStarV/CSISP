@@ -1,4 +1,4 @@
-name: Migrate Supabase Staging
+name: Deploy Supabase Staging
 
 on:
   push:
@@ -18,11 +18,11 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: supabase-staging-migrations
+  group: supabase-staging-deploy
   cancel-in-progress: false
 
 jobs:
-  migrate-staging:
+  deploy-staging:
     runs-on: ubuntu-latest
     environment: staging
     env:
@@ -48,13 +48,13 @@ jobs:
       - name: Link to Staging Project
         run: supabase link --project-ref "$SUPABASE_URL_REF" --debug
         working-directory: supabase
-      - name: Show Migration History (Before)
+      - name: Show Supabase Migration History (Before)
         run: supabase migration list --db-url "$DATABASE_URL"
         working-directory: supabase
-      - name: Apply Migrations to Staging
+      - name: Apply Supabase Migrations (Staging)
         run: supabase migration up --db-url "$DATABASE_URL"
         working-directory: supabase
-      - name: Show Migration History (After)
+      - name: Show Supabase Migration History (After)
         run: supabase migration list --db-url "$DATABASE_URL"
         working-directory: supabase
       - name: Set Supabase Function Secrets (staging)
