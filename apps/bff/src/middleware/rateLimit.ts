@@ -1,5 +1,7 @@
 import type { Context, Next } from 'koa';
 
+import { redis } from '../infra/redis';
+
 // 简易滑窗限流中间件（内存实现）
 //
 // 作用：
@@ -14,11 +16,11 @@ type RateLimitOptions = {
   message?: string;
 };
 
-const store = new Map<string, { count: number; resetTime: number }>();
+const windowDefault = 60000;
 
 export default function rateLimit(options: RateLimitOptions = {}) {
   const {
-    windowMs = 60000,
+    windowMs = windowDefault,
     max = 100,
     keyGenerator = (ctx: Context) => `${ctx.ip}:${ctx.path}`,
     excludePaths = ['/health'],
@@ -27,26 +29,26 @@ export default function rateLimit(options: RateLimitOptions = {}) {
 
   return async (ctx: Context, next: Next) => {
     if (excludePaths.some(p => ctx.path.startsWith(p))) return next();
-    const key = keyGenerator(ctx);
-    const now = Date.now();
-    let rec = store.get(key);
-    if (!rec || now > rec.resetTime) {
-      rec = { count: 0, resetTime: now + windowMs };
-      store.set(key, rec);
+    const key = `bff:ratelimit:${keyGenerator(ctx)}`;
+    const n = await (redis as any).incr?.(key);
+    if (n === 1) {
+      await (redis as any).expire?.(key, Math.floor(windowMs / 1000));
     }
-    if (rec.count >= max) {
+    if (typeof n === 'number' && n > max) {
       ctx.status = 429;
       ctx.body = {
         code: 429,
         message,
-        retryAfter: Math.ceil((rec.resetTime - now) / 1000),
+        retryAfter: Math.ceil(windowMs / 1000),
       };
       return;
     }
-    rec.count++;
     ctx.set('X-RateLimit-Limit', String(max));
-    ctx.set('X-RateLimit-Remaining', String(max - rec.count));
-    ctx.set('X-RateLimit-Reset', new Date(rec.resetTime).toISOString());
+    ctx.set(
+      'X-RateLimit-Remaining',
+      String(max - (typeof n === 'number' ? n : 0))
+    );
+    ctx.set('X-RateLimit-Reset', new Date(Date.now() + windowMs).toISOString());
     await next();
   };
 }

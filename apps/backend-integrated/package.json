@@ -12,6 +12,7 @@
   "dependencies": {
     "@csisp/auth": "workspace:*",
     "@csisp/config": "workspace:*",
+    "@csisp/redis-sdk": "workspace:*",
     "@csisp/supabase-sdk": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@nestjs/common": "catalog:node",
@@ -24,7 +25,6 @@
     "mongoose": "catalog:node",
     "pino": "catalog:",
     "pino-pretty": "catalog:",
-    "redis": "catalog:node",
     "reflect-metadata": "catalog:node",
     "rxjs": "catalog:node",
     "zod": "catalog:node"

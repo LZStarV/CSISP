@@ -5,41 +5,32 @@
  * 在指定时间窗口内超过 max 次请求时返回 429，
  * 对应旧 backend 中 rateLimit/apiRateLimit 的核心逻辑。
  */
+import type { RedisKV } from '@csisp/redis-sdk';
+import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import {
   CallHandler,
   ExecutionContext,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
 import type { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
-interface RateLimitRecord {
-  count: number;
-  resetTime: number;
-}
-
-const store = new Map<string, RateLimitRecord>();
-
 @Injectable()
 export class RateLimitInterceptor implements NestInterceptor {
-  private readonly windowMs: number;
-  private readonly max: number;
-  private readonly excludePaths: string[];
+  private readonly windowMs = 60_000;
+  private readonly max = 100;
+  private readonly excludePaths: string[] = ['/api/health'];
 
-  constructor(
-    windowMs = 60_000,
-    max = 100,
-    excludePaths: string[] = ['/api/health']
-  ) {
-    this.windowMs = windowMs;
-    this.max = max;
-    this.excludePaths = excludePaths;
-  }
+  constructor(@Inject(REDIS_KV) private readonly kv: RedisKV) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler
+  ): Promise<Observable<any>> {
     const http = context.switchToHttp();
     const req: any = http.getRequest();
     const res: any = http.getResponse();
@@ -50,22 +41,16 @@ export class RateLimitInterceptor implements NestInterceptor {
     }
 
     const ip: string = req.ip ?? req.connection?.remoteAddress ?? 'unknown';
-    const key = `api:${ip}:${req.method}:${path}`;
-    const now = Date.now();
-
-    let record = store.get(key);
-    if (!record || now > record.resetTime) {
-      record = { count: 0, resetTime: now + this.windowMs };
-      store.set(key, record);
-    }
-
-    if (record.count >= this.max) {
-      const retryAfter = Math.ceil((record.resetTime - now) / 1000);
+    const key = `backend:ratelimit:${ip}:${req.method}:${path}`;
+    const n = await this.kv.incr(key);
+    if (n === 1) await this.kv.expire(key, Math.floor(this.windowMs / 1000));
+    if (typeof n === 'number' && n > this.max) {
+      const retryAfter = Math.ceil(this.windowMs / 1000);
       res.setHeader('X-RateLimit-Limit', this.max.toString());
       res.setHeader('X-RateLimit-Remaining', '0');
       res.setHeader(
         'X-RateLimit-Reset',
-        new Date(record.resetTime).toISOString()
+        new Date(Date.now() + this.windowMs).toISOString()
       );
 
       throw new HttpException(
@@ -78,16 +63,14 @@ export class RateLimitInterceptor implements NestInterceptor {
       );
     }
 
-    record.count += 1;
-
     res.setHeader('X-RateLimit-Limit', this.max.toString());
     res.setHeader(
       'X-RateLimit-Remaining',
-      (this.max - record.count).toString()
+      (this.max - (typeof n === 'number' ? n : 0)).toString()
     );
     res.setHeader(
       'X-RateLimit-Reset',
-      new Date(record.resetTime).toISOString()
+      new Date(Date.now() + this.windowMs).toISOString()
     );
 
     return next.handle().pipe(tap(() => {}));

@@ -20,6 +20,8 @@ export const bffEnvSchema = z.object({
   REDIS_DB: envNonNegativeIntString(),
   REDIS_NAMESPACE: envString(),
   REDIS_PASSWORD: envOptionalString(),
+  UPSTASH_REDIS_REST_URL: envOptionalString(),
+  UPSTASH_REDIS_REST_TOKEN: envOptionalString(),
 });
 
 export type BffEnv = z.infer<typeof bffEnvSchema>;

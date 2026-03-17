@@ -6,6 +6,8 @@ export interface RedisKV {
   del(key: string): Promise<number>;
   exists(key: string): Promise<number>;
   ttl(key: string): Promise<number>;
+  incr(key: string): Promise<number>;
+  expire(key: string, seconds: number): Promise<number>;
 }
 
 export type RedisAdapterOptions = {
@@ -51,5 +53,13 @@ export class RedisAdapter implements RedisKV {
 
   async ttl(key: string): Promise<number> {
     return this.client.ttl(this.k(key));
+  }
+
+  async incr(key: string): Promise<number> {
+    return this.client.incr(this.k(key));
+  }
+
+  async expire(key: string, seconds: number): Promise<number> {
+    return this.client.expire(this.k(key), seconds);
   }
 }

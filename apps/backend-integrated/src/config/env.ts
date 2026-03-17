@@ -23,6 +23,8 @@ export const backendIntegratedEnvSchema = z.object({
   REDIS_DB: envNonNegativeIntString(),
   REDIS_NAMESPACE: envString(),
   REDIS_PASSWORD: envOptionalString(),
+  UPSTASH_REDIS_REST_URL: envOptionalString(),
+  UPSTASH_REDIS_REST_TOKEN: envOptionalString(),
   CSISP_BFF_URL: envOptionalString(),
   CSISP_BACKOFFICE_URL: envOptionalString(),
   CSISP_FRONTEND_ADMIN_URL: envOptionalString(),

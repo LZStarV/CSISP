@@ -17,13 +17,13 @@
   "dependencies": {
     "@csisp/auth": "workspace:*",
     "@csisp/config": "workspace:*",
+    "@csisp/redis-sdk": "workspace:*",
     "@csisp/types": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@koa/router": "catalog:node",
     "koa": "catalog:node",
     "koa-bodyparser": "catalog:node",
     "pino": "catalog:",
-    "redis": "catalog:node",
     "undici": "catalog:node",
     "zod": "catalog:node"
   },
