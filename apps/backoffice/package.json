@@ -7,7 +7,6 @@
     "dev": "next dev",
     "start": "next start",
     "build": "next build",
-    "db:types": "pnpm -F @csisp/infra-database types:build",
     "format": "eslint . --fix && pnpm prettier --write ."
   },
   "dependencies": {
@@ -29,7 +28,6 @@
     "zod": "catalog:node"
   },
   "devDependencies": {
-    "@csisp/infra-database": "workspace:*",
     "@types/node": "catalog:dev",
     "@types/pg": "catalog:dev",
     "@types/react": "catalog:dev",

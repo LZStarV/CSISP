@@ -5,10 +5,10 @@
   "scripts": {
     "login": "supabase login",
     "start:dev": "supabase start",
-    "link:stag": "infisical run  --env=staging -- sh -lc 'supabase link --project-ref \"$SUPABASE_URL_REF\"'",
-    "db:pull:stag": "supabase db pull",
-    "db:diff:stag": "infisical run  --env=staging -- supabase db diff -f \"$NAME\"",
+    "link": "infisical run  --env=staging -- sh -lc 'supabase link --project-ref \"$SUPABASE_URL_REF\"'",
+    "db:pull": "supabase db pull",
     "db:reset:dev": "supabase db reset",
-    "migrations:list": "supabase migration list"
+    "migrations:list": "supabase migration list",
+    "upstash-health:serve": "infisical export --env=staging > functions/upstash-health/.env && supabase functions serve --no-verify-jwt"
   }
 }

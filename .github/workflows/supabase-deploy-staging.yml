@@ -1,0 +1,71 @@
+name: Deploy Supabase Staging
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - 'supabase/seed.sql'
+      - 'supabase/functions/**'
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - 'supabase/seed.sql'
+      - 'supabase/functions/**'
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_URL_REF: ${{ secrets.SUPABASE_URL_REF }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }} # staging database URL with sslmode=require
+      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Detect changed paths
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            functions:
+              - 'supabase/functions/**'
+      - name: Link to Staging Project
+        run: supabase link --project-ref "$SUPABASE_URL_REF" --debug
+        working-directory: supabase
+      - name: Show Supabase Migration History (Before)
+        run: supabase migration list --db-url "$DATABASE_URL"
+        working-directory: supabase
+      - name: Apply Supabase Migrations (Staging)
+        run: supabase migration up --db-url "$DATABASE_URL"
+        working-directory: supabase
+      - name: Show Supabase Migration History (After)
+        run: supabase migration list --db-url "$DATABASE_URL"
+        working-directory: supabase
+      - name: Set Supabase Function Secrets (staging)
+        if: steps.changes.outputs.functions == 'true'
+        run: |
+          supabase secrets set \
+            UPSTASH_REDIS_REST_URL="${UPSTASH_REDIS_REST_URL}" \
+            UPSTASH_REDIS_REST_TOKEN="${UPSTASH_REDIS_REST_TOKEN}" \
+            --project-ref "$SUPABASE_URL_REF"
+        working-directory: supabase
+      - name: Deploy Edge Function upstash-health (staging)
+        if: steps.changes.outputs.functions == 'true'
+        run: supabase functions deploy upstash-health --project-ref "$SUPABASE_URL_REF"
+        working-directory: supabase
