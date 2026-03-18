@@ -583,9 +583,15 @@ importers:
       '@csisp/auth':
         specifier: workspace:*
         version: link:../../../packages/auth
+      '@csisp/idl':
+        specifier: workspace:*
+        version: link:../../../infra/idl
       '@csisp/rpc':
         specifier: workspace:*
         version: link:../../../packages/rpc
+      '@csisp/utils':
+        specifier: workspace:*
+        version: link:../../../packages/utils
       '@hookform/resolvers':
         specifier: catalog:frontend
         version: 3.10.0(react-hook-form@7.71.1(react@18.3.1))
