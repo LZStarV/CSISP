@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "pnpm -w -F @csisp/idl idl:gen",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
@@ -14,8 +15,10 @@
     "antd": "catalog:frontend",
     "react": "catalog:frontend",
     "react-dom": "catalog:frontend",
+    "@csisp/idl": "workspace:*",
     "@csisp/rpc": "workspace:*",
     "@csisp/auth": "workspace:*",
+    "@csisp/utils": "workspace:*",
     "@hookform/resolvers": "catalog:frontend",
     "lucide-react": "catalog:frontend",
     "react-hook-form": "catalog:frontend",
