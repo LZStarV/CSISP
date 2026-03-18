@@ -4,12 +4,9 @@
 
 ## 环境要求
 
-- **Git**：用于克隆仓库并管理代码版本。
 - **Node.js**：遵循仓库根目录 `.nvmrc`，推荐使用 **18.x** 版本。
   - 推荐通过 `nvm` 管理 Node.js 版本，保持与项目脚本一致。
-- **pnpm**：作为 monorepo 的包管理器，推荐版本 **10.22.0**（与根 `package.json` 保持一致）。
-- **Docker Desktop**：用于运行 PostgreSQL 15 与 Redis 7 等基础设施服务，无需在宿主机单独安装数据库。
-- **Thrift**：用于生成 IDL 的多语言运行时代码（如 JS, TS 等）。
+- **pnpm**：作为 monorepo 的包管理器，推荐版本 **10+**（与根 `package.json` 保持一致）。
 
 ## 快速开始
 
@@ -43,8 +40,6 @@ git config core.eol lf
 
 ### 开发环境与变量初始化（连接远端 Infisical）
 
-> 说明：不再在本地启动 Infisical，统一连接云端实例；脚本会在开头自动触发登录，无需手动执行 login。
-
 ```bash
 pnpm dev:infra
 ```
@@ -62,51 +57,13 @@ pnpm -F [sub-application-name] i
 
 ### 运行子项目
 
-```bash
-pnpm -F [sub-application-name] dev
-```
-
-### 开发依赖数据库的后端子项目
+可以直接在根 `package.json` 中运行子项目的开发脚本：
 
 ```bash
-pnpm run dev:backend-integrated
-```
-
-### 服务端开发策略（Supabase + Infisical）
-
-- 环境选择（按需切换）
-  - 日常联调：使用 stag:[project]:server（连接预发布数据库）。
-  - 结构变更/本地验证：使用 dev:[project]:server（连接本地 Supabase 栈或开发数据库）。
-  - 启动示例（根据你的脚本习惯选择相应环境）：
-    - infisical run --env=staging pnpm -F @csisp/idp-server dev
-    - infisical run --env=dev pnpm -F @csisp/idp-server dev
-- 个人化密钥（Infisical Personal Override）
-  - 为 SUPABASE_ANON_KEY 与 SUPABASE_SERVICE_ROLE_KEY 启用个人覆盖（Personal override），确保每位开发者可使用自己本机 Supabase 栈的 Key，而不影响他人。
-  - 推荐做法：
-    - 在 Infisical → Environments → 选择 dev
-    - 新增或选中变量：SUPABASE_ANON_KEY、SUPABASE_SERVICE_ROLE_KEY
-    - 切换为 Personal，填入你本机 supabase start 输出的：
-      - Publishable → SUPABASE*ANON_KEY（以 sb_publishable* 开头）
-      - Secret → SUPABASE*SERVICE_ROLE_KEY（以 sb_secret* 开头，服务端查询走此 Key，避免被 RLS 拦截）
-    - 保存后用 infisical run --env=dev 启动即可按个人值注入
-  - 注意事项：
-    - 不要将上述变量在任何环境里设置为空字符串（空值会覆盖进程环境导致校验失败）。
-    - 预发布/生产环境通常使用共享远端 Key；仅 dev 环境建议使用 Personal 覆盖来接入本地栈。
-- 本地栈连接参考（仅本地开发时使用）
-  - SUPABASE_URL=http://127.0.0.1:54321
-  - SUPABASE_ANON_KEY/ SUPABASE_SERVICE_ROLE_KEY：来自 supabase start 的终端输出
-- 快速排障提示
-  - 看到 “No suitable key or wrong key type” 多为使用了 anon key 访问受 RLS 保护的表；替换为 service role key。
-  - 本地 DB 直接校验（可选）：
-    - psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable"
-    - select id, student_id, username, status from public."user" where student_id = '20232131082';
-
-### 开发前端项目
-
-```bash
-# 启动前端项目（可按需分别启动）
-pnpm run dev:admin
-pnpm run dev:portal
+pnpm dev:idp:server
+pnpm dev:idp:client
+pnpm dev:bff
+......
 ```
 
 ### 代码格式化
@@ -115,20 +72,14 @@ pnpm run dev:portal
 
 ```bash
 pnpm format
-```
-
-- 日常开发推荐只对当前子项目执行格式化：
-
-```bash
+# 日常开发推荐只对当前子项目执行格式化
 pnpm -F [sub-application-name] format
 ```
 
-- 这些命令会在对应子项目目录内执行 ESLint + Prettier（前端项目会额外执行 Stylelint），避免对整个仓库产生大范围的无关格式化改动。
-
-### 构建子项目
+### 构建项目
 
 ```bash
-pnpm -F [sub-application-name] build
+pnpm build
 ```
 
 ## 文档
@@ -150,23 +101,18 @@ pnpm -F @csisp/docs build
 避免噪声提交的推荐处理方式：
 
 1. **修正当前仓库的 Git 配置（只对本仓库生效）**：
-
    ```bash
    git config core.autocrlf input
    git config core.eol lf
    ```
-
 2. **确保编辑器使用 LF 保存文件**：
    - VS Code：右下角将换行符切换为 `LF`，并保持 EditorConfig 配置生效。
-
 3. **如果已经产生了大量“只改换行”的改动且尚未提交**：
    - 确认没有重要未保存的业务代码后，可以使用：
-
    ```bash
    git reset --hard HEAD
    ```
 
    - 然后在新的配置下重新运行必要的格式化命令（如仅对当前修改的文件执行，或依靠 `lint-staged`）。
-
 4. **关于提交影响**：
    - 在这种场景下即使将这些 diff 提交到远端，GitHub 上文件的换行格式仍会保持为 LF，但会新增一次包含大量只改换行变更的提交，增加历史噪声，故不推荐在业务提交中混入这类全局换行修正。

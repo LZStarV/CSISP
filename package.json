@@ -8,7 +8,7 @@
     "format": "pnpm prettier --write . && eslint . --fix && stylelint '**/*.{css,scss,vue}' --fix",
     "lint:staged": "lint-staged",
     "prepare": "husky",
-    "infisical:login": "infisical login --domain \"$npm_config_INFISICAL_API_URL\"",
+    "infisical:login": "infisical login --domain \"http://43.139.43.214/api\"",
     "dev:backend-integrated": "infisical run -- turbo run dev --filter=@csisp/backend-integrated",
     "dev:backoffice": "infisical run -- turbo run dev --filter=@csisp/backoffice",
     "dev:idp:server": "infisical run -- turbo run dev --filter=@csisp/idp-server",
@@ -39,6 +39,7 @@
   "devDependencies": {
     "@csisp/utils": "workspace:*",
     "@eslint/js": "^9.39.1",
+    "@infisical/cli": "^0.43.40",
     "@types/eslint-config-prettier": "^6.11.3",
     "@types/glob": "^9.0.0",
     "@types/node": "^18.19.0",

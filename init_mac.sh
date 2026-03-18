@@ -77,8 +77,6 @@ NODE_VERSION=""
 NODE_MAJOR=""
 PNPM_STATUS="未检查"
 PNPM_OK=0
-DOCKER_STATUS="未检查"
-DOCKER_OK=0
 GIT_STATUS="未检查"
 GIT_OK=0
 SUPABASE_STATUS="未检查"
@@ -181,44 +179,7 @@ else
   fi
 fi
 
-log_info "正在检查 Docker 环境"
-if command -v docker >/dev/null 2>&1; then
-  if docker info >/dev/null 2>&1; then
-    DOCKER_STATUS="Docker 已安装且服务可用"
-    DOCKER_OK=1
-    log_success "$DOCKER_STATUS"
-  else
-    DOCKER_STATUS="检测到 Docker，但服务未就绪，尝试启动 Docker Desktop"
-    log_warn "$DOCKER_STATUS"
-    open -a Docker || true
-    for i in {1..15}; do
-      if docker info >/dev/null 2>&1; then
-        DOCKER_STATUS="Docker 服务已就绪"
-        DOCKER_OK=1
-        log_success "$DOCKER_STATUS"
-        break
-      fi
-      sleep 2
-    done
-    if [ "$DOCKER_OK" -ne 1 ]; then
-      log_warn "Docker 服务仍未就绪，请手动启动 Docker Desktop"
-    fi
-  fi
-else
-  if command -v brew >/dev/null 2>&1; then
-    log_info "未检测到 Docker，尝试通过 Homebrew 安装 Docker Desktop"
-    if brew install --cask docker; then
-      DOCKER_STATUS="已通过 Homebrew 安装 Docker Desktop，请手动启动 Docker 应用"
-      log_success "$DOCKER_STATUS"
-    else
-      DOCKER_STATUS="通过 Homebrew 安装 Docker Desktop 失败，请手动安装: https://www.docker.com/products/docker-desktop/"
-      log_error "$DOCKER_STATUS"
-    fi
-  else
-    DOCKER_STATUS="未检测到 Docker，也未检测到 Homebrew，请手动安装 Docker Desktop: https://www.docker.com/products/docker-desktop/"
-    log_error "$DOCKER_STATUS"
-  fi
-fi
+log_info "跳过 Docker 检查：当前开发与部署不依赖 Docker（使用云托管服务）"
 
 
 log_info "正在检查 Git 环境"
@@ -232,11 +193,10 @@ else
   log_error "$GIT_STATUS"
 fi
 
-TOTAL=5
+TOTAL=4
 COMPLETED=0
 if [ "$NODE_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$PNPM_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
-if [ "$DOCKER_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$GIT_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$SUPABASE_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 
@@ -257,9 +217,6 @@ else
   fi
   if [ "$PNPM_OK" -ne 1 ]; then
     printf "%s- pnpm: %s%s\n" "$RED" "$PNPM_STATUS" "$RESET"
-  fi
-  if [ "$DOCKER_OK" -ne 1 ]; then
-    printf "%s- Docker: %s%s\n" "$RED" "$DOCKER_STATUS" "$RESET"
   fi
   if [ "$GIT_OK" -ne 1 ]; then
     printf "%s- Git: %s%s\n" "$RED" "$GIT_STATUS" "$RESET"

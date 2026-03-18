@@ -22,9 +22,9 @@ outline: deep
 
 ## 总体架构（大纲）
 
-- 分层说明：应用层（frontend-admin/portal）、聚合层（bff）、后台（backoffice）、后端集成（backend-integrated）、基础设施（PostgreSQL/Redis/Mongo/IDL）
+- 分层说明：应用层（frontend-admin/portal）、聚合层（bff）、后台（backoffice，待开发）、后端集成（backend-integrated）、基础设施（PostgreSQL/Redis/Mongo/IDL）
 - 边界与协作：JSON-RPC 契约、BFF 编排、错误映射与限流、跨项目类型共享
-- 环境与部署：当前仅 dev，本地 Docker + Thrift；预发布/生产在“入门指南/TODO”维护
+- 环境与部署：当前仅 dev，不依赖 Docker；云托管（Supabase/Upstash/MongoDB Atlas）+ Thrift；预发布/生产在“入门指南”维护
 - 关键决策：单一接口范式（OpenRPC/JSON-RPC）、Monorepo 协作模式、统一代码风格与校验
 
 ### 架构导读（Mermaid）
@@ -34,11 +34,9 @@ flowchart LR
     subgraph Frontend
       Admin[frontend-admin] -->|JSON-RPC| BFF[bff]
       Portal[frontend-portal] -->|JSON-RPC| BFF
-      Admin -->|JSON-RPC| Backoffice[backoffice]
     end
 
     BFF -->|Aggregate| Backend[backend-integrated]
-    Backoffice -->|RPC| Backend
 
     subgraph Infra
       PG[(PostgreSQL)]
@@ -51,7 +49,6 @@ flowchart LR
     Backend --> RD
     Backend --> MG
     IDL --> Backend
-    IDL --> Backoffice
     IDL --> BFF
 ```
 
@@ -72,7 +69,7 @@ flowchart LR
 
 ## 数据流与交互（大纲）
 
-- 端到端流程：frontend → bff/backoffice → backend-integrated → 数据库/缓存
+- 端到端流程：frontend → bff → backend-integrated → 数据库/缓存
 - 请求/响应示意：JSON-RPC 请求体/响应体的字段说明（静态示例在模块详解中承载）
 - 缓存与一致性：Redis 命名空间、TTL 策略与失效策略；只读数据库约束
 - 事件与日志：关键操作的审计与埋点；统一日志格式与检索入口
@@ -80,12 +77,12 @@ flowchart LR
 ### 路由约定与 method 映射
 
 - 所有接口采用 URL 约定进行 method 标识：`/api/[project?]/[subproject?]/:domain/:action`
-  - `project`：`backoffice` / `bff` /（`backend-integrated` 无前缀，仅 `/api`）
+  - `project`：`bff` /（`backend-integrated` 无前缀，仅 `/api`）；backoffice（待开发）上线后补充
   - `subproject`：仅在 `bff` 存在，用于区分前端来源，例如 `portal` 或 `admin`
   - `domain.action`：标识具体的 method（如 `user.getUser`）
 - 示例：
   - Portal 前端通过 BFF 请求：`POST /api/bff/portal/user/getUser`
-  - Backoffice 仅服务其 Next 客户端，接口不对外开放：`POST /api/backoffice/db/status`
+- Backoffice（待开发）上线后单独补充示例
   - Backend-integrated 统一前缀：`POST /api/user/getProfile`
 
 ### 静态示例（请求与响应）
@@ -119,7 +116,7 @@ flowchart LR
 - 简述当前实现：
   - backend-integrated：JWT 守卫与角色守卫、基础速率限制拦截器
   - bff：中间件层统一错误包装、限流与鉴权、中间件链路日志与追踪
-  - backoffice：路由级权限控制、会话/令牌校验、统一响应校验
+- backoffice（待开发）：上线时补充路由与校验规范
   - 前端：路由守卫与会话校验、基础可访问性与性能监控
 - 后续将进行完整重构与优化（记录于“架构设计/TODO”）
 
@@ -136,7 +133,7 @@ flowchart LR
 
 ## 内容来源与引用
 
-- apps/\*：backoffice、bff、backend-integrated 源码结构与模块实现
+- apps/\*：bff、backend-integrated 源码结构与模块实现；backoffice（待开发）上线后补充
 - infra/\*：database 脚本（迁移/初始化/种子）、idl 的生成流程
 - packages/\*：types 与 utils 的共享策略与组织结构
 - docs/.vitepress/config.ts：导航与侧边栏的组织，用于说明信息架构

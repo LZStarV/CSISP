@@ -1,12 +1,10 @@
 ---
-title: backoffice / JSON-RPC 路由与响应规范
-description: 路由格式与响应约定（占位）
+title: backoffice（待开发）
+description: 路由规范占位
 editLink: true
 outline: deep
 ---
 
-# JSON-RPC 路由与响应规范
+# Backoffice（待开发）
 
-本页为阶段 1 占位。后续将补充路由格式与错误码头部约定。
-
-关键词：backoffice JSON-RPC 路由 响应 错误码
+该模块暂未启用。Backoffice 启动后将在此补充路由与响应规范。

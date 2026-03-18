@@ -43,8 +43,6 @@ NODE_STATUS="未检查"
 NODE_OK=0
 PNPM_STATUS="未检查"
 PNPM_OK=0
-DOCKER_STATUS="未检查"
-DOCKER_OK=0
 GIT_STATUS="未检查"
 GIT_OK=0
 
@@ -145,60 +143,7 @@ else
   fi
 fi
 
-log_info "正在检查 Docker 环境"
-if command -v docker >/dev/null 2>&1; then
-  if docker info >/dev/null 2>&1; then
-    DOCKER_STATUS="Docker 已安装且服务可用"
-    DOCKER_OK=1
-    log_success "$DOCKER_STATUS"
-  else
-    DOCKER_STATUS="检测到 Docker，但服务未就绪，尝试启动并重试检测"
-    log_warn "$DOCKER_STATUS"
-    # 常见发行版：尝试启动服务
-    if command -v systemctl >/dev/null 2>&1; then
-      sudo systemctl start docker >/dev/null 2>&1 || true
-    elif command -v service >/dev/null 2>&1; then
-      sudo service docker start >/dev/null 2>&1 || true
-    fi
-    for i in {1..15}; do
-      if docker info >/dev/null 2>&1; then
-        DOCKER_STATUS="Docker 服务已就绪"
-        DOCKER_OK=1
-        log_success "$DOCKER_STATUS"
-        break
-      fi
-      sleep 2
-    done
-    if [ "$DOCKER_OK" -ne 1 ]; then
-      log_warn "Docker 服务仍未就绪，请手动启动并确保当前用户有权限运行 docker"
-    fi
-  fi
-else
-  if command -v apt-get >/dev/null 2>&1; then
-    log_info "未检测到 Docker，尝试通过 apt-get 安装"
-    if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y docker.io docker-compose-plugin >/dev/null 2>&1; then
-      DOCKER_STATUS="已通过 apt-get 安装 Docker，请确保当前用户有权限运行 docker 命令"
-      DOCKER_OK=1
-      log_success "$DOCKER_STATUS"
-    else
-      DOCKER_STATUS="通过 apt-get 安装 Docker 失败，请参考发行版文档手动安装"
-      log_error "$DOCKER_STATUS"
-    fi
-  elif command -v yum >/dev/null 2>&1; then
-    log_info "未检测到 Docker，尝试通过 yum 安装"
-    if sudo yum install -y docker docker-compose >/dev/null 2>&1; then
-      DOCKER_STATUS="已通过 yum 安装 Docker，请启动 Docker 服务并配置权限"
-      DOCKER_OK=1
-      log_success "$DOCKER_STATUS"
-    else
-      DOCKER_STATUS="通过 yum 安装 Docker 失败，请参考发行版文档手动安装"
-      log_error "$DOCKER_STATUS"
-    fi
-  else
-    DOCKER_STATUS="未检测到 Docker，且未识别常见包管理器，请参照 https://docs.docker.com/engine/install/ 手动安装"
-    log_error "$DOCKER_STATUS"
-  fi
-fi
+log_info "跳过 Docker 检查：当前开发与部署不依赖 Docker（使用云托管服务）"
 
 log_info "正在检查 Git 环境"
 if command -v git >/dev/null 2>&1; then
@@ -211,11 +156,10 @@ else
   log_error "$GIT_STATUS"
 fi
 
-TOTAL=4
+TOTAL=3
 COMPLETED=0
 if [ "$NODE_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$PNPM_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
-if [ "$DOCKER_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 if [ "$GIT_OK" -eq 1 ]; then COMPLETED=$((COMPLETED + 1)); fi
 
 printf "\n======== 环境检查结果汇总 [%d / %d] ========\n" "$COMPLETED" "$TOTAL"
@@ -235,9 +179,6 @@ else
   fi
   if [ "$PNPM_OK" -ne 1 ]; then
     printf "%s- pnpm: %s%s\n" "$RED" "$PNPM_STATUS" "$RESET"
-  fi
-  if [ "$DOCKER_OK" -ne 1 ]; then
-    printf "%s- Docker: %s%s\n" "$RED" "$DOCKER_STATUS" "$RESET"
   fi
   if [ "$GIT_OK" -ne 1 ]; then
     printf "%s- Git: %s%s\n" "$RED" "$GIT_STATUS" "$RESET"
