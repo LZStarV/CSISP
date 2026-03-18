@@ -1,3 +1,9 @@
 {
-  "rewrites": [{ "source": "/((?!api).*)", "destination": "/" }]
+  "rewrites": [
+    {
+      "source": "/api/idp/(.*)",
+      "destination": "https://csisp-idp-server.onrender.com/api/idp/$1"
+    },
+    { "source": "/((?!api).*)", "destination": "/" }
+  ]
 }
