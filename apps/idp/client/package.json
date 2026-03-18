@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "pnpm -w -F @csisp/idl idl:gen",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
