@@ -1,12 +1,10 @@
 import { resolve } from 'path';
 
-import { getFrontendEnv } from '@csisp/utils';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
-  const env = getFrontendEnv();
   const common = {
     plugins: [
       vue({
@@ -24,7 +22,6 @@ export default defineConfig(({ command }) => {
       // 将获取到的环境变量注入到 process.env (兼容一些老库)
       'process.env': {
         ...process.env,
-        ...env,
       },
     },
     resolve: {
@@ -38,7 +35,7 @@ export default defineConfig(({ command }) => {
   };
 
   if (command === 'serve') {
-    const bffUrl = env.CSISP_BFF_URL;
+    const bffUrl = process.env.CSISP_BFF_URL;
     if (!bffUrl) {
       throw new Error('Missing environment variable: CSISP_BFF_URL');
     }

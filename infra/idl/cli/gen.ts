@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { basename, join, resolve } from 'path';
 
 import type { Config } from './config';
 import { getCliLogger } from './logger';
@@ -25,9 +25,7 @@ export function genTS(root: string, cfg: Config) {
     const out = join(root, m.tsOut);
     if (!existsSync(src)) continue;
     mkdirSync(out, { recursive: true });
-    const files = collectThriftFiles(src).map(f =>
-      join('.', f.split('/').pop() as string)
-    );
+    const files = collectThriftFiles(src).map(f => basename(f));
     if (files.length === 0) continue;
     runBin(
       bin,

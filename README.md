@@ -4,19 +4,21 @@
 
 ## 环境要求
 
-- **Node.js**：遵循仓库根目录 `.nvmrc`，推荐使用 **18.x** 版本。
+- **Node.js**：遵循仓库根目录 `.nvmrc`，推荐使用 **24.x** 版本。
   - 推荐通过 `nvm` 管理 Node.js 版本，保持与项目脚本一致。
 - **pnpm**：作为 monorepo 的包管理器，推荐版本 **10+**（与根 `package.json` 保持一致）。
 
 ## 快速开始
 
-### 安装 infisical cli
-
-本项目使用 infisical 来管理环境变量，请在开始开发前先完成安装。
+### 安装必要环境
 
 ```bash
+# 安装 infisical（环境变量管理）
 npm i -g @infisical/cli
-# 也可以通过 Winget, Homebrew 等包管理器安装
+# npm 下载容易超时，可以改用 cnpm 进行下载也可以通过 Winget, Homebrew 等包管理器安装
+
+# 安装 pnpm（版本＞=10）、turbo（monorepo 管理）、whistle（代理工具）
+npm i -g pnpm turbo whistle
 ```
 
 ### 克隆仓库前的推荐 Git 配置（尤其是 Windows）
@@ -45,7 +47,17 @@ pnpm -F [sub-application-name] i
 
 ### 运行子项目
 
-可以直接在根 `package.json` 中运行子项目的开发脚本：
+首次运行或修改 workspace 依赖后，需要先构建项目：
+
+```bash
+# 构建所有 workspace 包（首次必需）
+pnpm build
+
+# 或只构建特定子项目及其依赖
+turbo build --filter=@csisp/idp-client
+```
+
+然后可以在根 `package.json` 中运行子项目的开发脚本：
 
 ```bash
 pnpm dev:idp:server
@@ -54,7 +66,10 @@ pnpm dev:bff
 # ......
 ```
 
-> 注意：在开发前需要检查是否已经执行过 pnpm infisical:login，否则会有环境变量相关报错。
+> 注意：
+>
+> - 在开发前需要检查是否已经执行过 `pnpm infisical:login`，否则会有环境变量相关报错。
+> - 如果遇到 `Cannot find module '@csisp/xxx'` 错误，说明 workspace 依赖未构建，请先执行 `pnpm build`。
 
 ### 代码格式化
 
@@ -99,12 +114,10 @@ pnpm -F @csisp/docs build
    - VS Code：右下角将换行符切换为 `LF`，并保持 EditorConfig 配置生效。
 3. **如果已经产生了大量“只改换行”的改动且尚未提交**：
    - 确认没有重要未保存的业务代码后，可以使用：
-
    ```bash
    git reset --hard HEAD
    ```
 
    - 然后在新的配置下重新运行必要的格式化命令（如仅对当前修改的文件执行，或依靠 `lint-staged`）。
-
 4. **关于提交影响**：
    - 在这种场景下即使将这些 diff 提交到远端，GitHub 上文件的换行格式仍会保持为 LF，但会新增一次包含大量只改换行变更的提交，增加历史噪声，故不推荐在业务提交中混入这类全局换行修正。

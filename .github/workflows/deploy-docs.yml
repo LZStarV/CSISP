@@ -35,13 +35,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
 
       # Install pnpm (do not run install yet, we will cache first)
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 10.22.0
+          version: 10.32.1
           run_install: false
 
       # Resolve pnpm store path for cache key
