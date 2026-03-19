@@ -37,7 +37,7 @@ export class SmsService {
 
   private generateCode(): string {
     const n = Math.floor(100000 + Math.random() * 900000);
-    this.logger.info('generated otp code');
+    this.logger.info({ n }, 'generated otp code');
     return String(n);
   }
 
@@ -93,8 +93,7 @@ export class SmsService {
   async verifyOtp(phone: string, code: string): Promise<boolean> {
     if (!phone || !code) return false;
     const expected = await this.kv.get<string>(`idp:otp:${phone}`);
-    const ok = !!expected && expected === code;
-    this.logger.info({ phone, ok }, 'verify otp');
-    return ok;
+    this.logger.info({ phone, expected, code }, 'verify otp');
+    return !!expected && expected === code;
   }
 }
