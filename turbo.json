@@ -4,22 +4,11 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**"]
     },
     "dev": {
       "cache": false,
       "persistent": true
-    },
-    "idl:gen": {
-      "outputs": ["dist/**", "src/v1/**"],
-      "inputs": [
-        "src/v1/**/*.thrift",
-        "scripts/**",
-        "tsconfig.json",
-        "package.json"
-      ]
-    },
-    "db:migrate": { "cache": false },
-    "db:status": { "cache": false }
+    }
   }
 }

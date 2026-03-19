@@ -10,19 +10,13 @@
 
 ## 快速开始
 
-### 环境初始化脚本
+### 安装 infisical cli
 
-在首次克隆仓库后，建议根据当前操作系统执行对应的环境检查与配置脚本：
+本项目使用 infisical 来管理环境变量，请在开始开发前先完成安装。
 
 ```bash
-# Windows
-.\init_windows.bat
-
-# macOS
-bash init_mac.sh
-
-# Linux
-sudo bash init_linux.sh
+npm i -g @infisical/cli
+# 也可以通过 Winget, Homebrew 等包管理器安装
 ```
 
 ### 克隆仓库前的推荐 Git 配置（尤其是 Windows）
@@ -36,15 +30,7 @@ git config core.eol lf
 ```
 
 - 建议使用支持 EditorConfig 的编辑器，并确保保存时使用 LF：
-  - VS Code：保持 EditorConfig 扩展启用，右下角换行符显示为 `LF`。
-
-### 开发环境与变量初始化（连接远端 Infisical）
-
-```bash
-pnpm dev:infra
-```
-
-> 注意：在跳转至 infisical 登录系统登录完毕以后，UI 界面的 "Copy to clipboard" 按钮有问题，点击后是不会将 token 复制到剪贴板的。请通过点击上方的"\*\*\*"以显示完整 token，然后再手动复制到剪贴板。
+  - 类 VS Code 编辑器：保持 EditorConfig 扩展启用，右下角换行符显示为 `LF`。
 
 ### 安装依赖
 
@@ -55,6 +41,8 @@ pnpm i
 pnpm -F [sub-application-name] i
 ```
 
+> 如果需要在开发环境中运行 Supabase 数据库，需要自行提前配置好 docker 环境，并在 infisical 中提前配置好 SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY 的 override 值。
+
 ### 运行子项目
 
 可以直接在根 `package.json` 中运行子项目的开发脚本：
@@ -63,8 +51,10 @@ pnpm -F [sub-application-name] i
 pnpm dev:idp:server
 pnpm dev:idp:client
 pnpm dev:bff
-......
+# ......
 ```
+
+> 注意：在开发前需要检查是否已经执行过 pnpm infisical:login，否则会有环境变量相关报错。
 
 ### 代码格式化
 
@@ -109,10 +99,12 @@ pnpm -F @csisp/docs build
    - VS Code：右下角将换行符切换为 `LF`，并保持 EditorConfig 配置生效。
 3. **如果已经产生了大量“只改换行”的改动且尚未提交**：
    - 确认没有重要未保存的业务代码后，可以使用：
+
    ```bash
    git reset --hard HEAD
    ```
 
    - 然后在新的配置下重新运行必要的格式化命令（如仅对当前修改的文件执行，或依靠 `lint-staged`）。
+
 4. **关于提交影响**：
    - 在这种场景下即使将这些 diff 提交到远端，GitHub 上文件的换行格式仍会保持为 LF，但会新增一次包含大量只改换行变更的提交，增加历史噪声，故不推荐在业务提交中混入这类全局换行修正。

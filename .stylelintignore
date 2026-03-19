@@ -12,12 +12,13 @@
 *.min.css
 *.min.scss
 
-# 忽略测试和文档
-tests/**
+# 忽略文档
 docs/**
 
 # 忽略后端代码
 apps/backend-integrated/**
+apps/bff/**
+apps/idp/server/**
 
 # 忽略配置文件
 *.config.js
