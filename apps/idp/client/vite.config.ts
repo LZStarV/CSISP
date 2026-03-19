@@ -18,7 +18,9 @@ export default defineConfig(({ command }) => {
     return {
       ...common,
       server: {
+        host: '127.0.0.1',
         port: requireIntEnv('CSISP_IDP_CLIENT_PORT'),
+        allowedHosts: ['csisp-idp-client.vercel.app'],
         proxy: {
           '/api/idp': {
             target: requireEnv('CSISP_IDP_URL'),
