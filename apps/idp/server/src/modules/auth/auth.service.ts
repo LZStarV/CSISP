@@ -303,6 +303,7 @@ export class AuthService {
     }
   }
 
+  // 获取当前会话信息
   async session(uid?: number): Promise<SessionResult> {
     if (!uid) return new SessionResult({ logged: false });
     type UserPick = {
