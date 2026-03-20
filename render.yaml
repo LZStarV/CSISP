@@ -1,0 +1,103 @@
+previews:
+  generation: automatic
+services:
+  - type: web
+    runtime: node
+    name: backend-integrated
+    plan: free
+    rootDir: .
+    buildCommand: >
+      pnpm i --frozen-lockfile -F @csisp/backend-integrated &&
+      pnpm -F @csisp/backend-integrated build
+    startCommand: pnpm -F @csisp/backend-integrated start
+    envVars:
+      - fromGroup: csisp-env-prod
+
+  - type: web
+    runtime: node
+    name: bff
+    plan: free
+    rootDir: .
+    buildCommand: >
+      pnpm i --frozen-lockfile -F @csisp/bff &&
+      pnpm -F @csisp/bff build
+    startCommand: pnpm -F @csisp/bff start
+    envVars:
+      - fromGroup: csisp-env-prod
+
+  - type: web
+    runtime: node
+    name: idp-server
+    plan: free
+    rootDir: .
+    buildCommand: >
+      pnpm i --frozen-lockfile -F @csisp/idp-server &&
+      pnpm -F @csisp/idp-server build
+    startCommand: pnpm -F @csisp/idp-server start
+    healthCheckPath: /api/idp/health
+    envVars:
+      - fromGroup: csisp-env-prod
+
+  - type: web
+    runtime: static
+    name: frontend-admin
+    rootDir: .
+    buildCommand: >
+      pnpm i --frozen-lockfile -F @csisp/frontend-admin &&
+      pnpm -F @csisp/frontend-admin build
+    staticPublishPath: apps/frontend-admin/dist
+    envVars:
+      - fromGroup: csisp-env-prod
+    previews:
+      generation: automatic
+    buildFilter:
+      paths:
+        - apps/frontend-admin/**
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://bff.onrender.com/api/
+
+  - type: web
+    runtime: static
+    name: frontend-portal
+    rootDir: .
+    buildCommand: >
+      pnpm i --frozen-lockfile -F @csisp/frontend-portal &&
+      pnpm -F @csisp/frontend-portal build
+    staticPublishPath: apps/frontend-portal/dist
+    envVars:
+      - fromGroup: csisp-env-prod
+    previews:
+      generation: automatic
+    buildFilter:
+      paths:
+        - apps/frontend-portal/**
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://bff.onrender.com/api/
+
+  - type: web
+    runtime: static
+    name: idp-client
+    rootDir: .
+    buildCommand: >
+      pnpm i --frozen-lockfile -F @csisp/idp-client &&
+      pnpm -F @csisp/idp-client build
+    staticPublishPath: apps/idp/client/dist
+    envVars:
+      - fromGroup: csisp-env-prod
+    previews:
+      generation: automatic
+    buildFilter:
+      paths:
+        - apps/idp/client/**
+    routes:
+      - type: rewrite
+        source: /api/idp/*
+        destination: https://idp-server.onrender.com/api/idp/
+
+envVarGroups:
+  - name: csisp-env-prod
+    envVars: []

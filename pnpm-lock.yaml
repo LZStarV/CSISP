@@ -351,9 +351,6 @@ importers:
       '@csisp/redis-sdk':
         specifier: workspace:*
         version: link:../../packages/redis-sdk
-      '@csisp/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       '@csisp/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -400,9 +397,6 @@ importers:
 
   apps/frontend-admin:
     dependencies:
-      '@csisp/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       '@vicons/ionicons5':
         specifier: catalog:frontend
         version: 0.13.0
@@ -446,9 +440,6 @@ importers:
 
   apps/frontend-portal:
     dependencies:
-      '@csisp/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       axios:
         specifier: catalog:frontend
         version: 1.13.5
@@ -799,13 +790,8 @@ importers:
         specifier: ^2.99.1
         version: 2.99.1
 
-  packages/types: {}
-
   packages/utils:
     dependencies:
-      '@csisp/types':
-        specifier: workspace:*
-        version: link:../types
       pino:
         specifier: 'catalog:'
         version: 9.14.0
