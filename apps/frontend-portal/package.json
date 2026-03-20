@@ -17,8 +17,7 @@
     "axios": "catalog:frontend",
     "naive-ui": "catalog:frontend",
     "echarts": "catalog:frontend",
-    "vue-echarts": "catalog:frontend",
-    "@csisp/types": "workspace:*"
+    "vue-echarts": "catalog:frontend"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "catalog:frontend",

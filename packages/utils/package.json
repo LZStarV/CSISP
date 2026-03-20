@@ -18,7 +18,6 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@csisp/types": "workspace:*",
     "pino": "catalog:",
     "pino-pretty": "catalog:"
   }
