@@ -7,7 +7,7 @@ services:
     plan: free
     rootDir: .
     buildCommand: >
-      pnpm i --frozen-lockfile -F @csisp/backend-integrated &&
+      pnpm i --frozen-lockfile -w &&
       turbo run build --filter=@csisp/backend-integrated
     startCommand: pnpm -F @csisp/backend-integrated start
     envVars:
@@ -19,7 +19,7 @@ services:
     plan: free
     rootDir: .
     buildCommand: >
-      pnpm i --frozen-lockfile -F @csisp/bff &&
+      pnpm i --frozen-lockfile -w &&
       turbo run build --filter=@csisp/bff
     startCommand: pnpm -F @csisp/bff start
     envVars:
@@ -31,7 +31,7 @@ services:
     plan: free
     rootDir: .
     buildCommand: >
-      pnpm i --frozen-lockfile -F @csisp/idp-server &&
+      pnpm i --frozen-lockfile -w &&
       turbo run build --filter=@csisp/idp-server
     startCommand: pnpm -F @csisp/idp-server start
     healthCheckPath: /api/idp/health
@@ -43,7 +43,7 @@ services:
     name: frontend-admin
     rootDir: .
     buildCommand: >
-      pnpm i --frozen-lockfile -F @csisp/frontend-admin &&
+      pnpm i --frozen-lockfile -w &&
       turbo run build --filter=@csisp/frontend-admin
     staticPublishPath: apps/frontend-admin/dist
     envVars:
@@ -63,7 +63,7 @@ services:
     name: frontend-portal
     rootDir: .
     buildCommand: >
-      pnpm i --frozen-lockfile -F @csisp/frontend-portal &&
+      pnpm i --frozen-lockfile -w &&
       turbo run build --filter=@csisp/frontend-portal
     staticPublishPath: apps/frontend-portal/dist
     envVars:
@@ -83,7 +83,7 @@ services:
     name: idp-client
     rootDir: .
     buildCommand: >
-      pnpm i --frozen-lockfile -F @csisp/idp-client &&
+      pnpm i --frozen-lockfile -w &&
       turbo run build --filter=@csisp/idp-client
     staticPublishPath: apps/idp/client/dist
     envVars:
