@@ -49,7 +49,7 @@ services:
     envVars:
       - fromGroup: csisp-env-prod
     previews:
-      generation: automatic
+      generation: manual
     buildFilter:
       paths:
         - apps/frontend-admin/**
@@ -69,7 +69,7 @@ services:
     envVars:
       - fromGroup: csisp-env-prod
     previews:
-      generation: automatic
+      generation: manual
     buildFilter:
       paths:
         - apps/frontend-portal/**
@@ -89,7 +89,7 @@ services:
     envVars:
       - fromGroup: csisp-env-prod
     previews:
-      generation: automatic
+      generation: manual
     buildFilter:
       paths:
         - apps/idp/client/**
