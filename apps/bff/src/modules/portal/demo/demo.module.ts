@@ -1,22 +1,10 @@
-import { z } from 'zod';
+import { Module } from '@nestjs/common';
 
-import {
-  demoTest,
-  PortalDemoTestParams,
-  PortalDemoTestResult,
-} from './demo.controller';
+import { DemoController } from './demo.controller';
+import { DemoService } from './demo.service';
 
-export const PortalModule = {
-  subProject: 'portal',
-  handlers: {
-    'demo.test': demoTest,
-  },
-  schemas: {
-    'demo.test': {
-      summary: 'Portal demo method',
-      description: 'Test method for portal subProject',
-      params: PortalDemoTestParams,
-      result: PortalDemoTestResult,
-    },
-  },
-};
+@Module({
+  controllers: [DemoController],
+  providers: [DemoService],
+})
+export class DemoModule {}

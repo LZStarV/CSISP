@@ -1,24 +1,29 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
+    "moduleResolution": "NodeNext",
+    "target": "ES2020",
+    "module": "NodeNext",
+    "lib": ["ES2020"],
+    "types": ["node"],
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "rootDir": ".",
-    "types": ["node", "koa", "koa-bodyparser"],
-    "baseUrl": "./",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "noEmit": false,
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "sourceMap": true,
+    "inlineSources": true,
+    "baseUrl": ".",
     "paths": {
-      "@middleware": ["src/middleware"],
-      "@middleware/*": ["src/middleware/*"],
-      "@infra/*": ["src/infra/*"],
-      "@utils/*": ["src/utils/*"],
-      "@modules": ["src/modules"],
+      "@common/*": ["src/common/*"],
       "@modules/*": ["src/modules/*"],
-      "@rpc/*": ["src/rpc/*"]
+      "@infra/*": ["src/infra/*"],
+      "@gateway/*": ["src/gateway/*"],
+      "@config": ["src/config/index"],
+      "@config/*": ["src/config/*"]
     }
   },
-  "include": ["app.ts", "src"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

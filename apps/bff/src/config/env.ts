@@ -1,27 +1,24 @@
 import {
   envIntString,
-  envNonNegativeIntString,
   envOptionalString,
-  envString,
   envUrlString,
+  envString,
   parseEnv,
 } from '@csisp/config';
 import { z } from 'zod';
 
-export const bffEnvSchema = z.object({
-  NODE_ENV: envOptionalString(),
-  BFF_ENABLED_SUBPROJECTS: envOptionalString(),
+export const EnvSchema = z.object({
   CSISP_BFF_PORT: envIntString(),
-  CSISP_RPC_PREFIX: envString(),
   CSISP_BACKEND_INTEGRATED_URL: envUrlString(),
-  JWT_SECRET: envString(),
-  REDIS_NAMESPACE: envString(),
+  IDP_SERVER_URL: envUrlString(),
+  SUPABASE_URL: envUrlString(),
+  SUPABASE_SERVICE_ROLE_KEY: envString(),
+  SUPABASE_ANON_KEY: envString(),
+  REDIS_NAMESPACE: envOptionalString(),
   UPSTASH_REDIS_REST_URL: envOptionalString(),
   UPSTASH_REDIS_REST_TOKEN: envOptionalString(),
 });
 
-export type BffEnv = z.infer<typeof bffEnvSchema>;
+export type Env = z.infer<typeof EnvSchema>;
 
-export function getBffEnv(): BffEnv {
-  return parseEnv(bffEnvSchema, process.env, { label: 'bff' });
-}
+export const env: Env = parseEnv(EnvSchema, process.env, { label: 'BFF' });

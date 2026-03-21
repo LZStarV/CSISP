@@ -1,6 +1,8 @@
-export async function demoTestService(): Promise<{
-  ok: boolean;
-  project: string;
-}> {
-  return { ok: true, project: 'portal' };
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class DemoService {
+  echo<T>(params: T): T {
+    return params;
+  }
 }

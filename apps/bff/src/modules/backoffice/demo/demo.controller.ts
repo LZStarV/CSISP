@@ -1,8 +1,8 @@
-import { AdminController } from '@common/decorators/subproject.controller';
+import { BackofficeController } from '@common/decorators/subproject.controller';
 import { NotImplementedException, Post } from '@nestjs/common';
 
-@AdminController('demo')
-export class AdminDemoController {
+@BackofficeController('demo')
+export class BackofficeDemoController {
   @Post(':action')
   notImplemented() {
     throw new NotImplementedException();

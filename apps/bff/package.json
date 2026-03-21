@@ -1,38 +1,30 @@
 {
   "name": "@csisp/bff",
-  "version": "1.0.0",
-  "type": "commonjs",
+  "version": "0.1.0",
   "private": true,
+  "type": "commonjs",
   "scripts": {
-    "dev": "nodemon --exec tsx app.ts",
-    "dev:portal": "BFF_ENABLED_SUBPROJECTS=portal pnpm run dev",
-    "dev:admin": "BFF_ENABLED_SUBPROJECTS=admin pnpm run dev",
-    "build": "esbuild app.ts",
-    "start": "node dist/app.js",
-    "start:portal": "BFF_ENABLED_SUBPROJECTS=portal pnpm run start",
-    "start:admin": "BFF_ENABLED_SUBPROJECTS=admin pnpm run start",
-    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write .",
-    "lint": "eslint ."
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
-    "@csisp/auth": "workspace:*",
     "@csisp/config": "workspace:*",
     "@csisp/redis-sdk": "workspace:*",
+    "@csisp/rpc": "workspace:*",
+    "@csisp/supabase-sdk": "workspace:*",
     "@csisp/utils": "workspace:*",
-    "@koa/router": "catalog:node",
-    "koa": "catalog:node",
-    "koa-bodyparser": "catalog:node",
-    "pino": "catalog:",
-    "undici": "catalog:node",
+    "@nestjs/common": "catalog:node",
+    "@nestjs/core": "catalog:node",
+    "@nestjs/platform-express": "catalog:node",
+    "reflect-metadata": "catalog:node",
+    "rxjs": "catalog:node",
+    "undici": "^6.19.8",
     "zod": "catalog:node"
   },
   "devDependencies": {
-    "@types/koa": "catalog:dev",
-    "@types/koa-bodyparser": "catalog:dev",
-    "@types/koa__router": "^8.0.7",
-    "esbuild": "catalog:dev",
-    "nodemon": "catalog:dev",
-    "pino-pretty": "catalog:",
-    "tsx": "catalog:dev"
+    "@nestjs/cli": "catalog:node",
+    "@types/node": "catalog:dev"
   }
 }

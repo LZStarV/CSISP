@@ -1,56 +1,39 @@
-import { joinUrl, normalizePrefix } from '@csisp/config';
+import { normalizeBaseUrl } from '@csisp/config';
 
-import { getBffEnv } from './env';
+import { env } from './env';
 
-const env = getBffEnv();
-
-const rpcPrefix = normalizePrefix(env.CSISP_RPC_PREFIX);
-const basePrefix = normalizePrefix(joinUrl(rpcPrefix, 'bff'));
-
-const enabledSubProjects = String(env.BFF_ENABLED_SUBPROJECTS ?? 'portal,admin')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
-export type BffConfig = {
-  runtime: { nodeEnv?: string; isDev: boolean };
-  http: { port: number };
-  routes: { rpcPrefix: string; basePrefix: string };
-  upstream: { backendIntegratedBaseUrl: string };
-  auth: { jwtSecret: string };
-  features: { enabledSubProjects: string[] };
-  redis: {
-    namespace: string;
-    upstash: { url: string; token: string };
-  };
-};
-
-export const config: BffConfig = {
+export const config = {
   runtime: {
-    nodeEnv: env.NODE_ENV,
-    isDev: env.NODE_ENV === 'development',
+    nodeEnv: process.env.NODE_ENV || 'development',
+    isDev: (process.env.NODE_ENV || 'development') === 'development',
   },
   http: {
     port: env.CSISP_BFF_PORT,
   },
   routes: {
-    rpcPrefix,
-    basePrefix,
+    basePrefix: '/api/bff',
   },
   upstream: {
-    backendIntegratedBaseUrl: env.CSISP_BACKEND_INTEGRATED_URL,
+    backendIntegratedBaseUrl: normalizeBaseUrl(
+      env.CSISP_BACKEND_INTEGRATED_URL
+    ),
+    idpBaseUrl: normalizeBaseUrl(env.IDP_SERVER_URL),
   },
-  auth: {
-    jwtSecret: env.JWT_SECRET,
+  cors: {
+    enabled: true,
   },
-  features: {
-    enabledSubProjects,
+  supabase: {
+    url: env.SUPABASE_URL,
+    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+    anonKey: env.SUPABASE_ANON_KEY,
   },
   redis: {
-    namespace: env.REDIS_NAMESPACE,
+    namespace: env.REDIS_NAMESPACE || 'bff',
     upstash: {
       url: env.UPSTASH_REDIS_REST_URL || '',
       token: env.UPSTASH_REDIS_REST_TOKEN || '',
     },
   },
 };
+
+export type AppConfig = typeof config;
