@@ -1,13 +1,13 @@
 {
   "name": "@csisp/bff",
   "version": "1.0.0",
-  "type": "module",
+  "type": "commonjs",
   "private": true,
   "scripts": {
     "dev": "nodemon --exec tsx app.ts",
     "dev:portal": "BFF_ENABLED_SUBPROJECTS=portal pnpm run dev",
     "dev:admin": "BFF_ENABLED_SUBPROJECTS=admin pnpm run dev",
-    "build": "esbuild app.ts --bundle --platform=node --outfile=dist/app.js",
+    "build": "esbuild app.ts",
     "start": "node dist/app.js",
     "start:portal": "BFF_ENABLED_SUBPROJECTS=portal pnpm run start",
     "start:admin": "BFF_ENABLED_SUBPROJECTS=admin pnpm run start",

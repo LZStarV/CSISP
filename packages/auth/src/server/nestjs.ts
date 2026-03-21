@@ -11,8 +11,10 @@ import {
   Provider,
 } from '@nestjs/common';
 
+import { authConfig } from '../config';
+
 import { verifyAuth, AuthGuardOptions } from './guard';
-import { IdpClient, IdpClientOptions, IDP_CLIENT_OPTIONS } from './idp-client';
+import { IdpClient } from './idp-client';
 
 export const IDP_AUTH_GUARD_OPTIONS = 'IDP_AUTH_GUARD_OPTIONS';
 
@@ -70,28 +72,16 @@ export const CurrentUser = createParamDecorator(
 @Global()
 @Module({})
 export class IdpAuthModule {
-  static register(options: {
-    idp: IdpClientOptions;
-    auth: AuthGuardOptions;
-  }): DynamicModule {
-    const idpClientOptionsProvider: Provider = {
-      provide: IDP_CLIENT_OPTIONS,
-      useValue: options.idp,
-    };
-
+  static register(): DynamicModule {
     const authOptionsProvider: Provider = {
       provide: IDP_AUTH_GUARD_OPTIONS,
-      useValue: options.auth,
+      useValue: {
+        jwtSecret: authConfig.auth.jwtSecret,
+      },
     };
-
     return {
       module: IdpAuthModule,
-      providers: [
-        idpClientOptionsProvider,
-        authOptionsProvider,
-        IdpClient,
-        IdpAuthGuard,
-      ],
+      providers: [authOptionsProvider, IdpClient, IdpAuthGuard],
       exports: [IdpClient, IdpAuthGuard, IDP_AUTH_GUARD_OPTIONS],
     };
   }

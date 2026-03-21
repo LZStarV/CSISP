@@ -39,6 +39,7 @@
     "format": "prettier --write . && eslint . --fix"
   },
   "dependencies": {
+    "@csisp/config": "workspace:*",
     "@csisp/idl": "workspace:*",
     "@csisp/rpc": "workspace:*",
     "@nestjs/common": "^11.1.13",
@@ -47,7 +48,8 @@
     "react": "catalog:frontend",
     "react-dom": "catalog:frontend",
     "react-router-dom": "catalog:frontend",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.5",

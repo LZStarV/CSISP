@@ -11,14 +11,7 @@ import { config } from './config';
 
 @Module({
   imports: [
-    IdpAuthModule.register({
-      idp: {
-        url: config.auth.idpThriftUrl,
-      },
-      auth: {
-        jwtSecret: config.auth.jwtSecret,
-      },
-    }),
+    IdpAuthModule.register(),
     SupabaseModule.register({
       url: config.supabase.url,
       serviceRoleKey: config.supabase.serviceRoleKey,

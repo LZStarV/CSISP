@@ -33,10 +33,6 @@ export const config = {
   mongo: {
     uri: env.MONGODB_URI,
   },
-  auth: {
-    jwtSecret: env.JWT_SECRET,
-    idpThriftUrl: env.CSISP_IDP_THRIFT_URL,
-  },
   cors: {
     allowedOrigins,
   },

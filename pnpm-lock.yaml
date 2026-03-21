@@ -696,6 +696,9 @@ importers:
 
   packages/auth:
     dependencies:
+      '@csisp/config':
+        specifier: workspace:*
+        version: link:../config
       '@csisp/idl':
         specifier: workspace:*
         version: link:../../infra/idl
@@ -723,6 +726,9 @@ importers:
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@types/jsonwebtoken':
         specifier: ^9.0.5
@@ -6809,6 +6815,9 @@ packages:
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
   zrender@5.6.1:
     resolution: {integrity: sha512-OFXkDJKcrlx5su2XbzJvj/34Q3m6PvyCZkVPHGYpcCJ52ek4U/ymZyfuV1nKE23AyBJ51E/6Yr0mhZ7xGTO4ag==}
@@ -13465,6 +13474,8 @@ snapshots:
       is-promise: 2.2.2
 
   zod@3.25.76: {}
+
+  zod@4.3.6: {}
 
   zrender@5.6.1:
     dependencies:

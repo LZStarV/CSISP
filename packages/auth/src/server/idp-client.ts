@@ -1,3 +1,4 @@
+import { joinUrl, normalizeBaseUrl } from '@csisp/config';
 import {
   oidc,
   IAuthorizationRequestArgs,
@@ -16,17 +17,11 @@ import {
 } from '@csisp/idl/idp';
 import { createThriftClient } from '@csisp/rpc/thrift-client';
 import { getSafeContext } from '@csisp/rpc/thrift-server';
-import { Injectable, Inject, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
+import { authConfig } from '../config';
 
 import { decodeToken } from './jwt';
-
-// IDP Thrift 客户端选项
-export interface IdpClientOptions {
-  url: string;
-  timeout?: number;
-}
-
-export const IDP_CLIENT_OPTIONS = 'IDP_CLIENT_OPTIONS';
 
 /**
  * IDP Thrift 客户端 SDK 封装
@@ -37,15 +32,19 @@ export const IDP_CLIENT_OPTIONS = 'IDP_CLIENT_OPTIONS';
 export class IdpClient {
   private readonly client: oidc.Client;
 
-  constructor(
-    @Optional() @Inject(IDP_CLIENT_OPTIONS) options?: IdpClientOptions
-  ) {
-    if (!options) {
-      throw new Error('Missing IDP client options');
+  constructor() {
+    const serverUrl = authConfig.idp.serverUrl;
+    const thriftPrefix = authConfig.idp.thriftPrefix || '/thrift/idp';
+    if (!serverUrl) {
+      throw new Error('Missing IDP_SERVER_URL for IdpClient');
     }
+    const finalUrl = joinUrl(
+      normalizeBaseUrl(String(serverUrl)),
+      String(thriftPrefix)
+    );
     this.client = createThriftClient(oidc.Client, {
-      url: options.url,
-      timeout: options.timeout,
+      url: finalUrl,
+      timeout: 10000,
     });
   }
 
