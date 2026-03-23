@@ -14,15 +14,9 @@
     "antd": "catalog:frontend",
     "react": "catalog:frontend",
     "react-dom": "catalog:frontend",
-    "@csisp/idl": "workspace:*",
     "@csisp/rpc": "workspace:*",
     "@csisp/auth": "workspace:*",
-    "@csisp/utils": "workspace:*",
-    "@hookform/resolvers": "catalog:frontend",
-    "lucide-react": "catalog:frontend",
-    "react-hook-form": "catalog:frontend",
-    "react-router-dom": "catalog:frontend",
-    "zod": "catalog:frontend"
+    "react-router-dom": "catalog:frontend"
   },
   "devDependencies": {
     "@types/react": "catalog:dev",

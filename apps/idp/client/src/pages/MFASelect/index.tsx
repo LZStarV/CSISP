@@ -4,8 +4,6 @@ import {
   KeyOutlined,
   QrcodeOutlined,
 } from '@ant-design/icons';
-import type { MfaMethodsResult, AuthNextStep } from '@csisp/idl/idp';
-import { MFAType } from '@csisp/idl/idp';
 import { Card, Button, Typography, Space, Alert } from 'antd';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -17,6 +15,8 @@ import {
   MFA_METHOD_LABELS,
   MFA_METHOD_DESCRIPTIONS,
 } from '@/types/auth';
+import { MFAType } from '@/types/enum';
+import type { MfaMethodsResult, AuthNextStep } from '@/types/enum';
 
 const MFA_ICONS: Record<MFAType, React.ComponentType<any>> = {
   [MFAType.Sms]: MobileOutlined,
@@ -76,16 +76,7 @@ export function MFASelect() {
     setErrorMsg(null);
 
     try {
-      if (method.type === MFAType.Sms) {
-        navigate('/mfa/sms', {
-          state: {
-            phone: method.extra,
-            ...(location.state as any), // 透传 ticket, state 等流程状态
-          },
-        });
-        return;
-      }
-      setErrorMsg('该验证方式暂未实现');
+      setErrorMsg('当前仅支持邮箱验证，请按邮箱指引完成登录');
     } catch {
       setErrorMsg('选择验证方式失败，请重试');
     } finally {
@@ -93,7 +84,9 @@ export function MFASelect() {
     }
   };
 
-  const enabledMethods = mfaMethods.filter(method => method.enabled);
+  const enabledMethods = mfaMethods
+    .filter(method => method.enabled)
+    .filter(method => method.type !== MFAType.Sms);
 
   return (
     <AuthLayout
@@ -120,13 +113,13 @@ export function MFASelect() {
       {enabledMethods.length === 0 ? (
         <Alert
           type='warning'
-          message='暂无可用的验证方式'
-          description='请联系管理员启用多重身份验证'
+          message='当前仅支持邮箱验证'
+          description='我们已向您邮箱发送验证邮件，请前往邮箱完成验证'
           showIcon
         />
       ) : (
         <Space direction='vertical' style={{ width: '100%' }} size='middle'>
-          {mfaMethods.map(method => {
+          {enabledMethods.map(method => {
             const IconComponent = MFA_ICONS[method.type as MFAType];
             const label = MFA_METHOD_LABELS[method.type as MFAType];
             const description = MFA_METHOD_DESCRIPTIONS[method.type as MFAType];

@@ -1,10 +1,10 @@
-import type { SessionResult } from '@csisp/idl/idp';
 import { message } from 'antd';
 import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall, hasError } from '@/api/rpc';
+import { authCall, hasError, verifyOtp } from '@/api/rpc';
 import { ROUTE_LOGIN, ROUTE_FINISH } from '@/routes/router';
+import type { SessionResult } from '@/types/enum';
 
 export function SessionGuard({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
@@ -12,9 +12,23 @@ export function SessionGuard({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const hasQuery = !!location.search && location.search.length > 1;
-    if (hasQuery) {
-      setChecking(false);
+    const params = new URLSearchParams(location.search);
+    const tokenHash = params.get('token_hash');
+    const type = params.get('type');
+    if (tokenHash && type) {
+      (async () => {
+        try {
+          const res = await verifyOtp({
+            token_hash: tokenHash,
+            type: type === 'magic_link' ? 'magic_link' : 'email',
+          });
+          if (!hasError(res) && res.result?.verified) {
+            navigate(ROUTE_FINISH, { replace: true });
+            return;
+          }
+        } catch {}
+        setChecking(false);
+      })();
       return;
     }
     (async () => {

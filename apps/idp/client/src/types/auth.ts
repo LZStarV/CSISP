@@ -1,5 +1,5 @@
-import type { IMethod } from '@csisp/idl/idp';
-import { MFAType } from '@csisp/idl/idp';
+import type { IMethod } from '@/types/enum';
+import { MFAType } from '@/types/enum';
 
 // 多因子认证方法类型
 export type MFAMethod = IMethod;

@@ -1,9 +1,3 @@
-import type {
-  AuthorizationInitResult,
-  TokenResponse,
-  UserInfo,
-} from '@csisp/idl/idp';
-import { oidc } from '@csisp/idl/idp';
 import { call, hasError } from '@csisp/rpc/client-fetch';
 import React, {
   createContext,
@@ -14,6 +8,9 @@ import React, {
 } from 'react';
 
 import { generatePKCE, generateState } from '../browser/pkce';
+
+import { OIDC_SERVICE } from './types';
+import type { AuthorizationInitResult, TokenResponse, UserInfo } from './types';
 
 export type AuthUser = UserInfo;
 
@@ -59,14 +56,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
   const fetchUser = useCallback(async () => {
     try {
-      const res = await call<UserInfo>(
-        apiPrefix,
-        oidc.serviceName,
-        'userinfo',
-        {
-          access_token: '', // Session-based auth might not need this if using cookies
-        }
-      );
+      const res = await call<UserInfo>(apiPrefix, OIDC_SERVICE, 'userinfo', {
+        access_token: '',
+      });
 
       if (!hasError(res)) {
         setState({
@@ -105,17 +97,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
       const res = await call<AuthorizationInitResult>(
         apiPrefix,
-        oidc.serviceName,
+        OIDC_SERVICE,
         'authorize',
         {
           client_id: clientId,
           redirect_uri: redirectUri,
-          response_type: 0, // Code
-          scope: [0, 1, 2], // openid, profile, email
+          response_type: 'code',
+          scope: ['openid', 'profile', 'email'],
           state: authState,
           code_challenge: challenge,
           code_verifier: verifier,
-          code_challenge_method: 0, // S256
+          code_challenge_method: 'S256',
         }
       );
 
@@ -146,10 +138,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
         const res = await call<TokenResponse>(
           apiPrefix,
-          oidc.serviceName,
+          OIDC_SERVICE,
           'token',
           {
-            grant_type: 0, // AuthorizationCode
+            grant_type: 'authorization_code',
             code,
             redirect_uri: redirectUri,
             client_id: clientId,
@@ -176,7 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
   const logout = useCallback(async () => {
     try {
-      await call(apiPrefix, oidc.serviceName, 'revocation', {
+      await call(apiPrefix, OIDC_SERVICE, 'revocation', {
         token: '', // Might revoke current session/token
       });
       setState({

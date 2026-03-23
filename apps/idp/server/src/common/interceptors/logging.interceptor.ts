@@ -1,4 +1,4 @@
-import { SENSITIVE_FIELDS } from '@csisp/idl/idp';
+import { SENSITIVE_FIELDS } from '@common/constants/sensitive-fields';
 import { RPC_PROTOCOL_KEY, RpcProtocol } from '@csisp/rpc/constants';
 import { getIdpLogger } from '@infra/logger';
 import {

@@ -49,7 +49,7 @@
     "react-dom": "catalog:frontend",
     "react-router-dom": "catalog:frontend",
     "reflect-metadata": "^0.2.2",
-    "zod": "^4.3.6"
+    "zod": "catalog:node"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.5",

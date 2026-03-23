@@ -1,5 +1,3 @@
-import { MFAType, VerifyResult } from '@csisp/idl/idp';
-import type { Next, RecoveryInitResult } from '@csisp/idl/idp';
 import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -11,6 +9,8 @@ import {
   ROUTE_PASSWORD_RESET,
   ROUTE_FINISH,
 } from '@/routes/router';
+import type { Next, RecoveryInitResult } from '@/types/enum';
+import { MFAType, VerifyResult } from '@/types/enum';
 
 export function SmsVerify() {
   const [loading, setLoading] = useState(false);
@@ -109,7 +109,7 @@ export function SmsVerify() {
   };
 
   // 校验短信验证码
-  const onFinish = async (values: { code: string }) => {
+  const onFinish = async (_values: { code: string }) => {
     if (!phone) return;
     setLoading(true);
     setErrorMsg(null);

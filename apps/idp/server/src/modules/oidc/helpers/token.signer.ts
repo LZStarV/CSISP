@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { signToken, parseDurationToSeconds } from '@csisp/auth/server';
+import { signToken, parseDurationToSeconds } from '@utils/jwt';
 
 export interface SignerOptions {
   issuer: string;

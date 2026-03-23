@@ -1,31 +1,13 @@
-import { generatePKCE, generateRandomString } from '@csisp/auth/browser';
-import { OIDCScope } from '@csisp/idl/idp';
-import type {
-  SessionResult,
-  Next,
-  AuthorizationInitResult,
-  ClientInfo,
-} from '@csisp/idl/idp';
+import { generateRandomString } from '@csisp/auth/browser';
 import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall, oidcCall, hasError } from '@/api/rpc';
+import { authCall, oidcCall, hasError, createExchangeCode } from '@/api/rpc';
 import { CLIENT_LOGIN_ENDPOINTS } from '@/config';
+import type { SessionResult, Next, ClientInfo } from '@/types/enum';
 
-// 将 OIDCScope 枚举值转换为字符串
-function scopeEnumsToString(scopes?: Array<OIDCScope> | null): string {
-  if (!scopes || !Array.isArray(scopes) || scopes.length === 0) return 'openid';
-  const map: Record<OIDCScope, string> = {
-    [OIDCScope.Openid]: 'openid',
-    [OIDCScope.Profile]: 'profile',
-    [OIDCScope.Email]: 'email',
-  };
-  return scopes
-    .map(s => map[s as OIDCScope] ?? null)
-    .filter((x): x is string => !!x)
-    .join(' ');
-}
+// no-op
 
 export function Finish() {
   const [items, setItems] = useState<ClientInfo[]>([]);
@@ -116,32 +98,23 @@ export function Finish() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const state = generateRandomString(32);
-      const { verifier, challenge } = await generatePKCE();
-      // 使用生成的 verifier
-      sessionStorage.setItem('idp_state', state);
-      sessionStorage.setItem(`cv:${state}`, verifier);
-      const authRes = await oidcCall<AuthorizationInitResult>('authorize', {
-        response_type: 'code',
-        client_id: item.client_id,
-        redirect_uri: item.default_redirect_uri,
-        scope: scopeEnumsToString(item.scopes),
-        state,
-        code_challenge_method: 'S256',
-        code_challenge: challenge,
-        nonce: generateRandomString(16),
-      });
-      if (hasError(authRes) || !authRes.result?.ok)
-        throw new Error('授权态创建失败');
-      const enterRes = await authCall<Next>('enter', {
+      const state = generateRandomString(16);
+      const res = await createExchangeCode({
+        app_id: String(item.client_id),
+        redirect_uri: item.default_redirect_uri as string,
         state,
       });
-      if (hasError(enterRes)) throw new Error('进入失败');
-      const redirectTo = enterRes.result?.redirectTo;
-      if (redirectTo) {
-        window.location.href = redirectTo;
-        return;
-      }
+      if (hasError(res)) throw new Error(res.error.message || '创建会话失败');
+      const code = res.result?.code;
+      const uri = res.result?.redirect_uri;
+      const st = res.result?.state;
+      if (!code || !uri) throw new Error('创建会话失败');
+      const url =
+        uri +
+        `?code=${encodeURIComponent(code)}` +
+        (st ? `&state=${encodeURIComponent(st)}` : '');
+      window.location.replace(url);
+      return;
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '进入系统失败，请重试');
     } finally {

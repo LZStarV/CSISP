@@ -1,26 +1,9 @@
-import {
-  Next,
-  MFAType,
-  IMethod,
-  AuthNextStep,
-  LoginResult,
-  RSATokenResult,
-  ResetReason,
-} from '@csisp/idl/idp';
-import { SessionResult } from '@csisp/idl/idp';
-import {
-  RecoveryInitResult,
-  RecoveryMethod,
-  VerifyResult,
-  RecoveryUnavailableReason,
-} from '@csisp/idl/idp';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import { RedisPrefix } from '@idp-types/redis';
 import { verifyPassword, hashPasswordScrypt } from '@infra/crypto/password';
 import { getPublicKey } from '@infra/crypto/rsa';
 import { getIdpLogger } from '@infra/logger';
-import { SmsService } from '@infra/sms/sms.service';
 import { SupabaseDataAccess } from '@infra/supabase';
 import { Injectable, HttpException } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
@@ -36,6 +19,20 @@ import { EnterDto } from './dto/enter.dto';
 import { LoginDto } from './dto/login.dto';
 import { MultifactorDto } from './dto/multifactor.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import {
+  Next,
+  MFAType,
+  IMethod,
+  AuthNextStep,
+  LoginResult,
+  RSATokenResult,
+  ResetReason,
+  RecoveryInitResult,
+  RecoveryMethod,
+  VerifyResult,
+  RecoveryUnavailableReason,
+  SessionResult,
+} from './enums';
 
 type MfaSettingsPick = {
   sms_enabled: boolean | null;
@@ -68,7 +65,6 @@ export class AuthService {
   private readonly oidcCodeIssuer: TicketIssuer<any>;
 
   constructor(
-    private readonly smsService: SmsService,
     private readonly sda: SupabaseDataAccess,
     @Inject(REDIS_KV) private readonly kv: RedisKV
   ) {
@@ -96,15 +92,8 @@ export class AuthService {
    */
   private async getMfaMethods(user: {
     id: number;
-    phone?: string | null;
   }): Promise<{ mfa: IMethod[]; requiresMfa: boolean }> {
-    // 默认列表
     const mfa: IMethod[] = [
-      {
-        type: MFAType.Sms,
-        extra: user.phone ?? undefined,
-        enabled: true,
-      },
       { type: MFAType.Email, enabled: false },
       { type: MFAType.Fido2, enabled: false },
       { type: MFAType.Otp, enabled: false },
@@ -130,16 +119,11 @@ export class AuthService {
 
     return {
       mfa: [
-        {
-          type: MFAType.Sms,
-          extra: user.phone ?? mfaSettings.phone_number ?? undefined,
-          enabled: !!mfaSettings.sms_enabled,
-        },
         { type: MFAType.Email, enabled: !!mfaSettings.email_enabled },
         { type: MFAType.Fido2, enabled: !!mfaSettings.fido2_enabled },
         { type: MFAType.Otp, enabled: !!mfaSettings.otp_enabled },
       ],
-      requiresMfa: !!mfaSettings.required,
+      requiresMfa: false,
     };
   }
 
@@ -149,10 +133,10 @@ export class AuthService {
    */
   async rsatoken(_params: RpcParams): Promise<RSATokenResult> {
     // 返回 RSA 公钥与短时 token，供前端进行密码加密传输
-    return new RSATokenResult({
+    return {
       publicKey: getPublicKey(),
       token: `rsat-${Date.now()}`,
-    });
+    };
   }
 
   /**
@@ -202,10 +186,10 @@ export class AuthService {
       'login first-login check'
     );
     if (isFirstLogin) {
-      return new LoginResult({
+      return {
         nextSteps: [AuthNextStep.ResetPassword],
         multifactor: [],
-      });
+      };
     }
 
     // 密码校验：仅支持 scrypt$ 前缀的密码（未来可能支持 RSA 公钥加密后的密码）
@@ -233,17 +217,17 @@ export class AuthService {
     }
 
     if (!requiresMfa) {
-      return new LoginResult({
+      return {
         nextSteps: [AuthNextStep.Enter],
         multifactor: mfa,
-      });
+      };
     }
 
     // 返回进入多因子校验的指令
-    return new LoginResult({
+    return {
       nextSteps: [AuthNextStep.Multifactor],
       multifactor: mfa,
-    });
+    };
   }
 
   /**
@@ -251,60 +235,12 @@ export class AuthService {
    * - codeOrAssertion 非 6 位数字视为请求验证码
    * - 6 位数字视为校验验证码，成功则建立会话并进入 enter
    */
-  async multifactor(params: MultifactorDto, res?: Response): Promise<Next> {
-    const logger = getIdpLogger('multifactor');
-
-    switch (params.type) {
-      case MFAType.Sms: {
-        const code = params.codeOrAssertion;
-        const isRequest = code.length !== 6 || /\D/.test(code);
-        if (isRequest) {
-          logger.info({ method: 'sms', target: params.phoneOrEmail });
-          let api: unknown = null;
-          if (params.phoneOrEmail) {
-            api = await this.smsService.sendOtp(params.phoneOrEmail);
-          }
-          return new Next({
-            nextSteps: [AuthNextStep.Multifactor],
-            sms: api ?? {},
-          });
-        }
-        const ok = await this.smsService.verifyOtp(
-          params.phoneOrEmail ?? '',
-          code
-        );
-        if (!ok) throw new HttpException('Invalid verification code', 401);
-        if (res && params.phoneOrEmail) {
-          type UserPick = { id: number; phone: string | null };
-          const { data: user } = await this.sda
-            .service()
-            .from('user')
-            .select('id,phone')
-            .eq('phone', params.phoneOrEmail)
-            .maybeSingle<UserPick>();
-          if (user && user.id) {
-            await this.sessionIssuer.issue(res, user.id, SessionMode.Long);
-          }
-        }
-        return new Next({ nextSteps: [AuthNextStep.Enter] });
-      }
-      case MFAType.Email: {
-        throw new HttpException('MFA method email not supported', 400);
-      }
-      case MFAType.Fido2: {
-        throw new HttpException('MFA method fido2 not supported', 400);
-      }
-      case MFAType.Otp: {
-        throw new HttpException('MFA method otp not supported', 400);
-      }
-      default: {
-        throw new HttpException('MFA method not supported', 400);
-      }
-    }
+  async multifactor(_params: MultifactorDto, _res?: Response): Promise<Next> {
+    throw new HttpException('Multifactor is not implemented', 501);
   }
 
   async session(uid?: number): Promise<SessionResult> {
-    if (!uid) return new SessionResult({ logged: false });
+    if (!uid) return { logged: false };
     type UserPick = {
       id: number;
       username: string | null;
@@ -316,11 +252,11 @@ export class AuthService {
       .select('id,username,student_id')
       .eq('id', uid)
       .maybeSingle<UserPick>();
-    return new SessionResult({
+    return {
       logged: true,
       name: user?.username ?? undefined,
       student_id: user?.student_id ?? undefined,
-    });
+    };
   }
 
   // 忘记密码：初始化
@@ -341,10 +277,10 @@ export class AuthService {
       .maybeSingle<UserPick>();
     const methods: RecoveryMethod[] = [];
     if (!user) {
-      return new RecoveryInitResult({
+      return {
         student_id: stu,
         methods: [],
-      });
+      };
     }
     const { data: cfg } = await this.sda
       .service()
@@ -357,20 +293,14 @@ export class AuthService {
     const boundPhone = user.phone ?? cfg?.phone_number ?? null;
     // SMS
     {
-      const enabled = !!cfg?.sms_enabled && !!boundPhone;
-      const reason = !cfg?.sms_enabled
-        ? RecoveryUnavailableReason.MethodDisabled
-        : !boundPhone
-          ? RecoveryUnavailableReason.NotBoundPhone
-          : undefined;
-      methods.push(
-        new RecoveryMethod({
-          type: MFAType.Sms,
-          enabled,
-          extra: boundPhone ?? undefined,
-          reason,
-        })
-      );
+      const enabled = false;
+      const reason = RecoveryUnavailableReason.NotImplemented;
+      methods.push({
+        type: MFAType.Sms,
+        enabled,
+        extra: boundPhone ?? undefined,
+        reason,
+      });
     }
     // Email（占位）
     {
@@ -381,125 +311,46 @@ export class AuthService {
         : !boundEmail
           ? RecoveryUnavailableReason.NotBoundEmail
           : RecoveryUnavailableReason.NotImplemented;
-      methods.push(
-        new RecoveryMethod({
-          type: MFAType.Email,
-          enabled: enabled && false, // 暂未实现
-          extra: boundEmail ?? undefined,
-          reason,
-        })
-      );
+      methods.push({
+        type: MFAType.Email,
+        enabled: enabled && false,
+        extra: boundEmail ?? undefined,
+        reason,
+      });
     }
     // 其他未实现
-    methods.push(
-      new RecoveryMethod({
-        type: MFAType.Fido2,
-        enabled: false,
-        reason: RecoveryUnavailableReason.NotImplemented,
-      })
-    );
-    methods.push(
-      new RecoveryMethod({
-        type: MFAType.Otp,
-        enabled: false,
-        reason: RecoveryUnavailableReason.NotImplemented,
-      })
-    );
-    return new RecoveryInitResult({
-      student_id: user.student_id ?? undefined,
+    methods.push({
+      type: MFAType.Fido2,
+      enabled: false,
+      reason: RecoveryUnavailableReason.NotImplemented,
+    });
+    methods.push({
+      type: MFAType.Otp,
+      enabled: false,
+      reason: RecoveryUnavailableReason.NotImplemented,
+    });
+    return {
+      student_id: (user.student_id ?? stu) as string,
       name: user.username ?? undefined,
       methods,
-    });
+    };
   }
 
   // 忘记密码：触发验证码
-  async forgotChallenge(params: {
+  async forgotChallenge(_params: {
     type: string;
     studentId: string;
   }): Promise<Next> {
-    const typeStr = String(params.type ?? 'sms').toLowerCase();
-    const stu = String(params.studentId ?? '');
-    if (typeStr !== 'sms') {
-      throw new HttpException('Recovery method not supported', 400);
-    }
-    type UserPick = {
-      id: number;
-      student_id: string | null;
-      phone: string | null;
-    };
-    const { data: user } = await this.sda
-      .service()
-      .from('user')
-      .select('id,student_id,phone')
-      .eq('student_id', stu)
-      .maybeSingle<UserPick>();
-    const { data: cfg } = user
-      ? await this.sda
-          .service()
-          .from('mfa_settings')
-          .select('phone_number')
-          .eq('user_id', user.id)
-          .maybeSingle<{ phone_number: string | null }>()
-      : { data: null as any };
-    const boundPhone = user?.phone ?? cfg?.phone_number ?? null;
-    let api: unknown = null;
-    if (boundPhone) {
-      api = await this.smsService.sendOtp(boundPhone);
-    }
-    return new Next({
-      nextSteps: [AuthNextStep.ResetPassword],
-      sms: api ?? {},
-    });
+    throw new HttpException('Recovery via SMS not implemented', 501);
   }
 
   // 忘记密码：校验验证码并下发令牌
-  async forgotVerify(params: {
+  async forgotVerify(_params: {
     type: string;
     studentId: string;
     code: string;
   }): Promise<VerifyResult> {
-    const typeStr = String(params.type ?? 'sms').toLowerCase();
-    const stu = String(params.studentId ?? '');
-    const code = String(params.code ?? '');
-    if (typeStr !== 'sms') {
-      throw new HttpException('Recovery method not supported', 400);
-    }
-    type UserPick2 = {
-      id: number;
-      student_id: string | null;
-      phone: string | null;
-    };
-    const { data: user } = await this.sda
-      .service()
-      .from('user')
-      .select('id,student_id,phone')
-      .eq('student_id', stu)
-      .maybeSingle<UserPick2>();
-    const { data: cfg } = user
-      ? await this.sda
-          .service()
-          .from('mfa_settings')
-          .select('phone_number')
-          .eq('user_id', user.id)
-          .maybeSingle<{ phone_number: string | null }>()
-      : { data: null as any };
-    const boundPhone = user?.phone ?? cfg?.phone_number ?? null;
-    if (!boundPhone) throw new HttpException('No phone bound', 400);
-    const ok = await this.smsService.verifyOtp(boundPhone, code);
-    if (!ok) throw new HttpException('Invalid verification code', 401);
-
-    // 使用 TicketIssuer 发放重置令牌
-    let token = '';
-    if (user) {
-      // 生成随机标识并绑定学号前缀，确保令牌的唯一性与归属性
-      const randomToken =
-        Math.random().toString(36).slice(2) + Date.now().toString(36);
-      token = await this.resetTicketIssuer.issue(
-        String(user.id),
-        `${user.student_id}:${randomToken}`
-      );
-    }
-    return new VerifyResult({ ok: true, reset_token: token });
+    throw new HttpException('Recovery via SMS not implemented', 501);
   }
   /**
    * 重置密码
@@ -533,31 +384,12 @@ export class AuthService {
     }
     // 标记令牌失效（消费令牌）
     await this.resetTicketIssuer.consume(_params.resetToken);
-    // 改密成功后进入多因子校验
-    return new Next({ nextSteps: [AuthNextStep.Multifactor] });
+    // 改密成功后直接进入后续流程
+    return { nextSteps: [AuthNextStep.Enter] };
   }
 
   async resetPasswordRequest(_params: { studentId: string }): Promise<Next> {
-    const studentId = String(_params.studentId ?? '').trim();
-    if (!studentId) throw new HttpException('Invalid params', 400);
-    type UserPick3 = {
-      phone: string | null;
-    };
-    const { data: row } = await this.sda
-      .service()
-      .from('user')
-      .select('phone')
-      .eq('student_id', studentId)
-      .maybeSingle<UserPick3>();
-    const phone = row?.phone ?? null;
-    let api: unknown = null;
-    if (phone) {
-      api = await this.smsService.sendOtp(phone);
-    }
-    return new Next({
-      nextSteps: [AuthNextStep.ResetPassword],
-      sms: api ?? {},
-    });
+    throw new HttpException('Reset password via SMS not implemented', 501);
   }
 
   /**
@@ -629,7 +461,7 @@ export class AuthService {
     }
 
     if (!auth) {
-      return new Next({ nextSteps: [AuthNextStep.Finish] });
+      return { nextSteps: [AuthNextStep.Finish] };
     }
 
     if (uid === null || uid === undefined) {
@@ -651,9 +483,9 @@ export class AuthService {
     const redirectTo = `${auth.redirect_uri}?code=${code}&state=${encodeURIComponent(String(state || ''))}`;
     if (res && params.redirectMode === 'http') {
       res.redirect(302, redirectTo);
-      return new Next({ nextSteps: [AuthNextStep.Finish] });
+      return { nextSteps: [AuthNextStep.Finish] };
     }
-    return new Next({ nextSteps: [AuthNextStep.Finish], redirectTo });
+    return { nextSteps: [AuthNextStep.Finish], redirectTo };
   }
 
   /**

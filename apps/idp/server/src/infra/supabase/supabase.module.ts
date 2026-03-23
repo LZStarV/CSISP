@@ -3,6 +3,7 @@ import { Global, Module, Provider } from '@nestjs/common';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 import { SupabaseDataAccess } from './data-access';
+import { GotrueService } from './gotrue.service';
 import { SUPABASE_SERVICE, SUPABASE_USER_FACTORY } from './tokens';
 
 const providers: Provider[] = [
@@ -31,7 +32,7 @@ const providers: Provider[] = [
 
 @Global()
 @Module({
-  providers: [...providers, SupabaseDataAccess],
-  exports: [...providers, SupabaseDataAccess],
+  providers: [...providers, SupabaseDataAccess, GotrueService],
+  exports: [...providers, SupabaseDataAccess, GotrueService],
 })
 export class SupabaseModule {}

@@ -1,14 +1,6 @@
 import { ApiIdpController } from '@common/decorators/controller.decorator';
 import { JsonRpcInterceptor } from '@common/rpc/json-rpc.interceptor';
 import { RpcRequestPipe } from '@common/rpc/rpc-request.pipe';
-import {
-  AuthorizationRequest,
-  TokenRequest,
-  OIDCResponseType,
-  OIDCPKCEMethod,
-  OIDCGrantType,
-  OIDCScope,
-} from '@csisp/idl/idp';
 import { SupabaseDataAccess } from '@infra/supabase';
 import { Body, Post, UseInterceptors, Param, Res } from '@nestjs/common';
 import { BadRequestException } from '@nestjs/common';
@@ -31,19 +23,16 @@ export class OidcController {
   @Post('authorize')
   async authorize(@Body(RpcRequestPipe) { params }: any) {
     const rawScope = params.scope;
-    let scopes: OIDCScope[] = [];
+    let scopes: ('openid' | 'profile' | 'email')[] = [];
 
     if (Array.isArray(rawScope)) {
-      scopes = rawScope
-        .map(s => {
-          if (typeof s === 'number') return s as OIDCScope;
-          const str = String(s).toLowerCase();
-          if (str === 'openid') return OIDCScope.Openid;
-          if (str === 'profile') return OIDCScope.Profile;
-          if (str === 'email') return OIDCScope.Email;
-          return OIDCScope.Openid;
-        })
-        .filter((v): v is OIDCScope => v !== undefined);
+      scopes = rawScope.map(s => {
+        const str = String(s).toLowerCase();
+        if (str === 'openid') return 'openid';
+        if (str === 'profile') return 'profile';
+        if (str === 'email') return 'email';
+        return 'openid';
+      }) as ('openid' | 'profile' | 'email')[];
     } else {
       scopes = String(rawScope ?? '')
         .split(' ')
@@ -51,38 +40,45 @@ export class OidcController {
         .filter(Boolean)
         .map(s => {
           const str = s.toLowerCase();
-          if (str === 'openid') return OIDCScope.Openid;
-          if (str === 'profile') return OIDCScope.Profile;
-          if (str === 'email') return OIDCScope.Email;
-          return OIDCScope.Openid;
-        });
+          if (str === 'openid') return 'openid' as const;
+          if (str === 'profile') return 'profile' as const;
+          if (str === 'email') return 'email' as const;
+          return 'openid' as const;
+        }) as ('openid' | 'profile' | 'email')[];
     }
 
-    const req = new AuthorizationRequest({
+    const req = {
       client_id: String(params.client_id ?? ''),
       redirect_uri: String(params.redirect_uri ?? ''),
-      response_type: OIDCResponseType.Code,
+      response_type: 'code' as const,
       scope: scopes,
       state: String(params.state ?? ''),
       code_challenge: String(params.code_challenge ?? ''),
-      code_challenge_method: OIDCPKCEMethod.S256,
-    });
+      code_challenge_method: 'S256' as const,
+    };
     return this.svc.startAuthorization(req);
   }
 
   @Post('token')
   async token(@Body(RpcRequestPipe) { params }: any) {
-    const req = new TokenRequest({
-      grant_type:
-        String(params.grant_type ?? '') === 'refresh_token'
-          ? OIDCGrantType.RefreshToken
-          : OIDCGrantType.AuthorizationCode,
-      code: String(params.code ?? ''),
-      redirect_uri: String(params.redirect_uri ?? ''),
-      client_id: String(params.client_id ?? ''),
-      code_verifier: String(params.code_verifier ?? ''),
-    });
-    return this.svc.exchangeToken(req);
+    const isRefresh = String(params.grant_type ?? '') === 'refresh_token';
+    if (isRefresh) {
+      const req = {
+        grant_type: 'refresh_token' as const,
+        client_id: String(params.client_id ?? ''),
+        refresh_token: String(params.refresh_token ?? ''),
+      };
+      return this.svc.exchangeToken(req);
+    } else {
+      const req = {
+        grant_type: 'authorization_code' as const,
+        code: String(params.code ?? ''),
+        redirect_uri: String(params.redirect_uri ?? ''),
+        client_id: String(params.client_id ?? ''),
+        code_verifier: String(params.code_verifier ?? ''),
+      };
+      return this.svc.exchangeToken(req);
+    }
   }
 
   @Post('jwks')

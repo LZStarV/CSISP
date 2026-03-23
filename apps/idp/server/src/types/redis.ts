@@ -9,3 +9,4 @@ export enum RedisPrefix {
   OidcAuthReq = 'oidc:authreq:',
   OidcCode = 'oidc:code:',
 }
+export const STEPUP_PREFIX = 'stepup:';

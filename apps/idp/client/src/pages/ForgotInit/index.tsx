@@ -1,5 +1,3 @@
-import { MFAType, RecoveryUnavailableReason } from '@csisp/idl/idp';
-import type { RecoveryInitResult } from '@csisp/idl/idp';
 import {
   Card,
   Space,
@@ -15,8 +13,10 @@ import { useNavigate } from 'react-router-dom';
 
 import { authCall, hasError } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
-import { ROUTE_MFA_SMS, ROUTE_LOGIN } from '@/routes/router';
+import { ROUTE_LOGIN } from '@/routes/router';
 import { MFA_METHOD_LABELS, MFA_METHOD_DESCRIPTIONS } from '@/types/auth';
+import type { RecoveryInitResult } from '@/types/enum';
+import { MFAType, RecoveryUnavailableReason } from '@/types/enum';
 
 export function ForgotInit() {
   const [studentId, setStudentId] = useState('');
@@ -69,19 +69,12 @@ export function ForgotInit() {
     }
   };
 
-  const choose = (method: {
+  const choose = (_method: {
     type: MFAType;
     enabled: boolean;
     extra?: string | null;
   }) => {
-    if (!method.enabled) return;
-    if (method.type === MFAType.Sms) {
-      const qs = new URLSearchParams({
-        studentId,
-        flow: 'forgot',
-      }).toString();
-      navigate(`${ROUTE_MFA_SMS}?${qs}`);
-    }
+    // 暂不支持短信找回
   };
 
   return (

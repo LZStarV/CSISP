@@ -1,16 +1,17 @@
-import type { AuthorizationRequestInfo, LoginResult } from '@csisp/idl/idp';
-import { AuthNextStep } from '@csisp/idl/idp';
-import { Form, Input, Button, Typography, Alert } from 'antd';
+import { Form, Input, Button, Typography, Alert, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { authCall, oidcCall, hasError } from '@/api/rpc';
-import { AuthLayout } from '@/layouts/AuthLayout';
 import {
-  ROUTE_MFA_SELECT,
-  ROUTE_FINISH,
-  ROUTE_PASSWORD_FORGOT,
-} from '@/routes/router';
+  oidcCall,
+  hasError,
+  loginInternal,
+  sendOtp,
+  verifyOtp,
+} from '@/api/rpc';
+import { AuthLayout } from '@/layouts/AuthLayout';
+import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
+import type { AuthorizationRequestInfo } from '@/types/enum';
 
 export function Login() {
   const [loading, setLoading] = useState(false);
@@ -23,6 +24,8 @@ export function Login() {
 
   const ticket = searchParams.get('ticket');
   const state = searchParams.get('state');
+  const tokenHash = searchParams.get('token_hash');
+  const otpType = searchParams.get('type');
 
   useEffect(() => {
     if (ticket) {
@@ -34,20 +37,44 @@ export function Login() {
             setErrorMsg(res.error.message || '获取授权信息失败');
           }
         })
-        .catch(err => {
-          console.error('Fetch auth info failed:', err);
+        .catch(() => {
           setErrorMsg('连接认证服务器失败，请稍后重试');
         });
     }
   }, [ticket]);
 
-  const onFinish = async (values: { studentId: string; password: string }) => {
+  useEffect(() => {
+    if (tokenHash && otpType) {
+      (async () => {
+        try {
+          const res = await verifyOtp({
+            token_hash: tokenHash,
+            type: otpType === 'magic_link' ? 'magic_link' : 'email',
+          });
+          if (hasError(res)) {
+            setErrorMsg(res.error.message || '验证失败或链接已过期');
+            return;
+          }
+          if (res.result?.verified) {
+            navigate(ROUTE_FINISH, { replace: true });
+          }
+        } catch {
+          setErrorMsg('验证失败或链接已过期');
+        }
+      })();
+    }
+  }, [tokenHash, otpType, navigate]);
+
+  const onFinish = async (values: { email: string; password: string }) => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await authCall<LoginResult>('login', values);
+      const res = await loginInternal({
+        email: values.email,
+        password: values.password,
+      });
       if (hasError(res)) throw new Error(res.error.message || '登录失败');
-      const nextSteps = (res.result?.nextSteps ?? []) as AuthNextStep[];
+      const stepUp = (res.result?.stepUp ?? '') as 'PENDING_PASSWORD' | string;
 
       // 登录成功后，如果存在授权请求，需要透传 ticket 或 state 供后续 enter 阶段使用
       const flowState = {
@@ -56,16 +83,19 @@ export function Login() {
         state: authInfo?.state || state,
       };
 
-      if (nextSteps.includes(AuthNextStep.Multifactor)) {
-        navigate(ROUTE_MFA_SELECT, { state: flowState });
+      if (stepUp === 'PENDING_PASSWORD') {
+        const sent = await sendOtp();
+        if (hasError(sent)) {
+          throw new Error(sent.error.message || '发送验证邮件失败');
+        }
+        message.success('验证邮件已发送，请前往邮箱查收并完成验证');
         return;
       }
-      if (nextSteps.includes(AuthNextStep.Enter)) {
-        navigate(ROUTE_FINISH, {
-          state: { ...flowState, fromNormalFlow: true },
-        });
-        return;
-      }
+
+      navigate(ROUTE_FINISH, {
+        state: { ...flowState, fromNormalFlow: true },
+      });
+      return;
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '登录失败，请重试');
     } finally {
@@ -83,7 +113,7 @@ export function Login() {
           type='secondary'
           style={{ textAlign: 'center', marginTop: -8 }}
         >
-          该应用申请访问您的基本信息
+          该应用申请访问您的基本信息（本次将通过邮箱验证完成登录）
         </Typography.Paragraph>
       )}
       {errorMsg && (
@@ -96,14 +126,15 @@ export function Login() {
       )}
       <Form layout='vertical' onFinish={onFinish} disabled={loading}>
         <Form.Item
-          label='学号'
-          name='studentId'
+          label='邮箱'
+          name='email'
           rules={[
-            { required: true, message: '学号不能为空' },
-            { min: 1, max: 128, message: '学号长度为1-128个字符' },
+            { required: true, message: '邮箱不能为空' },
+            { type: 'email', message: '请输入有效的邮箱地址' },
+            { min: 3, max: 128, message: '邮箱长度为3-128个字符' },
           ]}
         >
-          <Input placeholder='请输入学号' autoComplete='username' />
+          <Input placeholder='请输入邮箱' autoComplete='username' />
         </Form.Item>
 
         <Form.Item

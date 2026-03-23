@@ -1,5 +1,6 @@
-import { MFAType } from '@csisp/idl/idp';
-import { Length, IsEnum, IsOptional, IsString } from 'class-validator';
+import { Length, IsEnum, IsString } from 'class-validator';
+
+import { MFAType } from '../enums';
 
 export class MultifactorDto {
   @IsEnum(MFAType)
@@ -8,9 +9,4 @@ export class MultifactorDto {
   @IsString()
   @Length(1, 64)
   codeOrAssertion!: string;
-
-  @IsOptional()
-  @IsString()
-  @Length(0, 128)
-  phoneOrEmail?: string;
 }

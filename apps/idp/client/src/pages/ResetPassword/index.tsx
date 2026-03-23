@@ -1,4 +1,3 @@
-import { Next } from '@csisp/idl/idp';
 import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -6,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { authCall, hasError } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_LOGIN } from '@/routes/router';
+import { Next } from '@/types/enum';
 
 export function ResetPassword() {
   const [loading, setLoading] = useState(false);

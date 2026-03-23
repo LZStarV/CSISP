@@ -1,9 +1,3 @@
-import {
-  OIDCResponseType,
-  OIDCPKCEMethod,
-  OIDCGrantType,
-  OIDCScope,
-} from '@csisp/idl/idp';
 import { getIdpLogger } from '@infra/logger';
 import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 
@@ -87,52 +81,32 @@ export class RpcRequestPipe implements PipeTransform {
     if (has('response_type')) {
       const val = params.response_type;
       let rt: string | undefined;
-      if (typeof val === 'number') {
-        if (val === OIDCResponseType.Code) rt = 'code';
-      } else if (typeof val === 'string') {
+      if (typeof val === 'string') {
         rt = val.trim().toLowerCase();
+      } else if (typeof val === 'number') {
+        rt = 'code';
       }
-
       if (rt !== 'code') throw new BadRequestException('Invalid response_type');
       params.response_type = 'code';
-      params._idl = params._idl ?? {};
-      (params._idl as any).response_type_enum =
-        OIDCResponseType.Code as OIDCResponseType;
     }
     if (has('code_challenge_method')) {
       const val = params.code_challenge_method;
       let cm: string | undefined;
-      if (typeof val === 'number') {
-        if (val === OIDCPKCEMethod.S256) cm = 'S256';
-      } else if (typeof val === 'string') {
-        cm = val.trim();
-      }
-
+      if (typeof val === 'string') cm = val.trim();
+      else if (typeof val === 'number') cm = 'S256';
       if (cm !== 'S256') throw new BadRequestException('PKCE S256 required');
       params.code_challenge_method = 'S256';
-      params._idl = params._idl ?? {};
-      (params._idl as any).code_challenge_method_enum =
-        OIDCPKCEMethod.S256 as OIDCPKCEMethod;
     }
     // OIDC.token：grant_type/code_verifier/code
     if (has('grant_type')) {
       const val = params.grant_type;
       let gt: string | undefined;
-      if (typeof val === 'number') {
-        if (val === OIDCGrantType.AuthorizationCode) gt = 'authorization_code';
-        if (val === OIDCGrantType.RefreshToken) gt = 'refresh_token';
-      } else if (typeof val === 'string') {
-        gt = val.trim().toLowerCase();
-      }
-
+      if (typeof val === 'string') gt = val.trim().toLowerCase();
+      else if (typeof val === 'number')
+        gt = val === 1 ? 'refresh_token' : 'authorization_code';
       if (gt !== 'authorization_code' && gt !== 'refresh_token')
         throw new BadRequestException('Invalid grant_type');
       params.grant_type = gt;
-      params._idl = params._idl ?? {};
-      (params._idl as any).grant_type_enum =
-        gt === 'refresh_token'
-          ? (OIDCGrantType.RefreshToken as OIDCGrantType)
-          : (OIDCGrantType.AuthorizationCode as OIDCGrantType);
     }
     // OIDC.token 强制必填字段（按 grant_type 区分）
     if (params.grant_type === 'authorization_code') {
@@ -157,23 +131,14 @@ export class RpcRequestPipe implements PipeTransform {
       const val = params.scope;
       let tokens: string[] = [];
       if (Array.isArray(val)) {
-        tokens = val.map(v => {
-          if (typeof v === 'number') {
-            if (v === OIDCScope.Openid) return 'openid';
-            if (v === OIDCScope.Profile) return 'profile';
-            if (v === OIDCScope.Email) return 'email';
-          }
-          return String(v).toLowerCase().trim();
-        });
+        tokens = val.map(v => String(v).toLowerCase().trim());
       } else if (typeof val === 'string') {
         tokens = val
           .split(' ')
           .map(t => t.trim().toLowerCase())
           .filter(Boolean);
       } else if (typeof val === 'number') {
-        if (val === OIDCScope.Openid) tokens = ['openid'];
-        if (val === OIDCScope.Profile) tokens = ['profile'];
-        if (val === OIDCScope.Email) tokens = ['email'];
+        tokens = ['openid'];
       }
 
       const allowed = new Set(['openid', 'profile', 'email']);
@@ -182,19 +147,6 @@ export class RpcRequestPipe implements PipeTransform {
           throw new BadRequestException(`Invalid scope: ${t}`);
       }
       params.scope = tokens.join(' ');
-      params._idl = params._idl ?? {};
-      (params._idl as any).scopes_enum = tokens.map(t => {
-        switch (t) {
-          case 'openid':
-            return OIDCScope.Openid as OIDCScope;
-          case 'profile':
-            return OIDCScope.Profile as OIDCScope;
-          case 'email':
-            return OIDCScope.Email as OIDCScope;
-          default:
-            return OIDCScope.Openid as OIDCScope;
-        }
-      });
     }
     // Auth.multifactor：最小字段校验
     if (has('codeOrAssertion'))

@@ -1,7 +1,6 @@
 import crypto from 'crypto';
 
 import { config } from '@config';
-import { verifyToken } from '@csisp/auth/server';
 import {
   IAuthorizationRequest,
   IAuthorizationInitResult,
@@ -37,6 +36,7 @@ import { RedisPrefix } from '@idp-types/redis';
 import { getIdpLogger } from '@infra/logger';
 import { SupabaseDataAccess } from '@infra/supabase';
 import { Inject, Injectable, BadRequestException } from '@nestjs/common';
+import { verifyToken } from '@utils/jwt';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
 import { getApiBaseUrl } from '@utils/url';
 
@@ -78,10 +78,30 @@ const accessTokenExpiresIn = config.auth.accessTokenExpiresIn;
 const refreshTokenExpiresIn = config.auth.refreshTokenExpiresIn;
 
 type TokenRefreshRequest = {
-  grant_type: OIDCGrantType;
+  grant_type: OIDCGrantType | 'refresh_token';
   client_id: string;
   refresh_token: string;
 };
+
+type TokenAuthCodeRequestLike = {
+  grant_type: OIDCGrantType | 'authorization_code';
+  code: string;
+  redirect_uri: string;
+  client_id: string;
+  code_verifier: string;
+};
+
+type AuthorizationRequestLike =
+  | IAuthorizationRequest
+  | {
+      client_id: string;
+      redirect_uri: string;
+      response_type: OIDCResponseType | 'code';
+      scope: OIDCScope[] | string[] | string;
+      state: string;
+      code_challenge: string;
+      code_challenge_method: OIDCPKCEMethod | 'S256';
+    };
 
 interface AuthorizationRequestData {
   client_id: string;
@@ -182,7 +202,7 @@ export class OidcService {
    * - 在 Redis 记录授权态，返回 ok/state
    */
   async startAuthorization(
-    params: IAuthorizationRequest
+    params: AuthorizationRequestLike
   ): Promise<IAuthorizationInitResult> {
     const {
       client_id,
@@ -193,15 +213,22 @@ export class OidcService {
       code_challenge_method,
       scope,
     } = params;
-    if (
-      !client_id ||
-      !redirect_uri ||
-      response_type !== OIDCResponseType.Code ||
-      !state
-    ) {
+    const rt =
+      typeof response_type === 'number'
+        ? response_type
+        : response_type === 'code'
+          ? OIDCResponseType.Code
+          : undefined;
+    const pkceMethod =
+      typeof code_challenge_method === 'number'
+        ? code_challenge_method
+        : code_challenge_method === 'S256'
+          ? OIDCPKCEMethod.S256
+          : undefined;
+    if (!client_id || !redirect_uri || rt !== OIDCResponseType.Code || !state) {
       throw new BadRequestException('Invalid authorization request');
     }
-    if (!code_challenge || code_challenge_method !== OIDCPKCEMethod.S256) {
+    if (!code_challenge || pkceMethod !== OIDCPKCEMethod.S256) {
       throw new BadRequestException('PKCE S256 required');
     }
     type ClientPick = OidcClientStatusPick;
@@ -224,14 +251,14 @@ export class OidcService {
       throw new BadRequestException('redirect_uri not allowed');
     }
 
-    const scopeStr = OidcPolicyHelper.stringifyScopes(scope);
+    const scopeStr = OidcPolicyHelper.stringifyScopes(scope as any);
     const requestData = {
       client_id,
       redirect_uri,
-      response_type,
+      response_type: rt,
       state,
       code_challenge,
-      code_challenge_method,
+      code_challenge_method: pkceMethod,
       scope: scopeStr,
       ts: Date.now(),
     };
@@ -301,7 +328,7 @@ export class OidcService {
   }
 
   async exchangeToken(
-    params: ITokenRequest | TokenRefreshRequest
+    params: ITokenRequest | TokenRefreshRequest | TokenAuthCodeRequestLike
   ): Promise<ITokenResponse> {
     const client_id = 'client_id' in params ? params.client_id : '';
     const grant_type = 'grant_type' in params ? params.grant_type : undefined;
@@ -309,8 +336,9 @@ export class OidcService {
     if (!client_id || grant_type === undefined)
       throw new BadRequestException('Invalid token request');
     const isAuthCode = (
-      p: ITokenRequest | TokenRefreshRequest
-    ): p is ITokenRequest => (p as ITokenRequest).code_verifier !== undefined;
+      p: ITokenRequest | TokenRefreshRequest | TokenAuthCodeRequestLike
+    ): p is ITokenRequest | TokenAuthCodeRequestLike =>
+      (p as any).code_verifier !== undefined;
     if (isAuthCode(params)) {
       const { code_verifier, code, redirect_uri } = params;
       if (!code_verifier || !code || !redirect_uri)
@@ -350,9 +378,8 @@ export class OidcService {
       );
     }
     const isRefresh = (
-      p: ITokenRequest | TokenRefreshRequest
-    ): p is TokenRefreshRequest =>
-      (p as TokenRefreshRequest).refresh_token !== undefined;
+      p: ITokenRequest | TokenRefreshRequest | TokenAuthCodeRequestLike
+    ): p is TokenRefreshRequest => (p as any).refresh_token !== undefined;
     if (isRefresh(params)) {
       const { refresh_token } = params;
       if (!refresh_token)
