@@ -18,6 +18,7 @@
     "@nestjs/common": "catalog:node",
     "@nestjs/core": "catalog:node",
     "@nestjs/platform-express": "catalog:node",
+    "http-proxy-middleware": "^2.0.6",
     "reflect-metadata": "catalog:node",
     "rxjs": "catalog:node",
     "undici": "^6.19.8",

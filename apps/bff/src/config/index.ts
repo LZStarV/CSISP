@@ -11,7 +11,7 @@ export const config = {
     port: env.CSISP_BFF_PORT,
   },
   routes: {
-    basePrefix: '/api/bff',
+    basePrefix: '/api',
   },
   upstream: {
     backendIntegratedBaseUrl: normalizeBaseUrl(

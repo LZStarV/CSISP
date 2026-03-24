@@ -9,7 +9,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('api/bff');
+  app.setGlobalPrefix('api');
 
   const trusted = app.get(TrustedOriginsService, { strict: false } as any);
   app.enableCors({
