@@ -19,7 +19,7 @@ export default defineConfig(({ command }) => {
       server: {
         host: '127.0.0.1',
         port: Number(process.env.CSISP_IDP_CLIENT_PORT),
-        allowedHosts: ['csisp-idp-client.vercel.app'],
+        allowedHosts: ['idp-client.onrender.com'],
         proxy: {
           '/api/idp': {
             target: process.env.CSISP_IDP_URL,

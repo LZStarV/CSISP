@@ -1,3 +1,8 @@
 {
-  "recommendations": ["denoland.vscode-deno", "redhat.vscode-yaml"]
+  "recommendations": [
+    "editorconfig.editorconfig",
+    "dbaeumer.vscode-eslint",
+    "cduruk.thrift",
+    "vue.volar"
+  ]
 }

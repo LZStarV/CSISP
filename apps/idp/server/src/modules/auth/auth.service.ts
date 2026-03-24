@@ -194,7 +194,7 @@ export class AuthService {
    * 校验邮箱 OTP（Step-up 完成）
    */
   async verifyOtpStepUp(
-    dto: { token_hash: string; type: 'email' | 'magic_link' },
+    dto: { token: string },
     req: Request
   ): Promise<{ verified: true }> {
     const logger = getIdpBaseLogger().child({ module: 'auth' });
@@ -225,12 +225,11 @@ export class AuthService {
         'Step-up state mismatch'
       );
     }
-    const type =
-      dto.type === 'magic_link' ? ('magiclink' as const) : ('email' as const);
     try {
       await this.gotrue.verifyOtp({
-        token_hash: dto.token_hash,
-        type,
+        email: cur.email!,
+        token: dto.token,
+        type: 'email',
       });
       await store.setVerified(sid, 600);
       logger.info(

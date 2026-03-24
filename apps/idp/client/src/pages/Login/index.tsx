@@ -25,8 +25,8 @@ export function Login() {
 
   const ticket = searchParams.get('ticket');
   const state = searchParams.get('state');
-  const tokenHash = searchParams.get('token_hash');
-  const otpType = searchParams.get('type');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
 
   useEffect(() => {
     if (ticket) {
@@ -44,27 +44,25 @@ export function Login() {
     }
   }, [ticket]);
 
-  useEffect(() => {
-    if (tokenHash && otpType) {
-      (async () => {
-        try {
-          const res = await authCall<VerifyOtpResult>('verify-otp', {
-            token_hash: tokenHash,
-            type: otpType === 'magic_link' ? 'magic_link' : 'email',
-          });
-          if (hasError(res)) {
-            setErrorMsg(res.error.message || '验证失败或链接已过期');
-            return;
-          }
-          if (res.result?.verified) {
-            navigate(ROUTE_FINISH, { replace: true });
-          }
-        } catch {
-          setErrorMsg('验证失败或链接已过期');
-        }
-      })();
+  const handleVerifyOtp = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await authCall<VerifyOtpResult>('verify-otp', {
+        token: otpCode,
+      });
+      if (hasError(res)) {
+        throw new Error(res.error.message || '验证失败或验证码已过期');
+      }
+      if (res.result?.verified) {
+        navigate(ROUTE_FINISH, { replace: true });
+      }
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : '验证失败或验证码已过期');
+    } finally {
+      setLoading(false);
     }
-  }, [tokenHash, otpType, navigate]);
+  };
 
   const onFinish = async (values: { email: string; password: string }) => {
     setLoading(true);
@@ -90,6 +88,7 @@ export function Login() {
           throw new Error(sent.error.message || '发送验证邮件失败');
         }
         message.success('验证邮件已发送，请前往邮箱查收并完成验证');
+        setOtpSent(true);
         return;
       }
 
@@ -124,6 +123,28 @@ export function Login() {
           showIcon
           style={{ marginBottom: 16 }}
         />
+      )}
+      {otpSent && (
+        <Form layout='vertical' disabled={loading}>
+          <Form.Item label='邮箱验证码' required>
+            <Input
+              placeholder='请输入邮箱中的6位验证码'
+              value={otpCode}
+              onChange={e => setOtpCode(e.target.value)}
+              maxLength={16}
+            />
+          </Form.Item>
+          <Form.Item>
+            <Button
+              type='primary'
+              onClick={handleVerifyOtp}
+              block
+              loading={loading}
+            >
+              完成验证
+            </Button>
+          </Form.Item>
+        </Form>
       )}
       <Form layout='vertical' onFinish={onFinish} disabled={loading}>
         <Form.Item

@@ -36,13 +36,15 @@ export class GotrueService {
   }
 
   async verifyOtp(params: {
-    token_hash: string;
-    type: 'email' | 'magiclink';
+    email: string;
+    token: string;
+    type: 'email';
   }): Promise<void> {
     const { error } = await this.client.auth.verifyOtp({
-      token_hash: params.token_hash,
+      email: params.email,
+      token: params.token,
       type: params.type,
-    } as any);
+    });
     if (error) {
       throw error;
     }

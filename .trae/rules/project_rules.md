@@ -16,8 +16,6 @@ CSISP 项目规则（Trae）
 
 如果有任何问题，需要及时向用户提问。
 
-如果有修改接口的需求，则需要先前往 infra/idl 中修改对应 IDL 文件并重新 idl:gen 一次，然后再更新对应的服务端代码与前端代码。
-
 本项目使用 infisical 进行环境变量管理，所有环境变量均应从 infisical 中获取，不得直接在代码中硬编码。
 
 写数据库操作时，必须通过 supabase-js data-access 与/或 SECURITY DEFINER RPC 完成，不直接访问数据库连接或原生 SQL。
@@ -29,5 +27,5 @@ CSISP 项目规则（Trae）
 
 1. 开发流程 (SOP)
    - 在进行 Node.js 服务端开发、IDL 接口定义或执行逻辑重构时，**必须调用** `csisp-node-sop` Skill。
-   - 数据库由 Supabase 平台集中托管与变更管理；遵循 IDL-First (infra/idl) 原则。
+   - 数据库由 Supabase 平台集中托管与变更管理。
    - 强制使用路径别名 (@infra, @modules, @common, @idp-types, @utils)，禁止使用多层级相对路径。
