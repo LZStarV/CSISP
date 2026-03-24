@@ -4,46 +4,25 @@
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "scripts": {
-    "gen:ts": "tsx ./cli/index.ts gen --ts",
-    "idl:gen": "tsx ./cli/index.ts gen --ts && tsc -p tsconfig.esm.json && tsx ./scripts/build-esm-index.ts",
-    "idl:check": "tsx ./cli/index.ts check",
-    "idl:diff": "tsx ./cli/index.ts diff",
-    "build": "pnpm idl:gen"
+    "build": "tsx ./cli/index.ts gen"
   },
-  "bin": {},
   "files": [
-    "dist",
-    "src/v1"
+    "dist"
   ],
   "exports": {
-    ".": {
-      "import": "./dist/esm/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
     "./backoffice": {
-      "import": "./dist/esm/backoffice.js",
       "require": "./dist/backoffice.js",
       "types": "./dist/backoffice.d.ts"
     },
     "./backend": {
-      "import": "./dist/esm/backend.js",
       "require": "./dist/backend.js",
       "types": "./dist/backend.d.ts"
     },
     "./idp": {
-      "import": "./dist/esm/idp.js",
       "require": "./dist/idp.js",
       "types": "./dist/idp.d.ts"
-    },
-    "./ts/*": {
-      "import": "./dist/ts/*",
-      "types": "./dist/ts/*"
-    },
-    "./thrift/*": "./src/v1/*"
+    }
   },
   "typesVersions": {
     "*": {
@@ -55,9 +34,6 @@
       ],
       "idp": [
         "dist/idp"
-      ],
-      "ts/*": [
-        "dist/ts/*"
       ]
     }
   },

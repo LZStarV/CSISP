@@ -20,6 +20,7 @@ import { MFAType, RecoveryUnavailableReason } from '@/types/enum';
 
 export function ForgotInit() {
   const [studentId, setStudentId] = useState('');
+  const [email, setEmail] = useState('');
   const [methods, setMethods] = useState<
     Array<{
       type: MFAType;
@@ -52,11 +53,13 @@ export function ForgotInit() {
 
   const onSubmit = async () => {
     if (!studentId) return;
+    if (!email) return;
     setLoading(true);
     setErrorMsg(null);
     try {
       const res = await authCall<RecoveryInitResult>('forgot_init', {
         studentId,
+        email,
       });
       if (hasError(res))
         throw new Error(res.error.message || '获取可用方式失败');
@@ -101,6 +104,20 @@ export function ForgotInit() {
               placeholder='请输入学号'
               value={studentId}
               onChange={e => setStudentId(e.target.value)}
+            />
+          </Form.Item>
+          <Form.Item
+            label='邮箱'
+            name='email'
+            rules={[
+              { required: true, message: '邮箱不能为空' },
+              { type: 'email' as any, message: '邮箱格式不正确' },
+            ]}
+          >
+            <Input
+              placeholder='请输入邮箱'
+              value={email}
+              onChange={e => setEmail(e.target.value)}
             />
           </Form.Item>
           <Form.Item>

@@ -15,7 +15,7 @@ const logger = getCliLogger('gen');
 /**
  * 生成 TypeScript 类型代码
  * - 使用 @creditkarma/thrift-typescript
- * - 输出目录遵循脚本约定：.generated/ts/<module>/vN
+ * - 输出目录遵循脚本约定：.generated/ts/<module>
  * - 生成后自动创建聚合入口并执行 tsc 编译
  */
 export function genTS(root: string, cfg: Config) {
@@ -58,18 +58,21 @@ export function genAggregators(root: string, cfg: Config) {
     backoffice: resolve(genRoot, 'backoffice.ts'),
     backend: resolve(genRoot, 'backend.ts'),
     idp: resolve(genRoot, 'idp.ts'),
+    index: resolve(genRoot, 'index.ts'),
   };
-  writeFileSync(aggPaths.backoffice, '');
-  writeFileSync(aggPaths.backend, '');
-  writeFileSync(aggPaths.idp, '');
+  writeFileSync(aggPaths.backoffice, 'export {}\n');
+  writeFileSync(aggPaths.backend, 'export {}\n');
+  writeFileSync(aggPaths.idp, 'export {}\n');
+  writeFileSync(aggPaths.index, '');
   for (const m of cfg.modules) {
     const baseGenTs = resolve(root, m.tsOut);
-    if (!existsSync(baseGenTs)) continue;
+    const srcDir = resolve(root, m.source);
+    if (!existsSync(srcDir) || !existsSync(baseGenTs)) continue;
     const subdirs = readdirSync(baseGenTs, { withFileTypes: true })
       .filter(d => d.isDirectory())
       .map(d => d.name);
     for (const sub of subdirs) {
-      const line = `export * from './ts/${m.name}/${cfg.version}/${sub}';
+      const line = `export * from './${m.name}/${sub}';
 `;
       if (m.name === 'backoffice' && sub !== 'backoffice') {
         writeFileSync(aggPaths.backoffice, line, { flag: 'a' });
@@ -80,4 +83,13 @@ export function genAggregators(root: string, cfg: Config) {
       }
     }
   }
+  writeFileSync(
+    aggPaths.index,
+    `import * as backoffice from './backoffice';
+    import * as backend from './backend';
+    import * as idp from './idp';
+    export { backoffice, backend, idp };
+    `,
+    { flag: 'w' }
+  );
 }

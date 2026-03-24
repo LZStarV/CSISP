@@ -45,25 +45,15 @@ const oidcCall = function <T>(action: string, params?: unknown) {
   return call<T>(IDP_PREFIX, OIDC_SERVICE, action, params);
 };
 
-async function loginInternal(params: LoginInternalParams) {
-  return authCall<LoginInternalResult>('login', params);
-}
-async function sendOtp() {
-  return authCall<SendOtpResult>('send-otp', {});
-}
-async function verifyOtp(params: VerifyOtpParams) {
-  return authCall<VerifyOtpResult>('verify-otp', params);
-}
-async function createExchangeCode(params: CreateExchangeCodeParams) {
-  return authCall<CreateExchangeCodeResult>('createExchangeCode', params);
-}
-
 export {
   authCall,
   oidcCall,
   hasError,
-  loginInternal,
-  sendOtp,
-  verifyOtp,
-  createExchangeCode,
+  LoginInternalParams,
+  LoginInternalResult,
+  SendOtpResult,
+  VerifyOtpParams,
+  VerifyOtpResult,
+  CreateExchangeCodeParams,
+  CreateExchangeCodeResult,
 };

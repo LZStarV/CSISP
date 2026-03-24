@@ -1,10 +1,19 @@
+import crypto from 'crypto';
+
+import { AuthErrorCode, JsonRpcAuthException } from '@common/rpc/error-codes';
+import { config } from '@config';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import { RedisPrefix } from '@idp-types/redis';
-import { verifyPassword, hashPasswordScrypt } from '@infra/crypto/password';
+import { hashPasswordScrypt } from '@infra/crypto/password';
 import { getPublicKey } from '@infra/crypto/rsa';
 import { getIdpLogger } from '@infra/logger';
+import { getIdpBaseLogger } from '@infra/logger';
+import { ExchangeStore } from '@infra/redis/exchange.store';
+import { StepUpStore } from '@infra/redis/stepup.store';
 import { SupabaseDataAccess } from '@infra/supabase';
+import { GotrueService } from '@infra/supabase';
+import { OidcPolicyHelper } from '@modules/oidc/helpers/oidc.policy';
 import { Injectable, HttpException } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import {
@@ -14,9 +23,10 @@ import {
 } from '@utils/session.issuer';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
 import type { Response } from 'express';
+import type { Request } from 'express';
 
 import { EnterDto } from './dto/enter.dto';
-import { LoginDto } from './dto/login.dto';
+import { LoginInternalDto } from './dto/login-internal.dto';
 import { MultifactorDto } from './dto/multifactor.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import {
@@ -24,7 +34,6 @@ import {
   MFAType,
   IMethod,
   AuthNextStep,
-  LoginResult,
   RSATokenResult,
   ResetReason,
   RecoveryInitResult,
@@ -66,6 +75,7 @@ export class AuthService {
 
   constructor(
     private readonly sda: SupabaseDataAccess,
+    private readonly gotrue: GotrueService,
     @Inject(REDIS_KV) private readonly kv: RedisKV
   ) {
     this.sessionIssuer = new SessionIssuer(defaultSessionOptions, kv);
@@ -85,6 +95,271 @@ export class AuthService {
       { prefix: RedisPrefix.OidcCode, ttl: 600 },
       kv
     );
+  }
+
+  /**
+   * 邮箱+密码登录
+   */
+  async loginEmailPassword(
+    dto: LoginInternalDto,
+    res: Response
+  ): Promise<{ stepUp: 'PENDING_PASSWORD' }> {
+    const logger = getIdpBaseLogger().child({ module: 'auth' });
+    try {
+      await this.gotrue.signInWithPassword({
+        email: dto.email,
+        password: dto.password,
+      });
+      const sid = crypto.randomUUID();
+      const store = new StepUpStore(this.kv);
+      await store.setPendingPassword(sid, dto.email, 600);
+      res.cookie('idp_stepup', sid, {
+        httpOnly: true,
+        secure: config.runtime.isProduction,
+        sameSite: 'strict',
+        domain: config.session.cookieDomain,
+        path: '/',
+        maxAge: 600 * 1000,
+      });
+      logger.info(
+        { event: 'login', result: 'success', email: dto.email, sid },
+        'auth login success'
+      );
+      return { stepUp: 'PENDING_PASSWORD' };
+    } catch {
+      logger.warn(
+        { event: 'login', result: 'failed', email: dto.email },
+        'auth login failed'
+      );
+      throw new JsonRpcAuthException(
+        AuthErrorCode.UNAUTHORIZED,
+        'Invalid email or password'
+      );
+    }
+  }
+
+  /**
+   * 发送邮箱 OTP
+   */
+  async sendOtpStepUp(req: Request): Promise<{ ok: true }> {
+    const logger = getIdpBaseLogger().child({ module: 'auth' });
+    const sid = (req as any).cookies?.idp_stepup as string | undefined;
+    if (!sid) {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.UNAUTHORIZED,
+        'No step-up session'
+      );
+    }
+    const store = new StepUpStore(this.kv);
+    const cur = await store.getState(sid);
+    if (!cur) {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.UNAUTHORIZED,
+        'Step-up session not found'
+      );
+    }
+    if (cur.state === 'VERIFIED') {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.UNAUTHORIZED,
+        'Already verified'
+      );
+    }
+    if (cur.state !== 'PENDING_PASSWORD') {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.AUTH_STEP_UP_REQUIRED,
+        'Step-up state mismatch'
+      );
+    }
+    if (!cur.email) {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.UNAUTHORIZED,
+        'Email missing'
+      );
+    }
+    await store.setPendingEmailOtp(sid, 600);
+    await this.gotrue.signInWithOtp({ email: cur.email });
+    logger.info(
+      {
+        event: 'send_otp',
+        result: 'success',
+        email: cur.email,
+        sid,
+      },
+      'auth send otp success'
+    );
+    return { ok: true };
+  }
+
+  /**
+   * 校验邮箱 OTP（Step-up 完成）
+   */
+  async verifyOtpStepUp(
+    dto: { token_hash: string; type: 'email' | 'magic_link' },
+    req: Request
+  ): Promise<{ verified: true }> {
+    const logger = getIdpBaseLogger().child({ module: 'auth' });
+    const sid = (req as any).cookies?.idp_stepup as string | undefined;
+    if (!sid) {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.UNAUTHORIZED,
+        'No step-up session'
+      );
+    }
+    const store = new StepUpStore(this.kv);
+    const cur = await store.getState(sid);
+    if (!cur) {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.UNAUTHORIZED,
+        'Step-up session not found'
+      );
+    }
+    if (cur.state === 'VERIFIED') {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.UNAUTHORIZED,
+        'Already verified'
+      );
+    }
+    if (cur.state !== 'PENDING_EMAIL_OTP') {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.AUTH_STEP_UP_REQUIRED,
+        'Step-up state mismatch'
+      );
+    }
+    const type =
+      dto.type === 'magic_link' ? ('magiclink' as const) : ('email' as const);
+    try {
+      await this.gotrue.verifyOtp({
+        token_hash: dto.token_hash,
+        type,
+      });
+      await store.setVerified(sid, 600);
+      logger.info(
+        {
+          event: 'verify_otp',
+          result: 'success',
+          email: cur.email,
+          sid,
+        },
+        'auth verify otp success'
+      );
+      return { verified: true };
+    } catch {
+      logger.warn(
+        {
+          event: 'verify_otp',
+          result: 'failed',
+          email: cur?.email,
+          sid,
+          err: { code: 'OTP_INVALID_OR_EXPIRED' },
+        },
+        'auth verify otp failed'
+      );
+      throw new JsonRpcAuthException(
+        AuthErrorCode.OTP_INVALID_OR_EXPIRED,
+        'OTP invalid or expired'
+      );
+    }
+  }
+
+  /**
+   * 创建一次性 exchange_code
+   */
+  async createExchangeCode(
+    dto: { app_id: string; redirect_uri: string; state?: string },
+    req: Request
+  ): Promise<{ code: string; redirect_uri: string; state?: string }> {
+    const logger = getIdpBaseLogger().child({ module: 'auth' });
+    const sid = (req as any).cookies?.idp_stepup as string | undefined;
+    if (!sid) {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.AUTH_STEP_UP_REQUIRED,
+        'No step-up session'
+      );
+    }
+    const step = new StepUpStore(this.kv);
+    const cur = await step.getState(sid);
+    if (!cur || cur.state !== 'VERIFIED') {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.AUTH_STEP_UP_REQUIRED,
+        'Step-up not verified'
+      );
+    }
+    const quotaKey = `xchg:quota:${sid}`;
+    const n = await this.kv.incr(quotaKey);
+    if (n === 1) {
+      await this.kv.expire(quotaKey, 30);
+    }
+    if (n > 1) {
+      logger.warn(
+        {
+          event: 'create_exchange_code',
+          result: 'failed',
+          email: cur.email,
+          sid,
+          app_id: dto.app_id,
+          redirect_uri: dto.redirect_uri,
+          err: { code: 'RATE_LIMITED' },
+        },
+        'auth create exchange code rate limited'
+      );
+      throw new JsonRpcAuthException(
+        AuthErrorCode.RATE_LIMITED,
+        'Too many requests'
+      );
+    }
+    const { data: client } = await this.sda
+      .service()
+      .from('oidc_clients')
+      .select('allowed_redirect_uris,status')
+      .eq('client_id', dto.app_id)
+      .maybeSingle<{
+        allowed_redirect_uris: string[] | string | null;
+        status: string;
+      }>();
+    const active = client && client.status === 'active';
+    const allowed =
+      active &&
+      OidcPolicyHelper.isRedirectUriAllowed(
+        dto.redirect_uri,
+        client!.allowed_redirect_uris
+      );
+    if (!allowed) {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.EXCHANGE_CODE_INVALID,
+        'redirect_uri not allowed'
+      );
+    }
+    const code = crypto.randomBytes(32).toString('base64url');
+    const ua = req.headers['user-agent'];
+    const ip = (req as any).ip as string | undefined;
+    const store = new ExchangeStore(this.kv);
+    await store.issue(
+      code,
+      {
+        sid,
+        email: cur.email ?? null,
+        app_id: dto.app_id,
+        redirect_uri: dto.redirect_uri,
+        ua: typeof ua === 'string' ? ua : undefined,
+        ip,
+      },
+      60
+    );
+    try {
+      await step.clear(sid);
+    } catch {}
+    logger.info(
+      {
+        event: 'create_exchange_code',
+        result: 'success',
+        email: cur.email,
+        sid,
+        app_id: dto.app_id,
+        redirect_uri: dto.redirect_uri,
+      },
+      'auth create exchange code success'
+    );
+    return { code, redirect_uri: dto.redirect_uri, state: dto.state };
   }
 
   /**
@@ -138,98 +413,6 @@ export class AuthService {
       token: `rsat-${Date.now()}`,
     };
   }
-
-  /**
-   * 账号密码登录
-   * - 校验用户是否首次登录（非 scrypt$ 前缀需重置密码）
-   * - 校验密码通过后生成短期会话并返回多因子列表
-   */
-  async login(params: LoginDto, res?: Response): Promise<LoginResult> {
-    const logger = getIdpLogger('auth-login');
-    // 查询用户（按学号）
-    type UserPick = {
-      id: number;
-      username: string | null;
-      student_id: string | null;
-      phone: string | null;
-      password: string | null;
-    };
-    const { data: user, error: userErr } = await this.sda
-      .service()
-      .from('user')
-      .select('id,username,student_id,phone,password')
-      .eq('student_id', params.studentId)
-      .maybeSingle<UserPick>();
-    logger.info(
-      {
-        studentId: params.studentId,
-        found: !!user,
-        userId: user?.id,
-        fetchError: userErr
-          ? String(userErr.message ?? userErr.code ?? 'err')
-          : undefined,
-      },
-      'login user fetched'
-    );
-    if (userErr) {
-      throw new HttpException('Invalid username or password', 401);
-    }
-    if (!user) {
-      throw new HttpException('Invalid username or password', 401);
-    }
-
-    // 首次登录分流：非 scrypt$ 前缀视为首次登录，要求重置密码
-    const pwd: string = user.password ?? '';
-    const isFirstLogin = !pwd.startsWith('scrypt$');
-    logger.info(
-      { userId: user.id, isFirstLogin, pwdPref: pwd.slice(0, 6) },
-      'login first-login check'
-    );
-    if (isFirstLogin) {
-      return {
-        nextSteps: [AuthNextStep.ResetPassword],
-        multifactor: [],
-      };
-    }
-
-    // 密码校验：仅支持 scrypt$ 前缀的密码（未来可能支持 RSA 公钥加密后的密码）
-    const ok = await verifyPassword(pwd, params.password);
-    if (!ok) {
-      logger.warn(
-        { userId: user.id, reason: 'password_mismatch' },
-        'login failed'
-      );
-    } else {
-      logger.info({ userId: user.id }, 'password verified');
-    }
-    if (!ok) throw new HttpException('Invalid username or password', 401);
-
-    // 构建多因子列表（根据 mfa_settings 动态启用）
-    const { mfa, requiresMfa } = await this.getMfaMethods(user);
-
-    // 在 login 阶段建立会话：需要多因子则短期，否则直接长期
-    if (res) {
-      await this.sessionIssuer.issue(
-        res,
-        user.id,
-        requiresMfa ? SessionMode.Short : SessionMode.Long
-      );
-    }
-
-    if (!requiresMfa) {
-      return {
-        nextSteps: [AuthNextStep.Enter],
-        multifactor: mfa,
-      };
-    }
-
-    // 返回进入多因子校验的指令
-    return {
-      nextSteps: [AuthNextStep.Multifactor],
-      multifactor: mfa,
-    };
-  }
-
   /**
    * 多因子认证（短信最小闭环）
    * - codeOrAssertion 非 6 位数字视为请求验证码
@@ -260,8 +443,8 @@ export class AuthService {
   }
 
   // 忘记密码：初始化
-  async forgotInit(params: { studentId: string }): Promise<RecoveryInitResult> {
-    const stu = String(params.studentId ?? '');
+  async forgotInit(params: { email: string }): Promise<RecoveryInitResult> {
+    const email = String(params.email ?? '').trim();
     type UserPick = {
       id: number;
       username: string | null;
@@ -273,12 +456,12 @@ export class AuthService {
       .service()
       .from('user')
       .select('id,username,student_id,phone,email')
-      .eq('student_id', stu)
+      .eq('email', email)
       .maybeSingle<UserPick>();
     const methods: RecoveryMethod[] = [];
     if (!user) {
       return {
-        student_id: stu,
+        student_id: '',
         methods: [],
       };
     }
@@ -330,7 +513,7 @@ export class AuthService {
       reason: RecoveryUnavailableReason.NotImplemented,
     });
     return {
-      student_id: (user.student_id ?? stu) as string,
+      student_id: user.student_id ?? '',
       name: user.username ?? undefined,
       methods,
     };

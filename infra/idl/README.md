@@ -1,43 +1,32 @@
-# CSISP Thrift IDL（v1）
+# CSISP Thrift IDL
 
 ## 目标
 
 - 以 Thrift IDL 作为统一的接口契约与类型来源
 - 面向工作区子包消费，生成 Types（TS）与 Node 运行时（JS）产物
-- 版本化目录（当前 v1）；如有破坏性变更，新建 v2 并保留 v1 并行
+- 不使用版本化目录，源以模块维度组织，破坏性变更通过包语义化版本管理
 
 ## 目录结构
 
-- 源文件：`src/<module>/v1/*.thrift`
+- 源文件：`src/<module>/*.thrift`
   - backoffice：`auth.thrift`、`user.thrift`、`db.thrift`、`logs.thrift`、`i18n.thrift`、`common.thrift`
   - backend：课程/作业等领域 IDL
   - idp：IDP 领域 IDL
 - CLI：`cli/*.ts`（统一入口，使用 tsx 执行）
 - 脚本：
-  - ESM 聚合导出：`scripts/build-esm-index.ts`
-    - 自动扫描 `src/<module>/<version>` 目录下的 `.thrift` 文件名作为模块名
-    - 生成聚合入口 `dist/esm/<module>.js`，每个模块生成一行：
-      - `export * from './ts/<module>/<version>/<filename>/index.js';`
-    - 这样可保证 `package.json` 中的 `exports.import` 指向真实的 ESM 聚合文件：
-      - `@csisp/idl/idp` → `dist/esm/idp.js`
-      - `@csisp/idl/backend` → `dist/esm/backend.js`
-      - `@csisp/idl/backoffice` → `dist/esm/backoffice.js`
-    - 类型聚合保持不变：`exports.types` 指向 `dist/<module>.d.ts`
+  - （已精简）不再生成 ESM 聚合入口
 - 产物目录（不写入 src）：
-  - TypeScript 源（中间产物）：`.generated/ts/<module>/v1/**`
-  - TypeScript 编译产物（最终）：`dist/ts/<module>/v1/**`
-  - Node 运行时产物（最终）：`dist/js/<module>/v1/**`
+  - TypeScript 源（中间产物）：`.generated/ts/<module>/**`
+  - CommonJS 编译产物：`dist/ts/<module>/**`
+  - 聚合入口（CommonJS）：`dist/<module>.js` 与类型声明 `dist/<module>.d.ts`
 
 ## 构建与生成
 
 - CLI 用法（统一入口）：
-  - 一次生成（TS + JS）：`pnpm -F @csisp/idl idl:gen`
+  - 一次生成（TS + CommonJS）：`pnpm -F @csisp/idl idl:gen`
   - 仅 TS 生成：`pnpm -F @csisp/idl gen:ts`
-  - 仅 JS 生成：`pnpm -F @csisp/idl gen:js`
-  - 兼容性检查（提示不阻断）：`pnpm -F @csisp/idl idl:check`
-  - 版本对比（vN→vN+1）：`pnpm -F @csisp/idl idl:diff`
   - 环境诊断：`pnpm -F @csisp/idl idl doctor`
-  - 环境变量（可选）：`IDL_VERSION`（默认 v1）、`IDL_SOURCE_DIR`（单模块源）
+  - 环境变量（可选）：`IDL_SOURCE_DIR`（单模块源）
   - 模块扫描约定：默认扫描 `backoffice`、`backend`、`idp`
   - 日志：开发环境启用彩色单行输出（pino-pretty），生产环境输出 JSON 结构化日志
 
@@ -45,7 +34,7 @@
 
 - 安装与依赖（工作区内已声明依赖）：
   - backoffice `package.json`：`"@csisp/idl": "workspace:*"`
-- 类型导入（cmj 与 esm 都支持）：
+- 类型导入（CommonJS/TypeScript）：
   - `import type { IUser, QueryTableResponse } from '@csisp/idl/backoffice'`
 - 示例（服务端处理器返回结构对齐）：
   - 用户详情：
@@ -63,12 +52,12 @@
   - 新增字段建议为 `optional`，避免破坏性变更
 - 别名与导出：
   - 包 `exports` 提供聚合入口路径（如 `@csisp/idl/backoffice`）用于类型导入
-  - JS 运行时通过 `@csisp/idl/js/<module>/v1/*` 引入
+  - JS 运行时通过 `@csisp/idl/ts/<module>/*` 引入
 
 ## 演进与版本化
 
-- 新增领域：在相应 `src/<module>/v1` 下增加 `.thrift`
-- 破坏性变更：复制到 `v2` 并平滑迁移上下游引用
+- 新增领域：在相应 `src/<module>` 下增加 `.thrift`
+- 破坏性变更：通过包语义化版本发布（例如 0.2.0/0.3.0），并在变更说明中同步影响
 - CLI 将自动扫描固定模块 `backoffice`、`backend`、`idp`
 
 ## 常见问题

@@ -53,9 +53,6 @@ catalogs:
     '@ant-design/icons':
       specifier: ^5.5.1
       version: 5.6.1
-    '@hookform/resolvers':
-      specifier: ^3.10.0
-      version: 3.10.0
     '@vicons/ionicons5':
       specifier: ^0.13.0
       version: 0.13.0
@@ -74,9 +71,6 @@ catalogs:
     echarts:
       specifier: ^5.5.0
       version: 5.6.0
-    lucide-react:
-      specifier: ^0.563.0
-      version: 0.563.0
     naive-ui:
       specifier: ^2.38.1
       version: 2.43.2
@@ -89,9 +83,6 @@ catalogs:
     react-dom:
       specifier: ^18.2.0
       version: 18.3.1
-    react-hook-form:
-      specifier: ^7.56.3
-      version: 7.71.1
     react-router-dom:
       specifier: ^7.13.0
       version: 7.13.0
@@ -110,9 +101,6 @@ catalogs:
     vue-router:
       specifier: ^4.3.0
       version: 4.6.4
-    zod:
-      specifier: ^3.25.76
-      version: 3.25.76
   node:
     '@nestjs/cli':
       specifier: ^10.4.9
@@ -450,39 +438,21 @@ importers:
       '@csisp/auth':
         specifier: workspace:*
         version: link:../../../packages/auth
-      '@csisp/idl':
-        specifier: workspace:*
-        version: link:../../../infra/idl
       '@csisp/rpc':
         specifier: workspace:*
         version: link:../../../packages/rpc
-      '@csisp/utils':
-        specifier: workspace:*
-        version: link:../../../packages/utils
-      '@hookform/resolvers':
-        specifier: catalog:frontend
-        version: 3.10.0(react-hook-form@7.71.1(react@18.3.1))
       antd:
         specifier: catalog:frontend
         version: 5.29.3(date-fns@4.1.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      lucide-react:
-        specifier: catalog:frontend
-        version: 0.563.0(react@18.3.1)
       react:
         specifier: catalog:frontend
         version: 18.3.1
       react-dom:
         specifier: catalog:frontend
         version: 18.3.1(react@18.3.1)
-      react-hook-form:
-        specifier: catalog:frontend
-        version: 7.71.1(react@18.3.1)
       react-router-dom:
         specifier: catalog:frontend
         version: 7.13.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      zod:
-        specifier: catalog:frontend
-        version: 3.25.76
     devDependencies:
       '@types/react':
         specifier: catalog:dev
@@ -1400,11 +1370,6 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@hookform/resolvers@3.10.0':
-    resolution: {integrity: sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag==}
-    peerDependencies:
-      react-hook-form: ^7.0.0
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -4349,11 +4314,6 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@0.563.0:
-    resolution: {integrity: sha512-8dXPB2GI4dI8jV4MgUDGBeLdGk8ekfqVZ0BdLcrRzocGgG75ltNEmWS+gE7uokKF/0oSUuczNDT+g9hFJ23FkA==}
-    peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -5184,12 +5144,6 @@ packages:
     resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
     peerDependencies:
       react: ^18.3.1
-
-  react-hook-form@7.71.1:
-    resolution: {integrity: sha512-9SUJKCGKo8HUSsCO+y0CtqkqI5nNuaDqTxyqPsZPqIwudpj4rCrAz/jZV+jn57bx5gtZKOh3neQu94DXMc+w5w==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      react: ^16.8.0 || ^17 || ^18 || ^19
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
@@ -6907,10 +6861,6 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
-
-  '@hookform/resolvers@3.10.0(react-hook-form@7.71.1(react@18.3.1))':
-    dependencies:
-      react-hook-form: 7.71.1(react@18.3.1)
 
   '@humanfs/core@0.19.1': {}
 
@@ -10270,10 +10220,6 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@0.563.0(react@18.3.1):
-    dependencies:
-      react: 18.3.1
-
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -11193,10 +11139,6 @@ snapshots:
       loose-envify: 1.4.0
       react: 18.3.1
       scheduler: 0.23.2
-
-  react-hook-form@7.71.1(react@18.3.1):
-    dependencies:
-      react: 18.3.1
 
   react-is@18.3.1: {}
 

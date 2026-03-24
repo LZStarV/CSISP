@@ -5,9 +5,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   oidcCall,
   hasError,
-  loginInternal,
-  sendOtp,
-  verifyOtp,
+  authCall,
+  VerifyOtpResult,
+  LoginInternalResult,
+  SendOtpResult,
 } from '@/api/rpc';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
@@ -47,7 +48,7 @@ export function Login() {
     if (tokenHash && otpType) {
       (async () => {
         try {
-          const res = await verifyOtp({
+          const res = await authCall<VerifyOtpResult>('verify-otp', {
             token_hash: tokenHash,
             type: otpType === 'magic_link' ? 'magic_link' : 'email',
           });
@@ -69,7 +70,7 @@ export function Login() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await loginInternal({
+      const res = await authCall<LoginInternalResult>('login', {
         email: values.email,
         password: values.password,
       });
@@ -84,7 +85,7 @@ export function Login() {
       };
 
       if (stepUp === 'PENDING_PASSWORD') {
-        const sent = await sendOtp();
+        const sent = await authCall<SendOtpResult>('send-otp', {});
         if (hasError(sent)) {
           throw new Error(sent.error.message || '发送验证邮件失败');
         }

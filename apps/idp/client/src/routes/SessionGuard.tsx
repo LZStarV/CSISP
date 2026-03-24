@@ -2,7 +2,7 @@ import { message } from 'antd';
 import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall, hasError, verifyOtp } from '@/api/rpc';
+import { authCall, hasError, VerifyOtpResult } from '@/api/rpc';
 import { ROUTE_LOGIN, ROUTE_FINISH } from '@/routes/router';
 import type { SessionResult } from '@/types/enum';
 
@@ -18,7 +18,7 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     if (tokenHash && type) {
       (async () => {
         try {
-          const res = await verifyOtp({
+          const res = await authCall<VerifyOtpResult>('verify-otp', {
             token_hash: tokenHash,
             type: type === 'magic_link' ? 'magic_link' : 'email',
           });

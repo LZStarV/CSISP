@@ -3,7 +3,12 @@ import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall, oidcCall, hasError, createExchangeCode } from '@/api/rpc';
+import {
+  authCall,
+  oidcCall,
+  hasError,
+  CreateExchangeCodeResult,
+} from '@/api/rpc';
 import { CLIENT_LOGIN_ENDPOINTS } from '@/config';
 import type { SessionResult, Next, ClientInfo } from '@/types/enum';
 
@@ -99,11 +104,14 @@ export function Finish() {
     setErrorMsg(null);
     try {
       const state = generateRandomString(16);
-      const res = await createExchangeCode({
-        app_id: String(item.client_id),
-        redirect_uri: item.default_redirect_uri as string,
-        state,
-      });
+      const res = await authCall<CreateExchangeCodeResult>(
+        'createExchangeCode',
+        {
+          app_id: String(item.client_id),
+          redirect_uri: item.default_redirect_uri as string,
+          state,
+        }
+      );
       if (hasError(res)) throw new Error(res.error.message || '创建会话失败');
       const code = res.result?.code;
       const uri = res.result?.redirect_uri;
