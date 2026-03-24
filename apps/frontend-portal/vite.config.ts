@@ -15,17 +15,13 @@ export default defineConfig(({ command }) => {
     },
   };
   if (command === 'serve') {
-    const bffUrl = process.env.CSISP_BFF_URL;
-    if (!bffUrl) {
-      throw new Error('Missing environment variable: CSISP_BFF_URL');
-    }
     return {
       ...common,
       server: {
         port: 5273,
         proxy: {
           '/api': {
-            target: bffUrl,
+            target: 'http://127.0.0.1:4000',
             changeOrigin: true,
           },
         },

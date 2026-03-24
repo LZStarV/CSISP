@@ -7,12 +7,6 @@ export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     isDev: (process.env.NODE_ENV || 'development') === 'development',
   },
-  http: {
-    port: env.CSISP_BFF_PORT,
-  },
-  routes: {
-    basePrefix: '/api',
-  },
   upstream: {
     backendIntegratedBaseUrl: normalizeBaseUrl(
       env.CSISP_BACKEND_INTEGRATED_URL

@@ -1,7 +1,11 @@
+import type { ClientRequest } from 'http';
+
+import type { Request } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
 export type PathPredicate = (pathname: string) => boolean;
 
+// JSON 代理中间件选项
 export interface JsonProxyOptions {
   target: string;
   stripPrefix: string;
@@ -18,14 +22,11 @@ export function buildJsonProxy(options: JsonProxyOptions) {
     changeOrigin: true,
     xfwd: true,
     pathRewrite: rewrite,
-    onProxyReq: (proxyReq: any, req: any) => {
-      const body: any = (req as any).body;
-      if (body && typeof body === 'object') {
-        const data = JSON.stringify(body);
-        proxyReq.setHeader('Content-Type', 'application/json');
-        proxyReq.setHeader('Content-Length', Buffer.byteLength(data));
-        proxyReq.write(data);
-      }
+    onProxyReq: (proxyReq: ClientRequest, req: Request) => {
+      const data = JSON.stringify(req.body);
+      proxyReq.setHeader('Content-Type', 'application/json');
+      proxyReq.setHeader('Content-Length', Buffer.byteLength(data));
+      proxyReq.write(data);
     },
   };
   return predicate

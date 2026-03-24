@@ -1,13 +1,7 @@
-import {
-  envIntString,
-  envOptionalString,
-  envString,
-  parseEnv,
-} from '@csisp/config';
+import { envOptionalString, envString, parseEnv } from '@csisp/config';
 import { z } from 'zod';
 
 export const backendIntegratedEnvSchema = z.object({
-  CSISP_BACKEND_INTEGRATED_PORT: envIntString(),
   DATABASE_URL: envString(),
   SUPABASE_URL: envString(),
   SUPABASE_SERVICE_ROLE_KEY: envString(),

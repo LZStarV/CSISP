@@ -19,9 +19,6 @@ const allowedOrigins = [...baseOrigins, ...extraOrigins].map(x =>
 );
 
 export const config = {
-  http: {
-    port: env.CSISP_BACKEND_INTEGRATED_PORT,
-  },
   db: {
     url: env.DATABASE_URL,
   },

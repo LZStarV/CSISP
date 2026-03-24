@@ -74,8 +74,8 @@ type UserInfoPick = {
 };
 
 const logger = getIdpLogger('oidc-service');
-const accessTokenExpiresIn = config.auth.accessTokenExpiresIn;
-const refreshTokenExpiresIn = config.auth.refreshTokenExpiresIn;
+const accessTokenExpiresIn = '1h';
+const refreshTokenExpiresIn = '7d';
 
 type TokenRefreshRequest = {
   grant_type: OIDCGrantType | 'refresh_token';

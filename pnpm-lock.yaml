@@ -340,6 +340,9 @@ importers:
       '@nestjs/cli':
         specifier: catalog:node
         version: 10.4.9
+      '@types/express':
+        specifier: catalog:dev
+        version: 4.17.25
       '@types/node':
         specifier: catalog:dev
         version: 18.19.130

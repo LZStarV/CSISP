@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@nestjs/cli": "catalog:node",
-    "@types/node": "catalog:dev"
+    "@types/node": "catalog:dev",
+    "@types/express": "catalog:dev"
   }
 }

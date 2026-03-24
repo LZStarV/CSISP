@@ -4,7 +4,6 @@ import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import { RpcExceptionFilter } from './common/rpc/rpc-exception.filter';
-import { config } from './config';
 import { corsOptions } from './config/cors.config';
 
 async function bootstrap() {
@@ -18,7 +17,7 @@ async function bootstrap() {
   app.useGlobalFilters(new RpcExceptionFilter());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  await app.listen(config.http.port);
+  await app.listen(3100);
 }
 
 void bootstrap();

@@ -34,7 +34,7 @@ export class IdpClient {
 
   constructor() {
     const serverUrl = authConfig.idp.serverUrl;
-    const thriftPrefix = authConfig.idp.thriftPrefix || '/thrift/idp';
+    const thriftPrefix = '/thrift/idp';
     if (!serverUrl) {
       throw new Error('Missing IDP_SERVER_URL for IdpClient');
     }

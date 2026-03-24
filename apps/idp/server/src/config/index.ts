@@ -9,9 +9,6 @@ export const config = {
     nodeEnv: env.NODE_ENV,
     isProduction: env.NODE_ENV === 'production',
   },
-  http: {
-    port: env.CSISP_IDP_PORT,
-  },
   issuer: {
     baseUrl: normalizeBaseUrl(env.CSISP_IDP_RPC_URL),
   },
@@ -23,8 +20,6 @@ export const config = {
   auth: {
     jwtSecret: env.JWT_SECRET,
     oidcKekSecret: env.OIDC_KEK_SECRET,
-    accessTokenExpiresIn: env.IDP_ACCESS_TOKEN_EXPIRES_IN || '1h',
-    refreshTokenExpiresIn: env.IDP_REFRESH_TOKEN_EXPIRES_IN || '7d',
   },
   session: {
     cookieDomain:

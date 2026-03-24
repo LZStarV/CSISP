@@ -1,9 +1,8 @@
-import { envOptionalString, envString, parseEnv } from '@csisp/config';
+import { envString, parseEnv } from '@csisp/config';
 import { z } from 'zod';
 
 export const authEnvSchema = z.object({
   IDP_SERVER_URL: envString(),
-  IDP_THRIFT_PREFIX: envOptionalString(),
   JWT_SECRET: envString(),
 });
 

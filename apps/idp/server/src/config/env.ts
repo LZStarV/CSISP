@@ -1,5 +1,4 @@
 import {
-  envIntString,
   envOptionalString,
   envString,
   envUrlString,
@@ -9,7 +8,6 @@ import { z } from 'zod';
 
 export const idpServerEnvSchema = z.object({
   NODE_ENV: envOptionalString(),
-  CSISP_IDP_PORT: envIntString(),
   CSISP_IDP_RPC_URL: envUrlString(),
   JWT_SECRET: envString(),
   OIDC_KEK_SECRET: envString(),
@@ -17,8 +15,6 @@ export const idpServerEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: envString(),
   SUPABASE_ANON_KEY: envString(),
   IDP_COOKIE_DOMAIN: envOptionalString(),
-  IDP_ACCESS_TOKEN_EXPIRES_IN: envOptionalString(),
-  IDP_REFRESH_TOKEN_EXPIRES_IN: envOptionalString(),
   SMS_SIGN_NAME: envOptionalString(),
   SMS_TEMPLATE_CODE: envOptionalString(),
   SMS_SCHEME_NAME: envOptionalString(),
