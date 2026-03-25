@@ -120,44 +120,15 @@ export class AuthService {
     if (!normalized) return false;
     const studentId = await this.kv.get(`reg:student:${normalized}`);
     if (!studentId) return false;
-    type UserPick = {
-      id: number;
-      email: string | null;
-      student_id: string | null;
-    };
-    // 先按 email 查询
-    const { data: byEmail } = await this.sda
-      .service()
-      .from('user')
-      .select('id,email,student_id')
-      .eq('email', normalized)
-      .maybeSingle<UserPick>();
-    if (byEmail?.id) {
-      const { error } = await this.sda
-        .service()
-        .from('user')
-        .update({ student_id: String(studentId) })
-        .eq('id', byEmail.id);
-      if (error) throw new HttpException('Finalize failed', 500);
-      try {
-        await this.kv.del(`reg:student:${normalized}`);
-      } catch {}
-      return true;
-    }
+    type UserPick = { id: number; student_id: string | null };
     // 再按 student_id 查询
     const { data: bySid } = await this.sda
       .service()
       .from('user')
-      .select('id,email,student_id')
+      .select('id,student_id')
       .eq('student_id', String(studentId))
       .maybeSingle<UserPick>();
     if (bySid?.id) {
-      const { error } = await this.sda
-        .service()
-        .from('user')
-        .update({ email: normalized })
-        .eq('id', bySid.id);
-      if (error) throw new HttpException('Finalize failed', 500);
       try {
         await this.kv.del(`reg:student:${normalized}`);
       } catch {}
@@ -168,7 +139,7 @@ export class AuthService {
       const { error } = await this.sda
         .service()
         .from('user')
-        .insert({ email: normalized, student_id: String(studentId) });
+        .insert({ student_id: String(studentId) });
       if (error) throw new HttpException('Finalize failed', 500);
       try {
         await this.kv.del(`reg:student:${normalized}`);
