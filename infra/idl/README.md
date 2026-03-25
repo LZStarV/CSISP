@@ -30,7 +30,7 @@
   - 模块扫描约定：默认扫描 `backoffice`、`backend`、`idp`
   - 日志：开发环境启用彩色单行输出（pino-pretty），生产环境输出 JSON 结构化日志
 
-## 在应用中使用（apps/backoffice）
+## 在应用中使用（apps）
 
 - 安装与依赖（工作区内已声明依赖）：
   - backoffice `package.json`：`"@csisp/idl": "workspace:*"`

@@ -8,8 +8,8 @@ services:
     rootDir: .
     buildCommand: >
       pnpm i --frozen-lockfile &&
-      turbo run build --filter=@csisp/backend-integrated
-    startCommand: pnpm -F @csisp/backend-integrated start
+      turbo run build --filter=@csisp/integrated-server
+    startCommand: pnpm -F @csisp/integrated-server start
     envVars:
       - fromGroup: csisp-env-prod
 
@@ -44,15 +44,15 @@ services:
     rootDir: .
     buildCommand: >
       pnpm i --frozen-lockfile &&
-      turbo run build --filter=@csisp/frontend-admin
-    staticPublishPath: apps/frontend-admin/dist
+      turbo run build --filter=@csisp/admin
+    staticPublishPath: apps/frontend/admin/dist
     envVars:
       - fromGroup: csisp-env-prod
     previews:
       generation: off
     buildFilter:
       paths:
-        - apps/frontend-admin/**
+        - apps/frontend/admin/**
     routes:
       - type: rewrite
         source: /api/*
@@ -64,15 +64,15 @@ services:
     rootDir: .
     buildCommand: >
       pnpm i --frozen-lockfile &&
-      turbo run build --filter=@csisp/frontend-portal
-    staticPublishPath: apps/frontend-portal/dist
+      turbo run build --filter=@csisp/portal
+    staticPublishPath: apps/frontend/portal/dist
     envVars:
       - fromGroup: csisp-env-prod
     previews:
       generation: off
     buildFilter:
       paths:
-        - apps/frontend-portal/**
+        - apps/frontend/portal/**
     routes:
       - type: rewrite
         source: /api/*
@@ -85,14 +85,14 @@ services:
     buildCommand: >
       pnpm i --frozen-lockfile &&
       turbo run build --filter=@csisp/idp-client
-    staticPublishPath: apps/idp/client/dist
+    staticPublishPath: apps/frontend/idp-client/dist
     envVars:
       - fromGroup: csisp-env-prod
     previews:
       generation: off
     buildFilter:
       paths:
-        - apps/idp/client/**
+        - apps/frontend/idp-client/**
     routes:
       - type: rewrite
         source: /api/idp/*

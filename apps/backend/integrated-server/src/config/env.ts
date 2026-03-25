@@ -21,6 +21,6 @@ export type BackendIntegratedEnv = z.infer<typeof backendIntegratedEnvSchema>;
 
 export function getBackendIntegratedEnv(): BackendIntegratedEnv {
   return parseEnv(backendIntegratedEnvSchema, process.env, {
-    label: 'backend-integrated',
+    label: 'integrated-server',
   });
 }

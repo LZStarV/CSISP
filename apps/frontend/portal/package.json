@@ -1,5 +1,5 @@
 {
-  "name": "@csisp/frontend-portal",
+  "name": "@csisp/portal",
   "private": true,
   "version": "1.0.0",
   "type": "module",

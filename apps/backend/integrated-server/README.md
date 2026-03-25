@@ -19,20 +19,20 @@
 - 开发启动
 
 ```bash
-pnpm -C apps/backend-integrated run dev
+pnpm -C apps/backend/integrated-server run dev
 ```
 
 - 构建与运行
 
 ```bash
-pnpm -C apps/backend-integrated run build
-node apps/backend-integrated/dist/main.js
+pnpm -C apps/backend/integrated-server run build
+node apps/backend/integrated-server/dist/main.js
 ```
 
 - 数据库类型生成（Kanel）
 
 ```bash
-pnpm -C apps/backend-integrated run db:types
+pnpm -C apps/backend/integrated-server run db:types
 ```
 
 ## OpenRPC 约定（JSON-RPC 2.0）

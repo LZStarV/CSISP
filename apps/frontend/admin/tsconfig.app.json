@@ -1,8 +1,9 @@
 {
-  "extends": ["../../tsconfig.json", "@vue/tsconfig/tsconfig.dom.json"],
+  "extends": "../../../tsconfig.json",
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
+    "lib": ["ES2020", "DOM"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]

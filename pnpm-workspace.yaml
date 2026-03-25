@@ -1,11 +1,10 @@
 packages:
-  - 'apps/*'
-  - 'apps/idp/client'
-  - 'apps/idp/server'
+  - 'apps/frontend/*'
+  - 'apps/backend/*'
+  - 'apps/bff'
   - 'infra/*'
   - 'packages/*'
   - 'docs'
-  - 'tests'
 
 # 默认 Catalog
 catalog:
@@ -17,7 +16,7 @@ catalog:
 # 命名 Catalogs
 catalogs:
   # Node Catalog - Node.js 后端项目共享
-  # 适用于：backend-integrated, bff, backoffice, idp/server
+  # 适用于：integrated-server, bff, backoffice, idp/server
   node:
     '@nestjs/common': ^10.4.22
     '@nestjs/core': ^10.4.22

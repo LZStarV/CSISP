@@ -1,9 +1,9 @@
 import { createLogger } from '@csisp/utils';
 
-const baseLogger = createLogger('backend-integrated');
+const baseLogger = createLogger('integrated-server');
 
 /**
- * 获取后端基础 logger（service 固定为 backend-integrated）
+ * 获取后端基础 logger（service 固定为 integrated-server）
  */
 export function getBackendBaseLogger() {
   return baseLogger;
