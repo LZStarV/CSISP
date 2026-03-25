@@ -56,7 +56,7 @@ services:
     routes:
       - type: rewrite
         source: /api/*
-        destination: https://bff.onrender.com/api/
+        destination: https://csisp-bff.onrender.com/api/
 
   - type: web
     runtime: static
@@ -76,7 +76,7 @@ services:
     routes:
       - type: rewrite
         source: /api/*
-        destination: https://bff.onrender.com/api/
+        destination: https://csisp-bff.onrender.com/api/
 
   - type: web
     runtime: static
@@ -95,8 +95,8 @@ services:
         - apps/frontend/idp-client/**
     routes:
       - type: rewrite
-        source: /api/idp/*
-        destination: https://idp-server.onrender.com/api/idp/
+        source: /api/*
+        destination: https://csisp-bff.onrender.com/api/
 
 envVarGroups:
   - name: csisp-env-prod

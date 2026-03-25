@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - 'supabase/seed.sql'
+      - 'supabase/functions/**'
   workflow_dispatch:
 
 jobs:
@@ -13,7 +18,7 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_URL_REF: ${{ secrets.SUPABASE_URL_REF }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }} # production database URL with sslmode=require
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
       UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
     steps:
