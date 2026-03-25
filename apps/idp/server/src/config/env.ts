@@ -9,6 +9,7 @@ import { z } from 'zod';
 export const idpServerEnvSchema = z.object({
   NODE_ENV: envOptionalString(),
   CSISP_IDP_RPC_URL: envUrlString(),
+  CSISP_IDP_CLIENT_URL: envUrlString(),
   JWT_SECRET: envString(),
   OIDC_KEK_SECRET: envString(),
   SUPABASE_URL: envString(),

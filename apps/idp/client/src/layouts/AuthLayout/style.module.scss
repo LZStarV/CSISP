@@ -32,6 +32,7 @@ $auth-left-width: 70%;
 
 .auth-right {
   width: 100%;
+  position: relative;
 
   @media (width >= 1024px) {
     width: calc(100% - $auth-left-width);
@@ -47,4 +48,15 @@ $auth-left-width: 70%;
   max-width: 420px;
   margin: 0 16px;
   padding: 24px;
+}
+
+.auth-top-right {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.auth-link {
+  color: #1677ff;
+  font-size: 14px;
 }

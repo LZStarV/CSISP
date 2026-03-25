@@ -6,6 +6,26 @@ const IDP_PREFIX: string = config.routes.apiPrefix;
 const AUTH_SERVICE = 'auth';
 const OIDC_SERVICE = 'oidc';
 
+type RegisterParams = {
+  email: string;
+  password: string;
+  student_id: string;
+  display_name?: string;
+  redirect_uri?: string;
+};
+type RegisterResult = {
+  ok: boolean;
+  next: string;
+  emailRedirectTo: string;
+};
+type RegisterStatusParams = { email: string };
+type RegisterStatusResult = { confirmed: boolean };
+type RegisterFinalizeParams = { email: string };
+type RegisterFinalizeResult = { ok: boolean; written: boolean };
+type VerifySignupOtpParams = { email: string; token: string };
+type VerifySignupOtpResult = { verified: boolean };
+type ResendSignupOtpParams = { email: string };
+type ResendSignupOtpResult = { ok: boolean };
 type LoginInternalParams = {
   email: string;
   password: string;
@@ -56,4 +76,14 @@ export {
   VerifyOtpResult,
   CreateExchangeCodeParams,
   CreateExchangeCodeResult,
+  RegisterParams,
+  RegisterResult,
+  RegisterStatusParams,
+  RegisterStatusResult,
+  RegisterFinalizeParams,
+  RegisterFinalizeResult,
+  VerifySignupOtpParams,
+  VerifySignupOtpResult,
+  ResendSignupOtpParams,
+  ResendSignupOtpResult,
 };

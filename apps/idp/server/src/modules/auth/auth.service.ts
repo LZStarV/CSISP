@@ -28,6 +28,7 @@ import type { Request } from 'express';
 import { EnterDto } from './dto/enter.dto';
 import { LoginInternalDto } from './dto/login-internal.dto';
 import { MultifactorDto } from './dto/multifactor.dto';
+import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import {
   Next,
@@ -95,6 +96,117 @@ export class AuthService {
       { prefix: RedisPrefix.OidcCode, ttl: 600 },
       kv
     );
+  }
+
+  /**
+   * 注册：邮箱+密码+学号（学号临时缓存，确认后通过验证码写入业务用户表）
+   */
+  async register(dto: RegisterDto): Promise<{ ok: true; next: string }> {
+    await this.gotrue.signUp({
+      email: dto.email,
+      password: dto.password,
+      data: dto.display_name ? { display_name: dto.display_name } : undefined,
+    });
+    // 缓存学号（临时）
+    const ttl =
+      Math.max(1, Number(config.auth.register.redisTtlMinutes || 60)) * 60;
+    await this.kv.set(`reg:student:${dto.email}`, dto.student_id, ttl);
+    return { ok: true, next: 'verify_email' };
+  }
+
+  // 消费缓存写入业务用户表（幂等）
+  private async finalizeUserByEmail(email: string): Promise<boolean> {
+    const normalized = String(email ?? '').trim();
+    if (!normalized) return false;
+    const studentId = await this.kv.get(`reg:student:${normalized}`);
+    if (!studentId) return false;
+    type UserPick = {
+      id: number;
+      email: string | null;
+      student_id: string | null;
+    };
+    // 先按 email 查询
+    const { data: byEmail } = await this.sda
+      .service()
+      .from('user')
+      .select('id,email,student_id')
+      .eq('email', normalized)
+      .maybeSingle<UserPick>();
+    if (byEmail?.id) {
+      const { error } = await this.sda
+        .service()
+        .from('user')
+        .update({ student_id: String(studentId) })
+        .eq('id', byEmail.id);
+      if (error) throw new HttpException('Finalize failed', 500);
+      try {
+        await this.kv.del(`reg:student:${normalized}`);
+      } catch {}
+      return true;
+    }
+    // 再按 student_id 查询
+    const { data: bySid } = await this.sda
+      .service()
+      .from('user')
+      .select('id,email,student_id')
+      .eq('student_id', String(studentId))
+      .maybeSingle<UserPick>();
+    if (bySid?.id) {
+      const { error } = await this.sda
+        .service()
+        .from('user')
+        .update({ email: normalized })
+        .eq('id', bySid.id);
+      if (error) throw new HttpException('Finalize failed', 500);
+      try {
+        await this.kv.del(`reg:student:${normalized}`);
+      } catch {}
+      return true;
+    }
+    // 插入
+    {
+      const { error } = await this.sda
+        .service()
+        .from('user')
+        .insert({ email: normalized, student_id: String(studentId) });
+      if (error) throw new HttpException('Finalize failed', 500);
+      try {
+        await this.kv.del(`reg:student:${normalized}`);
+      } catch {}
+      return true;
+    }
+  }
+
+  /**
+   * 验证注册验证码（纯验证码注册确认）
+   */
+  async verifySignupOtp(dto: {
+    email: string;
+    token: string;
+  }): Promise<{ verified: true }> {
+    try {
+      await this.gotrue.verifyOtp({
+        email: dto.email,
+        token: dto.token,
+        type: 'signup',
+      });
+    } catch {
+      throw new JsonRpcAuthException(
+        AuthErrorCode.OTP_INVALID_OR_EXPIRED,
+        'OTP invalid or expired'
+      );
+    }
+    // 完成确认后，执行写入业务用户表
+    await this.finalizeUserByEmail(dto.email);
+    return { verified: true };
+  }
+
+  /**
+   * 重发注册验证码邮件
+   */
+  async resendSignupOtp(dto: { email: string }): Promise<{ ok: true }> {
+    await this.gotrue.resendSignupOtp({ email: dto.email });
+    return { ok: true };
   }
 
   /**

@@ -4,6 +4,7 @@ import { Finish } from '@/pages/Finish';
 import { ForgotInit } from '@/pages/ForgotInit';
 import { Login } from '@/pages/Login';
 import { ResetPassword } from '@/pages/ResetPassword';
+import { Signup } from '@/pages/Signup';
 import {
   ROUTE_ROOT,
   ROUTE_LOGIN,
@@ -29,6 +30,7 @@ function App() {
             </SessionGuard>
           }
         />
+        <Route path='/signup' element={<Signup />} />
         <Route
           path={ROUTE_PASSWORD_RESET}
           element={

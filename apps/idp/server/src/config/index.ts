@@ -20,6 +20,9 @@ export const config = {
   auth: {
     jwtSecret: env.JWT_SECRET,
     oidcKekSecret: env.OIDC_KEK_SECRET,
+    register: {
+      redisTtlMinutes: 60,
+    },
   },
   session: {
     cookieDomain:

@@ -131,7 +131,8 @@ export function Login() {
               placeholder='请输入邮箱中的6位验证码'
               value={otpCode}
               onChange={e => setOtpCode(e.target.value)}
-              maxLength={16}
+              maxLength={6}
+              inputMode='numeric'
             />
           </Form.Item>
           <Form.Item>
@@ -140,6 +141,7 @@ export function Login() {
               onClick={handleVerifyOtp}
               block
               loading={loading}
+              disabled={!/^\d{6}$/.test(otpCode)}
             >
               完成验证
             </Button>

@@ -31,8 +31,11 @@ import { AuthService } from './auth.service';
 import { CreateExchangeCodeDto } from './dto/create-exchange-code.dto';
 import { EnterDto } from './dto/enter.dto';
 import { LoginInternalDto } from './dto/login-internal.dto';
+import { RegisterDto } from './dto/register.dto';
+import { ResendSignupOtpDto } from './dto/resend-signup-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
 
 /**
  * AuthController 重构：采用声明式路由与拦截器模式
@@ -49,6 +52,9 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
   createExchangeCode: CreateExchangeCodeDto,
   resetPassword: ResetPasswordDto,
   enter: EnterDto,
+  register: RegisterDto,
+  verifySignupOtp: VerifySignupOtpDto,
+  resendSignupOtp: ResendSignupOtpDto,
 })
 export class AuthController {
   constructor(
@@ -67,6 +73,27 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ) {
     return this.service.loginEmailPassword(params as LoginInternalDto, res);
+  }
+
+  @Post('register')
+  async register(@Body(RpcRequestPipe) { params }: any) {
+    return this.service.register(params as RegisterDto);
+  }
+
+  @Post('verifySignupOtp')
+  async verifySignupOtp(@Body(RpcRequestPipe) { params }: any) {
+    const dto = plainToInstance(VerifySignupOtpDto, params);
+    const errs = validateSync(dto, { whitelist: true });
+    if (errs.length) throw new BadRequestException('Invalid params');
+    return this.service.verifySignupOtp(dto as any);
+  }
+
+  @Post('resendSignupOtp')
+  async resendSignupOtp(@Body(RpcRequestPipe) { params }: any) {
+    const dto = plainToInstance(ResendSignupOtpDto, params);
+    const errs = validateSync(dto, { whitelist: true });
+    if (errs.length) throw new BadRequestException('Invalid params');
+    return this.service.resendSignupOtp(dto as any);
   }
 
   @Post('send-otp')

@@ -1,7 +1,10 @@
 import { Typography } from 'antd';
 import { ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 import styles from './style.module.scss';
+
+import { ROUTE_LOGIN } from '@/routes/router';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -24,6 +27,8 @@ export function AuthLayout({
   imagePrompt = 'Modern%20education%20technology%20illustration%20with%20students%20and%20digital%20devices%2C%20clean%20minimalist%20design%2C%20blue%20and%20white%20color%20scheme',
   imageSize = 'landscape_4_3',
 }: AuthLayoutProps) {
+  const location = useLocation();
+  const isSignup = location.pathname === '/signup';
   return (
     <div className={styles['auth-layout']}>
       <div className={styles['auth-left']}>
@@ -46,6 +51,17 @@ export function AuthLayout({
         </div>
       </div>
       <div className={styles['auth-right']}>
+        <div className={styles['auth-top-right']}>
+          {isSignup ? (
+            <Link to={ROUTE_LOGIN} className={styles['auth-link']}>
+              返回登录
+            </Link>
+          ) : (
+            <Link to='/signup' className={styles['auth-link']}>
+              注册
+            </Link>
+          )}
+        </div>
         <div className={styles['auth-content']}>{children}</div>
       </div>
     </div>
