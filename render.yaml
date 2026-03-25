@@ -3,7 +3,7 @@ previews:
 services:
   - type: web
     runtime: node
-    name: backend-integrated
+    name: csisp-integrated-server
     plan: free
     rootDir: .
     buildCommand: >
@@ -15,7 +15,7 @@ services:
 
   - type: web
     runtime: node
-    name: bff
+    name: csisp-bff
     plan: free
     rootDir: .
     buildCommand: >
@@ -27,7 +27,7 @@ services:
 
   - type: web
     runtime: node
-    name: idp-server
+    name: csisp-idp-server
     plan: free
     rootDir: .
     buildCommand: >
@@ -40,7 +40,7 @@ services:
 
   - type: web
     runtime: static
-    name: frontend-admin
+    name: csisp-admin
     rootDir: .
     buildCommand: >
       pnpm i --frozen-lockfile &&
@@ -60,7 +60,7 @@ services:
 
   - type: web
     runtime: static
-    name: frontend-portal
+    name: csisp-portal
     rootDir: .
     buildCommand: >
       pnpm i --frozen-lockfile &&
@@ -80,7 +80,7 @@ services:
 
   - type: web
     runtime: static
-    name: idp-client
+    name: csisp-idp-client
     rootDir: .
     buildCommand: >
       pnpm i --frozen-lockfile &&
