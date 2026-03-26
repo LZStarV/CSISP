@@ -1,0 +1,324 @@
+LoginInternalDto:
+  type: object
+  additionalProperties: false
+  required: [email, password]
+  properties:
+    email:
+      type: string
+      format: email
+      minLength: 5
+      maxLength: 256
+    password:
+      type: string
+      minLength: 1
+      maxLength: 512
+LoginResult:
+  type: object
+  additionalProperties: false
+  required: [stepUp]
+  properties:
+    stepUp:
+      type: string
+      enum: ['PENDING_PASSWORD']
+RSATokenResult:
+  type: object
+  additionalProperties: false
+  required: [publicKey]
+  properties:
+    publicKey:
+      type: string
+    token:
+      type: string
+      nullable: true
+RegisterDto:
+  type: object
+  additionalProperties: false
+  required: [email, password, student_id]
+  properties:
+    email:
+      type: string
+      format: email
+      minLength: 5
+      maxLength: 256
+    password:
+      type: string
+      minLength: 1
+      maxLength: 512
+    student_id:
+      type: string
+      pattern: '^\\d{10,12}$'
+    display_name:
+      type: string
+      minLength: 1
+      maxLength: 128
+      nullable: true
+    redirect_uri:
+      type: string
+      minLength: 1
+      maxLength: 512
+      nullable: true
+RegisterResult:
+  type: object
+  additionalProperties: false
+  required: [ok, next]
+  properties:
+    ok:
+      type: boolean
+      const: true
+    next:
+      type: string
+      enum: ['verify_email']
+VerifySignupOtpDto:
+  type: object
+  additionalProperties: false
+  required: [email, token]
+  properties:
+    email:
+      type: string
+      format: email
+      minLength: 5
+      maxLength: 256
+    token:
+      type: string
+      pattern: '^\\d{8}$'
+VerifiedResult:
+  type: object
+  additionalProperties: false
+  required: [verified]
+  properties:
+    verified:
+      type: boolean
+      const: true
+ResendSignupOtpDto:
+  type: object
+  additionalProperties: false
+  required: [email]
+  properties:
+    email:
+      type: string
+      format: email
+      minLength: 5
+      maxLength: 256
+OkResult:
+  type: object
+  additionalProperties: false
+  required: [ok]
+  properties:
+    ok:
+      type: boolean
+      const: true
+VerifyOtpDto:
+  type: object
+  additionalProperties: false
+  required: [token]
+  properties:
+    token:
+      type: string
+      minLength: 4
+      maxLength: 16
+CreateExchangeCodeDto:
+  type: object
+  additionalProperties: false
+  required: [app_id, redirect_uri]
+  properties:
+    app_id:
+      type: string
+      minLength: 1
+      maxLength: 128
+    redirect_uri:
+      type: string
+      minLength: 1
+      maxLength: 1024
+    state:
+      type: string
+      minLength: 1
+      maxLength: 256
+      nullable: true
+CreateExchangeCodeResult:
+  type: object
+  additionalProperties: false
+  required: [code, redirect_uri]
+  properties:
+    code:
+      type: string
+    redirect_uri:
+      type: string
+    state:
+      type: string
+      nullable: true
+ResetPasswordRequestParams:
+  type: object
+  additionalProperties: false
+  required: [studentId]
+  properties:
+    studentId:
+      type: string
+ResetPasswordDto:
+  type: object
+  additionalProperties: false
+  required: [studentId, newPassword, resetToken]
+  properties:
+    studentId:
+      type: string
+      minLength: 1
+      maxLength: 128
+    newPassword:
+      type: string
+      minLength: 8
+      maxLength: 64
+    resetToken:
+      type: string
+      minLength: 1
+      maxLength: 128
+EnterDto:
+  type: object
+  additionalProperties: false
+  properties:
+    state:
+      type: string
+      minLength: 1
+      maxLength: 256
+      nullable: true
+    ticket:
+      type: string
+      minLength: 1
+      maxLength: 128
+      nullable: true
+    redirectMode:
+      type: string
+      enum: ['http']
+      nullable: true
+    studentId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      nullable: true
+MFAType:
+  type: string
+  enum: ['Sms', 'Email', 'Fido2', 'Otp']
+IMethod:
+  type: object
+  additionalProperties: false
+  required: [type, enabled]
+  properties:
+    type:
+      $ref: '#/MFAType'
+    enabled:
+      type: boolean
+    extra:
+      type: string
+      nullable: true
+Next:
+  type: object
+  additionalProperties: false
+  required: [nextSteps]
+  properties:
+    nextSteps:
+      type: array
+      items:
+        type: string
+        enum: ['Multifactor', 'ResetPassword', 'Enter', 'Finish']
+    sms:
+      type: object
+      nullable: true
+      properties:
+        code: { type: string }
+        success: { type: boolean }
+        message: { type: string, nullable: true }
+        request_id: { type: string, nullable: true }
+        access_denied_detail: { type: string, nullable: true }
+    redirectTo:
+      type: string
+      nullable: true
+MfaMethodsResult:
+  type: object
+  additionalProperties: false
+  required: [multifactor]
+  properties:
+    multifactor:
+      type: array
+      items:
+        $ref: '#/IMethod'
+ForgotInitParams:
+  type: object
+  additionalProperties: false
+  required: [email]
+  properties:
+    email:
+      type: string
+      format: email
+RecoveryMethod:
+  type: object
+  additionalProperties: false
+  required: [type, enabled]
+  properties:
+    type:
+      $ref: '#/MFAType'
+    enabled:
+      type: boolean
+    extra:
+      type: string
+      nullable: true
+    reason:
+      type: string
+      nullable: true
+RecoveryInitResult:
+  type: object
+  additionalProperties: false
+  required: [student_id, methods]
+  properties:
+    student_id:
+      type: string
+    name:
+      type: string
+      nullable: true
+    methods:
+      type: array
+      items:
+        $ref: '#/RecoveryMethod'
+ForgotChallengeParams:
+  type: object
+  additionalProperties: false
+  required: [type, studentId]
+  properties:
+    type:
+      $ref: '#/MFAType'
+    studentId:
+      type: string
+ForgotVerifyParams:
+  type: object
+  additionalProperties: false
+  required: [type, studentId, code]
+  properties:
+    type:
+      $ref: '#/MFAType'
+    studentId:
+      type: string
+    code:
+      type: string
+VerifyResult:
+  type: object
+  additionalProperties: false
+  required: [ok]
+  properties:
+    ok:
+      type: boolean
+SessionRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    logout:
+      type: boolean
+SessionResult:
+  type: object
+  additionalProperties: false
+  required: [logged]
+  properties:
+    logged:
+      type: boolean
+    name:
+      type: string
+      nullable: true
+    student_id:
+      type: string
+      nullable: true

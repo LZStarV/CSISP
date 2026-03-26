@@ -40,7 +40,6 @@
   },
   "dependencies": {
     "@csisp/config": "workspace:*",
-    "@csisp/idl": "workspace:*",
     "@csisp/rpc": "workspace:*",
     "@nestjs/common": "^11.1.13",
     "@nestjs/core": "^11.1.13",

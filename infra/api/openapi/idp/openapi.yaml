@@ -1,0 +1,49 @@
+openapi: 3.1.0
+info:
+  title: Idp-Server HTTP API
+  version: 1.0.0
+servers:
+  - url: /api/idp
+paths:
+  /health:
+    $ref: ./paths/health.yaml#/HealthStatus
+  /health/upstash:
+    $ref: ./paths/health.yaml#/HealthUpstash
+  /oidc/clients:
+    $ref: ./paths/oidc.yaml#/Clients
+  /oidc/getAuthorizationRequest:
+    $ref: ./paths/oidc.yaml#/GetAuthorizationRequest
+  /auth/login:
+    $ref: ./paths/auth.yaml#/Login
+  /auth/rsatoken:
+    $ref: ./paths/auth.yaml#/RsaToken
+  /auth/register:
+    $ref: ./paths/auth.yaml#/Register
+  /auth/verifySignupOtp:
+    $ref: ./paths/auth.yaml#/VerifySignupOtp
+  /auth/resendSignupOtp:
+    $ref: ./paths/auth.yaml#/ResendSignupOtp
+  /auth/send-otp:
+    $ref: ./paths/auth.yaml#/SendOtp
+  /auth/verify-otp:
+    $ref: ./paths/auth.yaml#/VerifyOtp
+  /auth/createExchangeCode:
+    $ref: ./paths/auth.yaml#/CreateExchangeCode
+  /auth/multifactor:
+    $ref: ./paths/auth.yaml#/Multifactor
+  /auth/reset_password_request:
+    $ref: ./paths/auth.yaml#/ResetPasswordRequest
+  /auth/reset_password:
+    $ref: ./paths/auth.yaml#/ResetPassword
+  /auth/enter:
+    $ref: ./paths/auth.yaml#/Enter
+  /auth/mfa_methods:
+    $ref: ./paths/auth.yaml#/MfaMethods
+  /auth/forgot_init:
+    $ref: ./paths/auth.yaml#/ForgotInit
+  /auth/forgot_challenge:
+    $ref: ./paths/auth.yaml#/ForgotChallenge
+  /auth/forgot_verify:
+    $ref: ./paths/auth.yaml#/ForgotVerify
+  /auth/session:
+    $ref: ./paths/auth.yaml#/Session

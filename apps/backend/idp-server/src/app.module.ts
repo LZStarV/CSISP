@@ -1,9 +1,8 @@
 import { join } from 'path';
 
 import { RedisModule } from '@csisp/redis-sdk/nest';
-import { ThriftRawBodyMiddleware } from '@csisp/rpc/server-nest';
 import { SupabaseModule } from '@infra/supabase';
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
 
@@ -37,13 +36,4 @@ import { DomainModules } from './modules';
     },
   ],
 })
-export class AppModule implements NestModule {
-  /**
-   * 配置全局中间件
-   */
-  configure(consumer: MiddlewareConsumer) {
-    // 应用 Thrift 原始主体解析中间件
-    // 自动识别 Content-Type，无需硬编码路径
-    consumer.apply(ThriftRawBodyMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

@@ -1,4 +1,8 @@
-import { OIDCScope } from '@csisp/idl/idp';
+export enum OIDCScope {
+  Openid = 'openid',
+  Profile = 'profile',
+  Email = 'email',
+}
 
 /**
  * OIDC 策略辅助工具
@@ -43,9 +47,8 @@ export class OidcPolicyHelper {
 
     return scopes
       .map(s => {
-        // 如果是数字枚举值，尝试转换回字符串（通过 IDL 的映射）
-        const name = (OIDCScope as any)[s];
-        return typeof name === 'string' ? name.toLowerCase() : String(s);
+        if (typeof s === 'string') return s.toLowerCase();
+        return String(s).toLowerCase();
       })
       .filter(Boolean)
       .join(' ');

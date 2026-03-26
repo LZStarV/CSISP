@@ -1,0 +1,44 @@
+Clients:
+  post:
+    operationId: oidc_clients
+    tags: [oidc]
+    summary: List OIDC clients
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: ../components/schemas/oidc.yaml#/ClientInfo
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+GetAuthorizationRequest:
+  post:
+    operationId: oidc_getAuthorizationRequest
+    tags: [oidc]
+    summary: Get authorization request by ticket
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/oidc.yaml#/GetAuthorizationRequestParams
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/oidc.yaml#/AuthorizationRequestInfo
+      '400':
+        $ref: ../../shared/components/responses/common.yaml#/BadRequest
+      '401':
+        $ref: ../../shared/components/responses/common.yaml#/Unauthorized
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError

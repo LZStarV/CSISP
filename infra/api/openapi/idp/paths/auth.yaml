@@ -1,0 +1,364 @@
+Login:
+  post:
+    operationId: auth_login
+    tags: [auth]
+    summary: Login with email and password
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/LoginInternalDto
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/LoginResult
+      '400':
+        $ref: ../../shared/components/responses/common.yaml#/BadRequest
+      '401':
+        $ref: ../../shared/components/responses/common.yaml#/Unauthorized
+      '429':
+        $ref: ../../shared/components/responses/common.yaml#/TooManyRequests
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+RsaToken:
+  post:
+    operationId: auth_rsatoken
+    tags: [auth]
+    summary: Get RSA public key and a short-lived token
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/RSATokenResult
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+Register:
+  post:
+    operationId: auth_register
+    tags: [auth]
+    summary: Register with email, password and student id
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/RegisterDto
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/RegisterResult
+      '400':
+        $ref: ../../shared/components/responses/common.yaml#/BadRequest
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+VerifySignupOtp:
+  post:
+    operationId: auth_verifySignupOtp
+    tags: [auth]
+    summary: Verify signup email OTP
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/VerifySignupOtpDto
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/VerifiedResult
+      '400':
+        $ref: ../../shared/components/responses/common.yaml#/BadRequest
+      '401':
+        $ref: ../../shared/components/responses/common.yaml#/Unauthorized
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+ResendSignupOtp:
+  post:
+    operationId: auth_resendSignupOtp
+    tags: [auth]
+    summary: Resend signup email OTP
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/ResendSignupOtpDto
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/OkResult
+      '400':
+        $ref: ../../shared/components/responses/common.yaml#/BadRequest
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+SendOtp:
+  post:
+    operationId: auth_sendOtp
+    tags: [auth]
+    summary: Send email OTP for step-up
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/OkResult
+      '401':
+        $ref: ../../shared/components/responses/common.yaml#/Unauthorized
+      '429':
+        $ref: ../../shared/components/responses/common.yaml#/TooManyRequests
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+VerifyOtp:
+  post:
+    operationId: auth_verifyOtp
+    tags: [auth]
+    summary: Verify email OTP for step-up
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/VerifyOtpDto
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/VerifiedResult
+      '401':
+        $ref: ../../shared/components/responses/common.yaml#/Unauthorized
+      '429':
+        $ref: ../../shared/components/responses/common.yaml#/TooManyRequests
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+CreateExchangeCode:
+  post:
+    operationId: auth_createExchangeCode
+    tags: [auth]
+    summary: Create a one-time exchange code
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/CreateExchangeCodeDto
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/CreateExchangeCodeResult
+      '401':
+        $ref: ../../shared/components/responses/common.yaml#/Unauthorized
+      '429':
+        $ref: ../../shared/components/responses/common.yaml#/TooManyRequests
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+Multifactor:
+  post:
+    operationId: auth_multifactor
+    tags: [auth]
+    summary: Multifactor (not implemented)
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    responses:
+      '501':
+        $ref: ../../shared/components/responses/common.yaml#/NotImplemented
+ResetPasswordRequest:
+  post:
+    operationId: auth_resetPasswordRequest
+    tags: [auth]
+    summary: Reset password request (not implemented)
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/ResetPasswordRequestParams
+    responses:
+      '501':
+        $ref: ../../shared/components/responses/common.yaml#/NotImplemented
+ResetPassword:
+  post:
+    operationId: auth_resetPassword
+    tags: [auth]
+    summary: Reset password
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/ResetPasswordDto
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/Next
+      '400':
+        $ref: ../../shared/components/responses/common.yaml#/BadRequest
+      '401':
+        $ref: ../../shared/components/responses/common.yaml#/Unauthorized
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+Enter:
+  post:
+    operationId: auth_enter
+    tags: [auth]
+    summary: Complete login and issue session (may redirect)
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/EnterDto
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/Next
+      '401':
+        $ref: ../../shared/components/responses/common.yaml#/Unauthorized
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+MfaMethods:
+  post:
+    operationId: auth_mfaMethods
+    tags: [auth]
+    summary: List MFA methods by session
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/MfaMethodsResult
+      '401':
+        $ref: ../../shared/components/responses/common.yaml#/Unauthorized
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+ForgotInit:
+  post:
+    operationId: auth_forgotInit
+    tags: [auth]
+    summary: Initialize account recovery
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/ForgotInitParams
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/RecoveryInitResult
+      '400':
+        $ref: ../../shared/components/responses/common.yaml#/BadRequest
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError
+ForgotChallenge:
+  post:
+    operationId: auth_forgotChallenge
+    tags: [auth]
+    summary: Trigger recovery challenge (not implemented)
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/ForgotChallengeParams
+    responses:
+      '501':
+        $ref: ../../shared/components/responses/common.yaml#/NotImplemented
+ForgotVerify:
+  post:
+    operationId: auth_forgotVerify
+    tags: [auth]
+    summary: Verify recovery code (not implemented)
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/ForgotVerifyParams
+    responses:
+      '501':
+        $ref: ../../shared/components/responses/common.yaml#/NotImplemented
+Session:
+  post:
+    operationId: auth_session
+    tags: [auth]
+    summary: Get or clear session
+    parameters:
+      - $ref: ../../shared/components/parameters/x-trace-id.yaml#/XTraceId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/auth.yaml#/SessionRequest
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/auth.yaml#/SessionResult
+      '401':
+        $ref: ../../shared/components/responses/common.yaml#/Unauthorized
+      '500':
+        $ref: ../../shared/components/responses/common.yaml#/ServerError

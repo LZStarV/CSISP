@@ -1,0 +1,7 @@
+XTraceId:
+  name: x-trace-id
+  in: header
+  required: false
+  schema:
+    type: string
+  description: Optional client-provided trace id for end-to-end tracing

@@ -7,11 +7,13 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
-    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
+    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write .",
+    "openapi:lint": "pnpm exec spectral lint api/openapi/**/*.yaml",
+    "openapi:bundle": "pnpm exec swagger-cli bundle api/openapi/openapi.yaml -o dist/openapi/bundle.json -t json",
+    "openapi:types": "pnpm exec openapi-typescript dist/openapi/bundle.json -o src/openapi-types/index.ts"
   },
   "dependencies": {
     "@csisp/config": "workspace:*",
-    "@csisp/idl": "workspace:*",
     "@csisp/redis-sdk": "workspace:*",
     "@csisp/rpc": "workspace:*",
     "@csisp/utils": "workspace:*",

@@ -1,0 +1,30 @@
+BadRequest:
+  description: Bad Request
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/error.yaml#/Error
+Unauthorized:
+  description: Unauthorized
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/error.yaml#/Error
+TooManyRequests:
+  description: Too Many Requests
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/error.yaml#/Error
+ServerError:
+  description: Internal Server Error
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/error.yaml#/Error
+NotImplemented:
+  description: Not Implemented
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/error.yaml#/Error

@@ -1,0 +1,41 @@
+ClientInfo:
+  type: object
+  additionalProperties: false
+  properties:
+    client_id:
+      type: string
+    name:
+      type: string
+      nullable: true
+    default_redirect_uri:
+      type: string
+    scopes:
+      type: array
+      items:
+        type: string
+        enum: ['openid', 'profile', 'email']
+AuthorizationRequestInfo:
+  type: object
+  additionalProperties: false
+  required: [client_id, client_name, scope, redirect_uri, state]
+  properties:
+    client_id:
+      type: string
+    client_name:
+      type: string
+    scope:
+      type: array
+      items:
+        type: string
+        enum: ['openid', 'profile', 'email']
+    redirect_uri:
+      type: string
+    state:
+      type: string
+GetAuthorizationRequestParams:
+  type: object
+  additionalProperties: false
+  required: [ticket]
+  properties:
+    ticket:
+      type: string
