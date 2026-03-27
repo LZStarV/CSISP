@@ -2,7 +2,7 @@ CSISP 项目规则（Trae）
 
 1. 代码与风格
    - 必须使用 TypeScript，避免 `any`（文档或类型声明中已明确允许的除外）。
-   - Vue 组件文件使用 PascalCase 命名；后端路由统一以 `/api` 为前缀并遵循 openRPC 设计。
+   - Vue 组件文件使用 PascalCase 命名；后端路由统一以 `/api` 为前缀并遵循 RPC 风格 REST 接口设计。
    - 严格遵循 ESLint + Prettier + EditorConfig；在生产代码中避免直接使用 `console.*`，统一使用后端 logger 能力；
    - 在完成功能开发后，必须运行 `pnpm -F [sub-application-name] format` 格式化代码，避免引入额外的格式化 diff。
 2. 限制与约定

@@ -2,7 +2,6 @@ packages:
   - 'apps/frontend/*'
   - 'apps/backend/*'
   - 'apps/bff'
-  - 'infra/*'
   - 'packages/*'
   - 'docs'
 
