@@ -251,11 +251,4 @@ export default [
       'no-debugger': 'off',
     },
   },
-  {
-    // Next.js 生成的类型文件：关闭三斜杠引用的校验（由 Next 自动生成）
-    files: ['apps/backoffice/next-env.d.ts'],
-    rules: {
-      '@typescript-eslint/triple-slash-reference': 'off',
-    },
-  },
 ];
