@@ -230,6 +230,9 @@ importers:
 
   apps/backend/idp-server:
     dependencies:
+      '@csisp-api/idp-server':
+        specifier: 0.1.1
+        version: 0.1.1
       '@csisp/config':
         specifier: workspace:*
         version: link:../../../packages/config
@@ -934,6 +937,9 @@ packages:
       '@creditkarma/thrift-server-core': ^1.0.0
       '@types/express': '>=4.0.0 <5.0.0'
       express: '>=4.0.0 <5.0.0'
+
+  '@csisp-api/idp-server@0.1.1':
+    resolution: {integrity: sha512-k2YRm7CaSwGGfFJ8MZjwv0/NpiLdIffkpyDvD8Gt1jBEQbQ596ACns08m6/Od7Lw5SyHMMU0to55fp1smjUA8A==}
 
   '@css-render/plugin-bem@0.15.14':
     resolution: {integrity: sha512-QK513CJ7yEQxm/P3EwsI+d+ha8kSOcjGvD6SevM41neEMxdULE+18iuQK6tEChAWMOQNQPLG/Rw3Khb69r5neg==}
@@ -6575,6 +6581,8 @@ snapshots:
       '@types/express': 4.17.25
       express: 4.22.1
       zipkin: 0.15.0
+
+  '@csisp-api/idp-server@0.1.1': {}
 
   '@css-render/plugin-bem@0.15.14(css-render@0.15.14)':
     dependencies:
