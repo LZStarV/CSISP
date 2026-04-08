@@ -13,6 +13,9 @@
 ### 安装必要环境
 
 ```bash
+# 切换 Node.js 版本为 24
+nvm use 24
+
 # 安装 infisical（环境变量管理）
 npm i -g @infisical/cli
 # npm 下载容易超时，可以改用 cnpm 进行下载也可以通过 Winget, Homebrew 等包管理器安装
@@ -114,12 +117,10 @@ pnpm -F @csisp/docs build
    - VS Code：右下角将换行符切换为 `LF`，并保持 EditorConfig 配置生效。
 3. **如果已经产生了大量“只改换行”的改动且尚未提交**：
    - 确认没有重要未保存的业务代码后，可以使用：
-
    ```bash
    git reset --hard HEAD
    ```
 
    - 然后在新的配置下重新运行必要的格式化命令（如仅对当前修改的文件执行，或依靠 `lint-staged`）。
-
 4. **关于提交影响**：
    - 在这种场景下即使将这些 diff 提交到远端，GitHub 上文件的换行格式仍会保持为 LF，但会新增一次包含大量只改换行变更的提交，增加历史噪声，故不推荐在业务提交中混入这类全局换行修正。
