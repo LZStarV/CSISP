@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 
-import { AuthErrorCode, JsonRpcAuthException } from '@common/rpc/error-codes';
+import {
+  AuthErrorCode,
+  JsonRpcAuthException,
+} from '@common/errors/auth-error-codes';
 import { config } from '@config';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';

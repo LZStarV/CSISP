@@ -23,8 +23,17 @@ export function buildJsonProxy(options: JsonProxyOptions) {
     xfwd: true,
     pathRewrite: rewrite,
     onProxyReq: (proxyReq: ClientRequest, req: Request) => {
+      if (req.body === undefined || req.body === null) {
+        return;
+      }
       const data = JSON.stringify(req.body);
-      proxyReq.setHeader('Content-Type', 'application/json');
+      const incomingContentType = req.headers['content-type'];
+      const contentType =
+        typeof incomingContentType === 'string' &&
+        incomingContentType.length > 0
+          ? incomingContentType
+          : 'application/json';
+      proxyReq.setHeader('Content-Type', contentType);
       proxyReq.setHeader('Content-Length', Buffer.byteLength(data));
       proxyReq.write(data);
     },

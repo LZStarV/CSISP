@@ -9,7 +9,7 @@ export enum AuthErrorCode {
   RATE_LIMITED = 'RATE_LIMITED',
 }
 
-export class JsonRpcAuthException extends HttpException {
+export class AuthApiException extends HttpException {
   readonly code: AuthErrorCode;
   constructor(
     code: AuthErrorCode,
@@ -20,3 +20,5 @@ export class JsonRpcAuthException extends HttpException {
     this.code = code;
   }
 }
+
+export class JsonRpcAuthException extends AuthApiException {}

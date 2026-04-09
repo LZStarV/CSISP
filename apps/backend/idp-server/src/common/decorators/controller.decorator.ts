@@ -1,5 +1,5 @@
+import { RestExceptionFilter } from '@common/filters/rest-exception.filter';
 import { RpcProtocol, RPC_PROTOCOL_KEY } from '@csisp/rpc/constants';
-import { RpcExceptionFilter } from '@csisp/rpc/server-nest';
 import {
   applyDecorators,
   Controller,
@@ -19,7 +19,7 @@ export function ApiIdpController(path: string) {
   return applyDecorators(
     Controller(fullPath),
     SetMetadata(RPC_PROTOCOL_KEY, RpcProtocol.JSON_RPC),
-    UseFilters(RpcExceptionFilter)
+    UseFilters(RestExceptionFilter)
   );
 }
 

@@ -41,10 +41,9 @@ function maskSensitiveData(data: any): any {
   return masked;
 }
 
-// 从 HTTP 请求路径和 RPC 请求体中提取方法名、ID 和协议信息
+// 从 HTTP 请求路径中提取方法名和协议信息
 function deriveRpc(
   path: string,
-  body: any,
   protocol?: RpcProtocol,
   handlerName?: string
 ): { rpcMethod?: string; rpcId?: any; protocol?: string } | undefined {
@@ -55,12 +54,9 @@ function deriveRpc(
     };
   }
 
-  const isJson = body && body.jsonrpc === '2.0';
-  if (!isJson) return undefined;
-
   const pathOnly = (path ?? '').split('?')[0];
   const parts = pathOnly.replace(/^\/+/, '').split('/');
-  const rpcInfo: any = { protocol: 'json-rpc', rpcId: body.id };
+  const rpcInfo: any = { protocol: 'http-rest' };
 
   // 优先使用 handlerName 构造方法名，这样更准确
   if (handlerName) {
@@ -98,13 +94,11 @@ export class LoggingInterceptor implements NestInterceptor {
     const logger = getIdpLogger(
       protocol === RpcProtocol.THRIFT ? 'thrift' : 'http'
     );
-    const rpc = deriveRpc(req.url, req.body, protocol, handler?.name);
+    const rpc = deriveRpc(req.url, protocol, handler?.name);
 
     // 对请求参数进行脱敏处理
     const maskedParams =
-      protocol === RpcProtocol.JSON_RPC
-        ? maskSensitiveData(req.body?.params)
-        : undefined;
+      protocol === RpcProtocol.THRIFT ? undefined : maskSensitiveData(req.body);
 
     logger.info(
       {

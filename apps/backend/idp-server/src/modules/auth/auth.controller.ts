@@ -1,12 +1,14 @@
 import { ApiIdpController } from '@common/decorators/controller.decorator';
+import {
+  AuthErrorCode,
+  JsonRpcAuthException,
+} from '@common/errors/auth-error-codes';
 import { IdpSessionGuard } from '@common/guards/idp-session.guard';
 import {
-  UseRpcDtoValidation,
-  RpcDtoValidationInterceptor,
-} from '@common/rpc/dto-validation.interceptor';
-import { AuthErrorCode, JsonRpcAuthException } from '@common/rpc/error-codes';
-import { JsonRpcInterceptor } from '@common/rpc/json-rpc.interceptor';
-import { RpcRequestPipe } from '@common/rpc/rpc-request.pipe';
+  UseDtoValidation,
+  DtoValidationInterceptor,
+} from '@common/http/dto-validation.interceptor';
+import { RequestBodyPipe } from '@common/http/request-body.pipe';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import { parseEnum } from '@csisp/utils';
@@ -40,13 +42,12 @@ import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
 /**
  * AuthController 重构：采用声明式路由与拦截器模式
  * - 移除手动的 makeAuthDispatch 映射表
- * - 利用 JsonRpcInterceptor 自动包装响应体
  * - 保持 /api/idp/auth/:action 的路由兼容性
  */
 @ApiIdpController('auth')
 @UseGuards(IdpSessionGuard)
-@UseInterceptors(JsonRpcInterceptor, RpcDtoValidationInterceptor)
-@UseRpcDtoValidation({
+@UseInterceptors(DtoValidationInterceptor)
+@UseDtoValidation({
   login: LoginInternalDto,
   verifyOtp: VerifyOtpDto,
   createExchangeCode: CreateExchangeCodeDto,
@@ -69,19 +70,19 @@ export class AuthController {
 
   @Post('login')
   async login(
-    @Body(RpcRequestPipe) { params }: any,
+    @Body(RequestBodyPipe) params: any,
     @Res({ passthrough: true }) res: Response
   ) {
     return this.service.loginEmailPassword(params as LoginInternalDto, res);
   }
 
   @Post('register')
-  async register(@Body(RpcRequestPipe) { params }: any) {
+  async register(@Body(RequestBodyPipe) params: any) {
     return this.service.register(params as RegisterDto);
   }
 
   @Post('verifySignupOtp')
-  async verifySignupOtp(@Body(RpcRequestPipe) { params }: any) {
+  async verifySignupOtp(@Body(RequestBodyPipe) params: any) {
     const dto = plainToInstance(VerifySignupOtpDto, params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new BadRequestException('Invalid params');
@@ -89,7 +90,7 @@ export class AuthController {
   }
 
   @Post('resendSignupOtp')
-  async resendSignupOtp(@Body(RpcRequestPipe) { params }: any) {
+  async resendSignupOtp(@Body(RequestBodyPipe) params: any) {
     const dto = plainToInstance(ResendSignupOtpDto, params);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) throw new BadRequestException('Invalid params');
@@ -97,18 +98,18 @@ export class AuthController {
   }
 
   @Post('send-otp')
-  async sendOtp(@Body(RpcRequestPipe) _body: any, @Req() req: Request) {
+  async sendOtp(@Body(RequestBodyPipe) _body: any, @Req() req: Request) {
     return this.service.sendOtpStepUp(req);
   }
 
   @Post('verify-otp')
-  async verifyOtp(@Body(RpcRequestPipe) { params }: any, @Req() req: Request) {
+  async verifyOtp(@Body(RequestBodyPipe) params: any, @Req() req: Request) {
     return this.service.verifyOtpStepUp(params as VerifyOtpDto, req);
   }
 
   @Post('createExchangeCode')
   async createExchangeCode(
-    @Body(RpcRequestPipe) { params }: any,
+    @Body(RequestBodyPipe) params: any,
     @Req() req: Request
   ) {
     return this.service.createExchangeCode(
@@ -119,7 +120,7 @@ export class AuthController {
 
   @Post('multifactor')
   async multifactor(
-    @Body(RpcRequestPipe) { params: _params }: any,
+    @Body(RequestBodyPipe) _params: any,
     @Res({ passthrough: true }) _res: Response
   ) {
     throw new JsonRpcAuthException(
@@ -130,14 +131,14 @@ export class AuthController {
   }
 
   @Post('reset_password_request')
-  async resetPasswordRequest(@Body(RpcRequestPipe) { params }: any) {
+  async resetPasswordRequest(@Body(RequestBodyPipe) params: any) {
     return this.service.resetPasswordRequest({
       studentId: String(params.studentId ?? ''),
     });
   }
 
   @Post('reset_password')
-  async resetPassword(@Body(RpcRequestPipe) { params }: any) {
+  async resetPassword(@Body(RequestBodyPipe) params: any) {
     const reasonParsed = parseEnum(
       params.reason,
       ResetReason,
@@ -158,7 +159,7 @@ export class AuthController {
 
   @Post('enter')
   async enter(
-    @Body(RpcRequestPipe) { params }: any,
+    @Body(RequestBodyPipe) params: any,
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response
   ) {
@@ -187,13 +188,13 @@ export class AuthController {
   }
 
   @Post('forgot_init')
-  async forgotInit(@Body(RpcRequestPipe) { params }: any) {
+  async forgotInit(@Body(RequestBodyPipe) params: any) {
     const email = typeof params.email === 'string' ? params.email : '';
     return this.service.forgotInit({ email });
   }
 
   @Post('forgot_challenge')
-  async forgotChallenge(@Body(RpcRequestPipe) { params }: any) {
+  async forgotChallenge(@Body(RequestBodyPipe) params: any) {
     return this.service.forgotChallenge({
       type: String(params.type ?? ''),
       studentId: String(params.studentId ?? ''),
@@ -201,7 +202,7 @@ export class AuthController {
   }
 
   @Post('forgot_verify')
-  async forgotVerify(@Body(RpcRequestPipe) { params }: any) {
+  async forgotVerify(@Body(RequestBodyPipe) params: any) {
     return this.service.forgotVerify({
       type: String(params.type ?? ''),
       studentId: String(params.studentId ?? ''),
@@ -211,7 +212,7 @@ export class AuthController {
 
   @Post('session')
   async session(
-    @Body(RpcRequestPipe) { params }: any,
+    @Body(RequestBodyPipe) params: any,
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response
   ) {

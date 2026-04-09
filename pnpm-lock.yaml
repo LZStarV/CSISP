@@ -231,8 +231,8 @@ importers:
   apps/backend/idp-server:
     dependencies:
       '@csisp-api/idp-server':
-        specifier: 0.1.1
-        version: 0.1.1
+        specifier: 0.1.2
+        version: 0.1.2
       '@csisp/config':
         specifier: workspace:*
         version: link:../../../packages/config
@@ -938,8 +938,8 @@ packages:
       '@types/express': '>=4.0.0 <5.0.0'
       express: '>=4.0.0 <5.0.0'
 
-  '@csisp-api/idp-server@0.1.1':
-    resolution: {integrity: sha512-k2YRm7CaSwGGfFJ8MZjwv0/NpiLdIffkpyDvD8Gt1jBEQbQ596ACns08m6/Od7Lw5SyHMMU0to55fp1smjUA8A==}
+  '@csisp-api/idp-server@0.1.2':
+    resolution: {integrity: sha512-RuNiloqKRaxXuxDeYabW1I/V+chi0dl1vmAhKfHnJcSxbs9AcKaXG5NBfpgXOpEbhsiZecG9jBbpima21c6Dqg==}
 
   '@css-render/plugin-bem@0.15.14':
     resolution: {integrity: sha512-QK513CJ7yEQxm/P3EwsI+d+ha8kSOcjGvD6SevM41neEMxdULE+18iuQK6tEChAWMOQNQPLG/Rw3Khb69r5neg==}
@@ -6582,7 +6582,7 @@ snapshots:
       express: 4.22.1
       zipkin: 0.15.0
 
-  '@csisp-api/idp-server@0.1.1': {}
+  '@csisp-api/idp-server@0.1.2': {}
 
   '@css-render/plugin-bem@0.15.14(css-render@0.15.14)':
     dependencies:
