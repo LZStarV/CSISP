@@ -2,6 +2,56 @@
 
 > 本项目目前由 LZStarV 个人施工，并非真正已上线的官方平台代码仓库。
 
+## 架构简图
+
+```mermaid
+flowchart TB
+    subgraph Frontend["前端应用"]
+        A["idp-client<br/>(React)"]
+        B["portal<br/>(Vue 3)"]
+        C["admin<br/>(Vue 3)"]
+    end
+
+    subgraph BFF["BFF - @csisp/bff<br/>Port: 4000 /api prefix"]
+        D["IDP 代理<br/>(HTTP Proxy)"]
+        E["Portal Demo"]
+        F["Admin Demo"]
+    end
+
+    subgraph Backend["后端服务"]
+        G["idp-server<br/>Port: 4001"]
+        H["integrated-server<br/>(JSON-RPC)"]
+    end
+
+    subgraph Packages["共享包"]
+        I["auth"]
+        J["config"]
+        K["utils"]
+        L["rpc"]
+        M["redis-sdk"]
+        N["supabase-sdk"]
+    end
+
+    subgraph Infra["基础设施"]
+        O["Supabase<br/>(PostgreSQL)"]
+        P["Upstash Redis"]
+        Q["MongoDB<br/>(Optional)"]
+    end
+
+    Frontend -->|"RPC 风格 REST"| BFF
+    BFF --> D
+    BFF --> E
+    BFF --> F
+    D --> G
+    E --> H
+    F --> H
+    G -.-> Packages
+    H -.-> Packages
+    Packages --> O
+    Packages --> P
+    Packages --> Q
+```
+
 ## 环境要求
 
 - **Node.js**：遵循仓库根目录 `.nvmrc`，推荐使用 **24.x** 版本。
@@ -117,10 +167,22 @@ pnpm -F @csisp/docs build
    - VS Code：右下角将换行符切换为 `LF`，并保持 EditorConfig 配置生效。
 3. **如果已经产生了大量“只改换行”的改动且尚未提交**：
    - 确认没有重要未保存的业务代码后，可以使用：
+
    ```bash
    git reset --hard HEAD
    ```
 
    - 然后在新的配置下重新运行必要的格式化命令（如仅对当前修改的文件执行，或依靠 `lint-staged`）。
+
 4. **关于提交影响**：
    - 在这种场景下即使将这些 diff 提交到远端，GitHub 上文件的换行格式仍会保持为 LF，但会新增一次包含大量只改换行变更的提交，增加历史噪声，故不推荐在业务提交中混入这类全局换行修正。
+
+## TODO (未来计划)
+
+本项目处于持续演进中，部分代码正在经历重构。未来的大重构计划包括：
+
+- 移除 `rpc` 子包，重新封装 HTTP 工具用于浏览器-BFF 调用
+- 重构 `auth` 子包，专注 ESM 构建，为前端提供开箱即用的登录组件
+- 提取 `utils` 中的 logger 为独立子包，支持日志审计扩展
+
+完整的待办事项和技术细节请参阅 **[AGENTS.md](./AGENTS.md)**。
