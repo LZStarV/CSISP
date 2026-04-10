@@ -122,6 +122,7 @@ docs/.vitepress/cache
 !.trae/rules/*
 !.trae/skills/
 !.trae/skills/*
+!.trae/mcp.json
 *.swp
 *.swo
 *~
