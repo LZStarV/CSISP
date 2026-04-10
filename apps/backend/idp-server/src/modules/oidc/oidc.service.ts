@@ -1,5 +1,9 @@
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
+import {
+  type ClientInfo,
+  type AuthorizationRequestInfo,
+} from '@csisp-api/idp-server';
 import { RedisPrefix } from '@idp-types/redis';
 import { getIdpLogger } from '@infra/logger';
 import { SupabaseDataAccess } from '@infra/supabase';
@@ -7,20 +11,6 @@ import { Inject, Injectable, BadRequestException } from '@nestjs/common';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
 
 import { OIDCScope } from './helpers/oidc.policy';
-
-interface IClientInfo {
-  client_id: string;
-  name?: string;
-  default_redirect_uri?: string;
-  scopes?: OIDCScope[];
-}
-interface IAuthorizationRequestInfo {
-  client_id: string;
-  client_name: string;
-  scope: OIDCScope[];
-  redirect_uri: string;
-  state: string;
-}
 
 type OidcClientPick = {
   client_id: string;
@@ -53,7 +43,7 @@ export class OidcService {
    */
   async getAuthorizationRequest(
     ticket: string
-  ): Promise<IAuthorizationRequestInfo> {
+  ): Promise<AuthorizationRequestInfo> {
     const req = await this.ticketIssuer.verify(ticket);
     if (!req) throw new BadRequestException('Invalid ticket');
 
@@ -71,9 +61,11 @@ export class OidcService {
         .split(' ')
         .filter(Boolean)
         .map(s => {
-          if (s === 'profile') return OIDCScope.Profile;
-          if (s === 'email') return OIDCScope.Email;
-          return OIDCScope.Openid;
+          if (s === 'profile')
+            return 'profile' as AuthorizationRequestInfo.ScopeEnum;
+          if (s === 'email')
+            return 'email' as AuthorizationRequestInfo.ScopeEnum;
+          return 'openid' as AuthorizationRequestInfo.ScopeEnum;
         }),
       redirect_uri: req.redirect_uri,
       state: req.state,
@@ -94,7 +86,7 @@ export class OidcService {
     );
   }
 
-  async listClients(): Promise<IClientInfo[]> {
+  async listClients(): Promise<ClientInfo[]> {
     type ClientPick = OidcClientPick;
     logger.info('listClients started');
     const { data: rows2 } = await this.sda
@@ -104,9 +96,11 @@ export class OidcService {
     const list = (rows2 ?? []) as ClientPick[];
     logger.info({ count: list.length }, 'Clients fetched');
     return list.map(r => {
-      let scopes: OIDCScope[] = [];
+      let scopes: ClientInfo.ScopesEnum[] = [];
       if (Array.isArray(r.scopes)) {
-        scopes = r.scopes as OIDCScope[];
+        scopes = (r.scopes as OIDCScope[]).map(
+          s => s as unknown as ClientInfo.ScopesEnum
+        );
       }
       const uris = Array.isArray(r.allowed_redirect_uris)
         ? r.allowed_redirect_uris

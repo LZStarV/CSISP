@@ -1,6 +1,7 @@
+import { CreateExchangeCodeDto as GeneratedCreateExchangeCodeDto } from '@csisp-api/idp-server';
 import { IsOptional, IsString, Length } from 'class-validator';
 
-export class CreateExchangeCodeDto {
+export class CreateExchangeCodeDto implements GeneratedCreateExchangeCodeDto {
   @IsString()
   @Length(1, 128)
   app_id!: string;

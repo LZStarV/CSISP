@@ -435,11 +435,11 @@ await fetch('/api/idp/auth/login-internal', {
 
 ### 6.3 演进计划 (@csisp-api)
 
-正在将手写接口替换为 `@csisp-api` 包的可复用接口代码:
+正在将手写接口替换为 `@csisp-api` 自动生成的接口代码（采用“发双包”策略）:
 
-1. **idp-server** 首先使用 `@csisp-api/idp-server` (npm) 定义接口
-2. **BFF** 复用相同代码调用后端
-3. **前端** 未来计划使用封装方法调用 BFF
+1. **idp-server (服务端)**: 使用 `@csisp-api/idp-server` 包（通过 `typescript-nestjs-server` 生成），提供带验证装饰器的 DTO 与 Controller 接口骨架。
+2. **BFF (客户端)**: 使用另一个客户端 SDK 包（通过 `typescript-nestjs` 生成），基于 NestJS HttpModule 实现对后端的强类型调用。
+3. **前端 (浏览器)**: 独立封装 fetch 等工具调用 BFF，不依赖上述 npm 包。
 
 ---
 
@@ -478,12 +478,14 @@ pnpm run db:reset:local # 重置本地
 
 ### 8.2 当前待办
 
-| 序号 | 任务                     | 说明                                     |
-| ---- | ------------------------ | ---------------------------------------- |
-| 1    | 完善 idp-server 接口改造 | 移除 JSON-RPC 相关描述，重构代码实现逻辑 |
-| 2    | 清理 OpenAPI 数据模型    | 清理直到与现有 idp-server 代码完全贴合   |
-| 3    | 清理未使用接口与旧逻辑   | 移除手写实现中已由 Supabase 替代的旧代码 |
-| 4    | 限制 idp-server 使用范围 | idp-server 代码仅供 idp-client 使用      |
+| 序号 | 任务                         | 说明                                                                            |
+| ---- | ---------------------------- | ------------------------------------------------------------------------------- |
+| 1    | ~~完善 idp-server 接口改造~~ | [已完成] 移除 JSON-RPC 相关描述，重构代码实现逻辑                               |
+| 2    | ~~清理 OpenAPI 数据模型~~    | [已完成] 清理直到与现有 idp-server 代码完全贴合                                 |
+| 3    | ~~清理未使用接口与旧逻辑~~   | [已完成] 移除手写实现中已由 Supabase 替代的旧代码                               |
+| 4    | 限制 idp-server 使用范围     | idp-server 代码仅供 idp-client 使用                                             |
+| 5    | [TODO] 桥接 Request 类型     | 处理 nestjs-server 生成代码里的 Request 类型与 Express Request 的桥接问题       |
+| 6    | [TODO] BFF 接入 idp SDK      | 在 BFF 层接入 `@csisp-api/bff-idp-server`，实现对 idp-server 的强类型 HTTP 调用 |
 
 ---
 

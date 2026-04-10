@@ -1,35 +1,19 @@
 import { ApiIdpController } from '@common/decorators/controller.decorator';
-import {
-  AuthErrorCode,
-  JsonRpcAuthException,
-} from '@common/errors/auth-error-codes';
 import { IdpSessionGuard } from '@common/guards/idp-session.guard';
-import {
-  UseDtoValidation,
-  DtoValidationInterceptor,
-} from '@common/http/dto-validation.interceptor';
 import { RequestBodyPipe } from '@common/http/request-body.pipe';
-import type { RedisKV } from '@csisp/redis-sdk';
-import { REDIS_KV } from '@csisp/redis-sdk/nest';
-import { parseEnum } from '@csisp/utils';
-import { RedisPrefix } from '@idp-types/redis';
-import { ResetReason } from '@modules/auth/enums';
-import { Inject } from '@nestjs/common';
-import { BadRequestException } from '@nestjs/common';
-import {
-  Body,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-  UseInterceptors,
-} from '@nestjs/common';
-import { HttpStatus } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
-import { validateSync } from 'class-validator';
-import type { Response, Request } from 'express';
+import type {
+  AuthEnterRequest,
+  AuthForgotChallengeRequest,
+  AuthForgotInitRequest,
+  AuthForgotVerifyRequest,
+  AuthMultifactorRequest,
+  AuthSessionRequest,
+} from '@csisp-api/idp-server';
+import { UseGuards } from '@nestjs/common';
+import { Body, Post, Req, Res } from '@nestjs/common';
+import type { Request as ExpressRequest, Response } from 'express';
 
-import { AuthService } from './auth.service';
+import { AuthApiImpl } from './auth-api.impl';
 import { CreateExchangeCodeDto } from './dto/create-exchange-code.dto';
 import { EnterDto } from './dto/enter.dto';
 import { LoginInternalDto } from './dto/login-internal.dto';
@@ -40,194 +24,248 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
 
 /**
- * AuthController 重构：采用声明式路由与拦截器模式
- * - 移除手动的 makeAuthDispatch 映射表
+ * AuthController 实现：采用纯 REST 接口契约
+ * - 实现由 OpenAPI 生成的 AuthApi 抽象类
  * - 保持 /api/idp/auth/:action 的路由兼容性
  */
 @ApiIdpController('auth')
 @UseGuards(IdpSessionGuard)
-@UseInterceptors(DtoValidationInterceptor)
-@UseDtoValidation({
-  login: LoginInternalDto,
-  verifyOtp: VerifyOtpDto,
-  createExchangeCode: CreateExchangeCodeDto,
-  resetPassword: ResetPasswordDto,
-  enter: EnterDto,
-  register: RegisterDto,
-  verifySignupOtp: VerifySignupOtpDto,
-  resendSignupOtp: ResendSignupOtpDto,
-})
 export class AuthController {
-  constructor(
-    private readonly service: AuthService,
-    @Inject(REDIS_KV) private readonly kv: RedisKV
-  ) {}
+  constructor(private readonly authApi: AuthApiImpl) {}
+
+  private getTraceId(request: ExpressRequest): string | undefined {
+    const traceIdHeader = request.headers['x-trace-id'];
+    return typeof traceIdHeader === 'string' ? traceIdHeader : undefined;
+  }
+
+  private toContractRequest(request: ExpressRequest): Request {
+    return request as unknown as Request;
+  }
 
   @Post('rsatoken')
-  async rsatoken() {
-    return this.service.rsatoken({});
+  async authRsatoken(@Req() request: ExpressRequest) {
+    return this.authApi.authRsatoken(
+      { xTraceId: this.getTraceId(request) },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('login')
-  async login(
-    @Body(RequestBodyPipe) params: any,
-    @Res({ passthrough: true }) res: Response
+  async authLogin(
+    @Body(RequestBodyPipe) loginInternalDto: LoginInternalDto,
+    @Res({ passthrough: true }) _response: Response,
+    @Req() request: ExpressRequest
   ) {
-    return this.service.loginEmailPassword(params as LoginInternalDto, res);
+    return this.authApi.authLogin(
+      {
+        loginInternalDto,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('register')
-  async register(@Body(RequestBodyPipe) params: any) {
-    return this.service.register(params as RegisterDto);
+  async authRegister(
+    @Body(RequestBodyPipe) registerDto: RegisterDto,
+    @Req() request: ExpressRequest
+  ) {
+    return this.authApi.authRegister(
+      {
+        registerDto,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('verifySignupOtp')
-  async verifySignupOtp(@Body(RequestBodyPipe) params: any) {
-    const dto = plainToInstance(VerifySignupOtpDto, params);
-    const errs = validateSync(dto, { whitelist: true });
-    if (errs.length) throw new BadRequestException('Invalid params');
-    return this.service.verifySignupOtp(dto as any);
+  async authVerifySignupOtp(
+    @Body(RequestBodyPipe) verifySignupOtpDto: VerifySignupOtpDto,
+    @Req() request: ExpressRequest
+  ) {
+    return this.authApi.authVerifySignupOtp(
+      {
+        verifySignupOtpDto,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('resendSignupOtp')
-  async resendSignupOtp(@Body(RequestBodyPipe) params: any) {
-    const dto = plainToInstance(ResendSignupOtpDto, params);
-    const errs = validateSync(dto, { whitelist: true });
-    if (errs.length) throw new BadRequestException('Invalid params');
-    return this.service.resendSignupOtp(dto as any);
+  async authResendSignupOtp(
+    @Body(RequestBodyPipe) resendSignupOtpDto: ResendSignupOtpDto,
+    @Req() request: ExpressRequest
+  ) {
+    return this.authApi.authResendSignupOtp(
+      {
+        resendSignupOtpDto,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('send-otp')
-  async sendOtp(@Body(RequestBodyPipe) _body: any, @Req() req: Request) {
-    return this.service.sendOtpStepUp(req);
+  async authSendOtp(@Req() request: ExpressRequest) {
+    return this.authApi.authSendOtp(
+      { xTraceId: this.getTraceId(request) },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('verify-otp')
-  async verifyOtp(@Body(RequestBodyPipe) params: any, @Req() req: Request) {
-    return this.service.verifyOtpStepUp(params as VerifyOtpDto, req);
+  async authVerifyOtp(
+    @Body(RequestBodyPipe) verifyOtpDto: VerifyOtpDto,
+    @Req() request: ExpressRequest
+  ) {
+    return this.authApi.authVerifyOtp(
+      {
+        verifyOtpDto,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('createExchangeCode')
-  async createExchangeCode(
-    @Body(RequestBodyPipe) params: any,
-    @Req() req: Request
+  async authCreateExchangeCode(
+    @Body(RequestBodyPipe) createExchangeCodeDto: CreateExchangeCodeDto,
+    @Req() request: ExpressRequest
   ) {
-    return this.service.createExchangeCode(
-      params as CreateExchangeCodeDto,
-      req
+    return this.authApi.authCreateExchangeCode(
+      {
+        createExchangeCodeDto,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
     );
   }
 
   @Post('multifactor')
-  async multifactor(
-    @Body(RequestBodyPipe) _params: any,
-    @Res({ passthrough: true }) _res: Response
+  async authMultifactor(
+    @Body(RequestBodyPipe) authMultifactorRequest: AuthMultifactorRequest,
+    @Req() request: ExpressRequest
   ) {
-    throw new JsonRpcAuthException(
-      AuthErrorCode.UNAUTHORIZED,
-      'Not implemented',
-      HttpStatus.NOT_IMPLEMENTED
+    return this.authApi.authMultifactor(
+      {
+        authMultifactorRequest,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
     );
   }
 
   @Post('reset_password_request')
-  async resetPasswordRequest(@Body(RequestBodyPipe) params: any) {
-    return this.service.resetPasswordRequest({
-      studentId: String(params.studentId ?? ''),
-    });
+  async authResetPasswordRequest(
+    @Body(RequestBodyPipe) resetPasswordRequestParams: object,
+    @Req() request: ExpressRequest
+  ) {
+    const typedParams = resetPasswordRequestParams as {
+      studentId?: string;
+    };
+    return this.authApi.authResetPasswordRequest(
+      {
+        resetPasswordRequestParams: { studentId: typedParams.studentId ?? '' },
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('reset_password')
-  async resetPassword(@Body(RequestBodyPipe) params: any) {
-    const reasonParsed = parseEnum(
-      params.reason,
-      ResetReason,
-      ResetReason.WeakPassword
+  async authResetPassword(
+    @Body(RequestBodyPipe) resetPasswordDto: ResetPasswordDto,
+    @Req() request: ExpressRequest
+  ) {
+    return this.authApi.authResetPassword(
+      {
+        resetPasswordDto,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
     );
-    const dto = plainToInstance(ResetPasswordDto, {
-      studentId: params.studentId,
-      newPassword: params.newPassword,
-      resetToken: params.resetToken,
-    });
-    const errs = validateSync(dto, { whitelist: true });
-    if (errs.length) throw new BadRequestException('Invalid params');
-    return this.service.resetPassword({
-      ...dto,
-      reason: reasonParsed,
-    });
   }
 
   @Post('enter')
-  async enter(
-    @Body(RequestBodyPipe) params: any,
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response
+  async authEnter(
+    @Body(RequestBodyPipe) enterDto: EnterDto,
+    @Req() request: ExpressRequest,
+    @Res({ passthrough: true }) _response: Response
   ) {
-    type IdpRequest = Request & { idpUserId?: number };
-    const uid = (request as IdpRequest).idpUserId;
-    const dto = plainToInstance(EnterDto, {
-      state: params.state,
-      ticket: params.ticket,
-      studentId: params.studentId,
-      redirectMode:
-        typeof params.redirectMode === 'string'
-          ? (params.redirectMode as string)
-          : undefined,
-    });
-    const errs = validateSync(dto, { whitelist: true });
-    if (errs.length) throw new BadRequestException('Invalid params');
-    return this.service.enter(dto as any, response, uid);
+    return this.authApi.authEnter(
+      {
+        authEnterRequest: enterDto as AuthEnterRequest,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('mfa_methods')
-  async mfaMethods(@Req() request: Request) {
-    type IdpRequest = Request & { idpSession?: string };
-    const sid = (request as IdpRequest).idpSession;
-    const list = await this.service.mfaMethodsBySession(sid);
-    return { multifactor: list };
+  async authMfaMethods(@Req() request: ExpressRequest) {
+    return this.authApi.authMfaMethods(
+      { xTraceId: this.getTraceId(request) },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('forgot_init')
-  async forgotInit(@Body(RequestBodyPipe) params: any) {
-    const email = typeof params.email === 'string' ? params.email : '';
-    return this.service.forgotInit({ email });
+  async authForgotInit(
+    @Body(RequestBodyPipe) authForgotInitRequest: AuthForgotInitRequest,
+    @Req() request: ExpressRequest
+  ) {
+    return this.authApi.authForgotInit(
+      {
+        authForgotInitRequest,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('forgot_challenge')
-  async forgotChallenge(@Body(RequestBodyPipe) params: any) {
-    return this.service.forgotChallenge({
-      type: String(params.type ?? ''),
-      studentId: String(params.studentId ?? ''),
-    });
+  async authForgotChallenge(
+    @Body(RequestBodyPipe)
+    authForgotChallengeRequest: AuthForgotChallengeRequest,
+    @Req() request: ExpressRequest
+  ) {
+    return this.authApi.authForgotChallenge(
+      {
+        authForgotChallengeRequest,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('forgot_verify')
-  async forgotVerify(@Body(RequestBodyPipe) params: any) {
-    return this.service.forgotVerify({
-      type: String(params.type ?? ''),
-      studentId: String(params.studentId ?? ''),
-      code: String(params.code ?? ''),
-    });
+  async authForgotVerify(
+    @Body(RequestBodyPipe) authForgotVerifyRequest: AuthForgotVerifyRequest,
+    @Req() request: ExpressRequest
+  ) {
+    return this.authApi.authForgotVerify(
+      {
+        authForgotVerifyRequest,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 
   @Post('session')
-  async session(
-    @Body(RequestBodyPipe) params: any,
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response
+  async authSession(
+    @Body(RequestBodyPipe) authSessionRequest: AuthSessionRequest,
+    @Req() request: ExpressRequest,
+    @Res({ passthrough: true }) _response: Response
   ) {
-    type IdpRequest = Request & { idpUserId?: number; idpSession?: string };
-    const req = request as IdpRequest;
-    const logout = !!params?.logout;
-    const sid = req.idpSession;
-    if (logout && sid) {
-      try {
-        await this.kv.del(`${RedisPrefix.IdpSession}${sid}`);
-      } catch {}
-      response.clearCookie?.('idp_session');
-      return { logged: false };
-    }
-    const uid = req.idpUserId;
-    return this.service.session(uid);
+    return this.authApi.authSession(
+      {
+        authSessionRequest,
+        xTraceId: this.getTraceId(request),
+      },
+      this.toContractRequest(request)
+    );
   }
 }

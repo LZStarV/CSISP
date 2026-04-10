@@ -10,10 +10,9 @@
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
-    "@csisp-api/idp-server": "0.1.3",
+    "@csisp-api/idp-server": "0.2.0",
     "@csisp/config": "workspace:*",
     "@csisp/redis-sdk": "workspace:*",
-    "@csisp/rpc": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@nestjs/common": "catalog:node",
     "@nestjs/core": "catalog:node",

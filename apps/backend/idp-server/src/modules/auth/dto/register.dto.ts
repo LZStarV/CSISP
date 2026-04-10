@@ -1,3 +1,4 @@
+import { RegisterDto as GeneratedRegisterDto } from '@csisp-api/idp-server';
 import {
   IsEmail,
   IsOptional,
@@ -6,7 +7,7 @@ import {
   Matches,
 } from 'class-validator';
 
-export class RegisterDto {
+export class RegisterDto implements GeneratedRegisterDto {
   @IsEmail()
   @Length(5, 256)
   email!: string;

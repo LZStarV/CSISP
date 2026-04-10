@@ -7,6 +7,18 @@ import {
 import { config } from '@config';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
+import {
+  AuthNextStep,
+  RSATokenResult,
+  AuthForgotInitResult,
+  RecoveryMethod,
+  RecoveryUnavailableReason,
+  AuthForgotVerifyResult,
+  AuthSessionResult,
+  NextResult,
+  IMethod,
+  MFAType,
+} from '@csisp-api/idp-server';
 import { RedisPrefix } from '@idp-types/redis';
 import { hashPasswordScrypt } from '@infra/crypto/password';
 import { getPublicKey } from '@infra/crypto/rsa';
@@ -33,19 +45,6 @@ import { LoginInternalDto } from './dto/login-internal.dto';
 import { MultifactorDto } from './dto/multifactor.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import {
-  Next,
-  MFAType,
-  IMethod,
-  AuthNextStep,
-  RSATokenResult,
-  ResetReason,
-  RecoveryInitResult,
-  RecoveryMethod,
-  VerifyResult,
-  RecoveryUnavailableReason,
-  SessionResult,
-} from './enums';
 
 type MfaSettingsPick = {
   sms_enabled: boolean | null;
@@ -104,7 +103,9 @@ export class AuthService {
   /**
    * 注册：邮箱+密码+学号（学号临时缓存，确认后通过验证码写入业务用户表）
    */
-  async register(dto: RegisterDto): Promise<{ ok: true; next: string }> {
+  async register(
+    dto: RegisterDto
+  ): Promise<{ ok: true; next: 'verify_email' }> {
     await this.gotrue.signUp({
       email: dto.email,
       password: dto.password,
@@ -350,9 +351,9 @@ export class AuthService {
    * 创建一次性 exchange_code
    */
   async createExchangeCode(
-    dto: { app_id: string; redirect_uri: string; state?: string },
+    dto: { app_id: string; redirect_uri: string; state?: string | null },
     req: Request
-  ): Promise<{ code: string; redirect_uri: string; state?: string }> {
+  ): Promise<{ code: string; redirect_uri: string; state?: string | null }> {
     const logger = getIdpBaseLogger().child({ module: 'auth' });
     const sid = (req as any).cookies?.idp_stepup as string | undefined;
     if (!sid) {
@@ -454,9 +455,9 @@ export class AuthService {
     id: number;
   }): Promise<{ mfa: IMethod[]; requiresMfa: boolean }> {
     const mfa: IMethod[] = [
-      { type: MFAType.Email, enabled: false },
-      { type: MFAType.Fido2, enabled: false },
-      { type: MFAType.Otp, enabled: false },
+      { type: MFAType.NUMBER_1, enabled: false },
+      { type: MFAType.NUMBER_2, enabled: false },
+      { type: MFAType.NUMBER_3, enabled: false },
     ];
 
     type MfaPick = MfaSettingsPick;
@@ -479,9 +480,9 @@ export class AuthService {
 
     return {
       mfa: [
-        { type: MFAType.Email, enabled: !!mfaSettings.email_enabled },
-        { type: MFAType.Fido2, enabled: !!mfaSettings.fido2_enabled },
-        { type: MFAType.Otp, enabled: !!mfaSettings.otp_enabled },
+        { type: MFAType.NUMBER_1, enabled: !!mfaSettings.email_enabled },
+        { type: MFAType.NUMBER_2, enabled: !!mfaSettings.fido2_enabled },
+        { type: MFAType.NUMBER_3, enabled: !!mfaSettings.otp_enabled },
       ],
       requiresMfa: false,
     };
@@ -503,11 +504,14 @@ export class AuthService {
    * - codeOrAssertion 非 6 位数字视为请求验证码
    * - 6 位数字视为校验验证码，成功则建立会话并进入 enter
    */
-  async multifactor(_params: MultifactorDto, _res?: Response): Promise<Next> {
+  async multifactor(
+    _params: MultifactorDto,
+    _res?: Response
+  ): Promise<NextResult> {
     throw new HttpException('Multifactor is not implemented', 501);
   }
 
-  async session(uid?: number): Promise<SessionResult> {
+  async session(uid?: number): Promise<AuthSessionResult> {
     if (!uid) return { logged: false };
     type UserPick = {
       id: number;
@@ -528,7 +532,7 @@ export class AuthService {
   }
 
   // 忘记密码：初始化
-  async forgotInit(params: { email: string }): Promise<RecoveryInitResult> {
+  async forgotInit(params: { email: string }): Promise<AuthForgotInitResult> {
     const email = String(params.email ?? '').trim();
     type UserPick = {
       id: number;
@@ -562,9 +566,9 @@ export class AuthService {
     // SMS
     {
       const enabled = false;
-      const reason = RecoveryUnavailableReason.NotImplemented;
+      const reason = RecoveryUnavailableReason.NUMBER_3;
       methods.push({
-        type: MFAType.Sms,
+        type: MFAType.NUMBER_0,
         enabled,
         extra: boundPhone ?? undefined,
         reason,
@@ -575,12 +579,12 @@ export class AuthService {
       const boundEmail = user.email ?? null;
       const enabled = !!cfg?.email_enabled && !!boundEmail;
       const reason = !cfg?.email_enabled
-        ? RecoveryUnavailableReason.MethodDisabled
+        ? RecoveryUnavailableReason.NUMBER_2
         : !boundEmail
-          ? RecoveryUnavailableReason.NotBoundEmail
-          : RecoveryUnavailableReason.NotImplemented;
+          ? RecoveryUnavailableReason.NUMBER_1
+          : RecoveryUnavailableReason.NUMBER_3;
       methods.push({
-        type: MFAType.Email,
+        type: MFAType.NUMBER_1,
         enabled: enabled && false,
         extra: boundEmail ?? undefined,
         reason,
@@ -588,14 +592,14 @@ export class AuthService {
     }
     // 其他未实现
     methods.push({
-      type: MFAType.Fido2,
+      type: MFAType.NUMBER_2,
       enabled: false,
-      reason: RecoveryUnavailableReason.NotImplemented,
+      reason: RecoveryUnavailableReason.NUMBER_3,
     });
     methods.push({
-      type: MFAType.Otp,
+      type: MFAType.NUMBER_3,
       enabled: false,
-      reason: RecoveryUnavailableReason.NotImplemented,
+      reason: RecoveryUnavailableReason.NUMBER_3,
     });
     return {
       student_id: user.student_id ?? '',
@@ -608,7 +612,7 @@ export class AuthService {
   async forgotChallenge(_params: {
     type: string;
     studentId: string;
-  }): Promise<Next> {
+  }): Promise<NextResult> {
     throw new HttpException('Recovery via SMS not implemented', 501);
   }
 
@@ -617,7 +621,7 @@ export class AuthService {
     type: string;
     studentId: string;
     code: string;
-  }): Promise<VerifyResult> {
+  }): Promise<AuthForgotVerifyResult> {
     throw new HttpException('Recovery via SMS not implemented', 501);
   }
   /**
@@ -625,9 +629,7 @@ export class AuthService {
    * - 使用 scrypt 生成新密码哈希并写入数据库
    * - 成功后进入多因子校验
    */
-  async resetPassword(
-    _params: ResetPasswordDto & { reason: ResetReason }
-  ): Promise<Next> {
+  async resetPassword(_params: ResetPasswordDto): Promise<NextResult> {
     type UserPick = { id: number; student_id: string | null };
     const { data: user } = await this.sda
       .service()
@@ -653,10 +655,12 @@ export class AuthService {
     // 标记令牌失效（消费令牌）
     await this.resetTicketIssuer.consume(_params.resetToken);
     // 改密成功后直接进入后续流程
-    return { nextSteps: [AuthNextStep.Enter] };
+    return { nextSteps: [AuthNextStep.NUMBER_2] };
   }
 
-  async resetPasswordRequest(_params: { studentId: string }): Promise<Next> {
+  async resetPasswordRequest(_params: {
+    studentId: string;
+  }): Promise<NextResult> {
     throw new HttpException('Reset password via SMS not implemented', 501);
   }
 
@@ -669,7 +673,7 @@ export class AuthService {
     params: EnterDto,
     res?: Response,
     uidFromSess?: number
-  ): Promise<Next> {
+  ): Promise<NextResult> {
     const ticket = params.ticket;
     let state = params.state;
     let auth: any = null;
@@ -729,7 +733,7 @@ export class AuthService {
     }
 
     if (!auth) {
-      return { nextSteps: [AuthNextStep.Finish] };
+      return { nextSteps: [AuthNextStep.NUMBER_3] };
     }
 
     if (uid === null || uid === undefined) {
@@ -751,9 +755,9 @@ export class AuthService {
     const redirectTo = `${auth.redirect_uri}?code=${code}&state=${encodeURIComponent(String(state || ''))}`;
     if (res && params.redirectMode === 'http') {
       res.redirect(302, redirectTo);
-      return { nextSteps: [AuthNextStep.Finish] };
+      return { nextSteps: [AuthNextStep.NUMBER_3] };
     }
-    return { nextSteps: [AuthNextStep.Finish], redirectTo };
+    return { nextSteps: [AuthNextStep.NUMBER_3], redirectTo };
   }
 
   /**
