@@ -489,17 +489,6 @@ export class AuthService {
   }
 
   /**
-   * 获取 RSA 公钥与一次性标识
-   * - 用于前端进行密码加密传输
-   */
-  async rsatoken(_params: RpcParams): Promise<RSATokenResult> {
-    // 返回 RSA 公钥与短时 token，供前端进行密码加密传输
-    return {
-      publicKey: getPublicKey(),
-      token: `rsat-${Date.now()}`,
-    };
-  }
-  /**
    * 多因子认证（短信最小闭环）
    * - codeOrAssertion 非 6 位数字视为请求验证码
    * - 6 位数字视为校验验证码，成功则建立会话并进入 enter
@@ -656,12 +645,6 @@ export class AuthService {
     await this.resetTicketIssuer.consume(_params.resetToken);
     // 改密成功后直接进入后续流程
     return { nextSteps: [AuthNextStep.NUMBER_2] };
-  }
-
-  async resetPasswordRequest(_params: {
-    studentId: string;
-  }): Promise<NextResult> {
-    throw new HttpException('Reset password via SMS not implemented', 501);
   }
 
   /**

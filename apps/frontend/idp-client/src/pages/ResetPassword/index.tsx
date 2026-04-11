@@ -54,7 +54,7 @@ export function ResetPassword() {
       const resetToken =
         tokenFromQuery ?? tokenFromState ?? tokenFromStorage ?? '';
       if (!resetToken) throw new Error('缺少重置令牌，请重新进行验证');
-      const res = await authCall<Next>('auth/reset_password', {
+      const res = await authCall<Next>('reset_password', {
         studentId,
         newPassword: newPwd,
         reason: 'ForgetPassword',

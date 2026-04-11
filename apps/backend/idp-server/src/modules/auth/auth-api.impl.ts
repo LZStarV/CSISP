@@ -36,6 +36,14 @@ import { RegisterDto } from './dto/register.dto';
 
 type IdpRequest = ExpressRequest & { idpUserId?: number; idpSession?: string };
 
+/**
+ * AuthApi 契约实现（适配器层）
+ *
+ * 作用：
+ * 1. 实现 @csisp-api/idp-server 生成的 AuthApi 抽象类，对接底层 AuthService 业务逻辑。
+ * 2. 作为 Controller 和 Service 之间的防腐层，处理自动生成的 OpenAPI 模型与本地 DTO 的映射。
+ * 3. 解决 Request 类型桥接问题：将生成的全局 Request 安全还原为 NestJS 实际注入的 ExpressRequest，以便 Service 层能够访问 req.res 等特有属性。
+ */
 @Injectable()
 export class AuthApiImpl implements AuthApi {
   constructor(
@@ -157,21 +165,17 @@ export class AuthApiImpl implements AuthApi {
   }
 
   async authResetPasswordRequest(
-    requestParams: AuthResetPasswordRequestRequestParams,
+    _requestParams: AuthResetPasswordRequestRequestParams,
     _request: Request
-  ) {
-    return this.service.resetPasswordRequest({
-      studentId: String(
-        requestParams.resetPasswordRequestParams.studentId ?? ''
-      ),
-    });
+  ): Promise<any> {
+    throw new InternalServerErrorException('Not implemented');
   }
 
   async authRsatoken(
     _requestParams: AuthRsatokenRequestParams,
     _request: Request
-  ) {
-    return this.service.rsatoken({});
+  ): Promise<any> {
+    throw new InternalServerErrorException('Not implemented');
   }
 
   async authSendOtp(
@@ -231,6 +235,11 @@ export class AuthApiImpl implements AuthApi {
     } catch {}
   }
 
+  /**
+   * Request 类型桥接（还原端）
+   * 将契约传递过来的伪全局 Request 类型安全地还原为真实的 ExpressRequest。
+   * 这允许底层的 Service 层正常访问 `req.res` 等 Express 的特有属性（例如操作 Cookie）。
+   */
   private toExpressRequest(request: Request): ExpressRequest {
     return request as unknown as ExpressRequest;
   }

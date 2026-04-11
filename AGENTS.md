@@ -22,7 +22,7 @@ CSISP/
 ├── apps/
 │   ├── backend/
 │   │   ├── idp-server/        # 身份认证服务 (NestJS)
-│   │   └── integrated-server/ # 主业务服务 (NestJS, JSON-RPC)
+│   │   └── integrated-server/ # 主业务服务 (NestJS, RPC 风格 RESTful API)
 │   ├── bff/                  # Backend-for-Frontend (NestJS, HTTP Proxy)
 │   └── frontend/
 │       ├── idp-client/      # IDP 登录页 (React + Ant Design)
@@ -34,7 +34,7 @@ CSISP/
 │   ├── utils/              # 工具库 (Pino logger)
 │   ├── redis-sdk/         # Upstash Redis 适配
 │   ├── supabase-sdk/      # Supabase 客户端
-│   └── rpc/               # RPC 框架 (Thrift + JSON-RPC)
+│   └── rpc/               # RPC 框架 (Thrift + RPC 风格 RESTful API)
 ├── supabase/               # 数据库迁移 (PostgreSQL)
 └── docs/                   # VitePress 文档
 ```
@@ -80,17 +80,15 @@ CSISP/
 | -------- | ----------------------------------------------------------------------------------------- |
 | 路径     | `apps/backend/integrated-server`                                                          |
 | 框架     | NestJS                                                                                    |
-| 协议     | OpenRPC (JSON-RPC 2.0)                                                                    |
+| 协议     | OpenAPI (RPC 风格 RESTful API)                                                            |
 | 命名规范 | `Domain.Action` (如 `health.ping`)                                                        |
 | 数据库   | MongoDB (Mongoose) / PostgreSQL (Sequelize)                                               |
 | 依赖     | `@csisp/auth`, `@csisp/config`, `@csisp/redis-sdk`, `@csisp/supabase-sdk`, `@csisp/utils` |
 
 **核心模块**:
 
-- `common/rpc/` - JSON-RPC 基础设施
+- `common/rpc/` - HTTP 基础设施
 - `modules/health/` - 健康检查
-
-**说明**: 目前使用 JSON-RPC 2.0 风格，是旧版服务间通信模式。未来可能统一为 HTTP REST。
 
 ---
 
@@ -264,7 +262,7 @@ const authCall = <T>(action: string, params?: unknown) =>
 
 ---
 
-### 3.6 @csisp/rpc (RPC 框架)
+### 3.6 @csisp/rpc (RPC 框架)（未来将被移除）
 
 | 导出              | 用途                             |
 | ----------------- | -------------------------------- |
@@ -303,7 +301,7 @@ flowchart TB
 
     subgraph Backend["后端服务"]
         G["idp-server<br/>Port: 4001<br/>@csisp-api/*"]
-        H["integrated-server<br/>(JSON-RPC)"]
+        H["integrated-server<br/>(RPC 风格 RESTful API)"]
     end
 
     subgraph Packages["共享包"]

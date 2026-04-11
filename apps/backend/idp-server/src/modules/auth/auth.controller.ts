@@ -38,16 +38,13 @@ export class AuthController {
     return typeof traceIdHeader === 'string' ? traceIdHeader : undefined;
   }
 
+  /**
+   * Request 类型桥接（伪装端）
+   * 将 NestJS 实际注入的 ExpressRequest 强转为 OpenAPI 契约要求的全局 Request 类型。
+   * 解决 typescript-nestjs-server 生成的标准 Web Request 类型与 Express 特性需求之间的编译期类型冲突。
+   */
   private toContractRequest(request: ExpressRequest): Request {
     return request as unknown as Request;
-  }
-
-  @Post('rsatoken')
-  async authRsatoken(@Req() request: ExpressRequest) {
-    return this.authApi.authRsatoken(
-      { xTraceId: this.getTraceId(request) },
-      this.toContractRequest(request)
-    );
   }
 
   @Post('login')
@@ -151,23 +148,6 @@ export class AuthController {
     return this.authApi.authMultifactor(
       {
         authMultifactorRequest,
-        xTraceId: this.getTraceId(request),
-      },
-      this.toContractRequest(request)
-    );
-  }
-
-  @Post('reset_password_request')
-  async authResetPasswordRequest(
-    @Body(RequestBodyPipe) resetPasswordRequestParams: object,
-    @Req() request: ExpressRequest
-  ) {
-    const typedParams = resetPasswordRequestParams as {
-      studentId?: string;
-    };
-    return this.authApi.authResetPasswordRequest(
-      {
-        resetPasswordRequestParams: { studentId: typedParams.studentId ?? '' },
         xTraceId: this.getTraceId(request),
       },
       this.toContractRequest(request)
