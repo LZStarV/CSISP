@@ -9,7 +9,6 @@ import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import {
   AuthNextStep,
-  RSATokenResult,
   AuthForgotInitResult,
   RecoveryMethod,
   RecoveryUnavailableReason,
@@ -21,7 +20,6 @@ import {
 } from '@csisp-api/idp-server';
 import { RedisPrefix } from '@idp-types/redis';
 import { hashPasswordScrypt } from '@infra/crypto/password';
-import { getPublicKey } from '@infra/crypto/rsa';
 import { getIdpLogger } from '@infra/logger';
 import { getIdpBaseLogger } from '@infra/logger';
 import { ExchangeStore } from '@infra/redis/exchange.store';
@@ -54,8 +52,6 @@ type MfaSettingsPick = {
   phone_number: string | null;
   required: boolean | null;
 };
-
-type RpcParams = Record<string, any>;
 
 /**
  * 认证服务

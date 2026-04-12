@@ -1,4 +1,3 @@
-import { IdpAuthModule } from '@csisp/auth/server';
 import { RedisModule } from '@csisp/redis-sdk/nest';
 import { SupabaseModule } from '@csisp/supabase-sdk';
 import { Module } from '@nestjs/common';
@@ -11,7 +10,6 @@ import { config } from './config';
 
 @Module({
   imports: [
-    IdpAuthModule.register(),
     SupabaseModule.register({
       url: config.supabase.url,
       serviceRoleKey: config.supabase.serviceRoleKey,

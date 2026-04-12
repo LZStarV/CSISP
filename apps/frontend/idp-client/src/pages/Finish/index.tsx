@@ -1,4 +1,4 @@
-import { generateRandomString } from '@csisp/auth/browser';
+import type { HttpResponse } from '@csisp/http';
 import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import {
 } from '@/api/rpc';
 import { CLIENT_LOGIN_ENDPOINTS } from '@/config';
 import type { SessionResult, Next, ClientInfo } from '@/types/enum';
+import { generateRandomString } from '@/utils/pkce';
 
 // no-op
 
@@ -36,7 +37,7 @@ export function Finish() {
       if (ticket || state) {
         setLoading(true);
         authCall<Next>('enter', { ticket, state })
-          .then(res => {
+          .then((res: HttpResponse<Next>) => {
             if (!hasError(res)) {
               const redirectTo = res.result?.redirectTo;
               if (redirectTo) {

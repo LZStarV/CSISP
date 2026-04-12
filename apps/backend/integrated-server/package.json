@@ -10,7 +10,6 @@
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
-    "@csisp/auth": "workspace:*",
     "@csisp/config": "workspace:*",
     "@csisp/redis-sdk": "workspace:*",
     "@csisp/supabase-sdk": "workspace:*",

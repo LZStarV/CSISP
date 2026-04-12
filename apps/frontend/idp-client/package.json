@@ -15,7 +15,6 @@
     "antd": "catalog:frontend",
     "react": "catalog:frontend",
     "react-dom": "catalog:frontend",
-    "@csisp/auth": "workspace:*",
     "react-router-dom": "catalog:frontend"
   },
   "devDependencies": {

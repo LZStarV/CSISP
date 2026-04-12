@@ -29,7 +29,6 @@ CSISP/
 │       ├── admin/           # 管理后台 (Vue 3 + Naive UI)
 │       └── portal/         # 师生门户 (Vue 3 + Naive UI)
 ├── packages/               # 共享包
-│   ├── auth/               # 统一认证 SDK
 │   ├── config/             # 配置管理 (Zod)
 │   ├── utils/              # 工具库 (Pino logger)
 │   ├── redis-sdk/         # Upstash Redis 适配
@@ -70,20 +69,20 @@ CSISP/
 - `src/modules/auth/auth.service.ts` - 认证逻辑
 - `src/infra/supabase/gotrue.service.ts` - Supabase 集成
 
-**说明**: 使用外部 npm 包 `@csisp-api/idp-server` (v0.1.2) 作为 IDP 接口定义，正在逐步将手写接口替换为该包的复用代码。
+**说明**: 使用外部 npm 包 `@csisp-api/idp-server` (v0.2.1) 作为 IDP 接口定义，正在逐步将手写接口替换为该包的复用代码。
 
 ---
 
 #### @csisp/integrated-server (主业务服务)
 
-| 属性     | 值                                                                                        |
-| -------- | ----------------------------------------------------------------------------------------- |
-| 路径     | `apps/backend/integrated-server`                                                          |
-| 框架     | NestJS                                                                                    |
-| 协议     | OpenAPI (RPC 风格 RESTful API)                                                            |
-| 命名规范 | `Domain.Action` (如 `health.ping`)                                                        |
-| 数据库   | MongoDB (Mongoose) / PostgreSQL (Sequelize)                                               |
-| 依赖     | `@csisp/auth`, `@csisp/config`, `@csisp/redis-sdk`, `@csisp/supabase-sdk`, `@csisp/utils` |
+| 属性     | 值                                                                         |
+| -------- | -------------------------------------------------------------------------- |
+| 路径     | `apps/backend/integrated-server`                                           |
+| 框架     | NestJS                                                                     |
+| 协议     | OpenAPI (RPC 风格 RESTful API)                                             |
+| 命名规范 | `Domain.Action` (如 `health.ping`)                                         |
+| 数据库   | MongoDB (Mongoose) / PostgreSQL (Sequelize)                                |
+| 依赖     | `@csisp/config`, `@csisp/redis-sdk`, `@csisp/supabase-sdk`, `@csisp/utils` |
 
 **核心模块**:
 
@@ -198,26 +197,7 @@ const authCall = <T>(action: string, params?: unknown) =>
 
 ## 3. 共享包
 
-### 3.1 @csisp/auth (统一认证 SDK)
-
-| 导出        | 用途                                               |
-| ----------- | -------------------------------------------------- |
-| `.`         | 主入口                                             |
-| `./browser` | 浏览器端工具 (PKCE 生成, State 生成)               |
-| `./server`  | 服务端工具 (IdpClient, SessionManager, verifyAuth) |
-| `./core`    | 通用常量 (Cookie 名称, TTL)                        |
-| `./react`   | React 组件 (AuthProvider, useAuth, AuthGuard)      |
-
-**核心功能**:
-
-- OIDC/PKCE 流程支持
-- JWT 签发与验证
-- 会话管理 (可插拔存储)
-- React 身份状态管理
-
----
-
-### 3.2 @csisp/config (配置管理)
+### 3.1 @csisp/config (配置管理)
 
 | 导出 | 用途                      |
 | ---- | ------------------------- |
@@ -227,7 +207,7 @@ const authCall = <T>(action: string, params?: unknown) =>
 
 ---
 
-### 3.3 @csisp/utils (工具库)
+### 3.2 @csisp/utils (工具库)
 
 | 导出 | 用途            |
 | ---- | --------------- |
@@ -237,7 +217,7 @@ const authCall = <T>(action: string, params?: unknown) =>
 
 ---
 
-### 3.4 @csisp/redis-sdk (Redis 适配)
+### 3.3 @csisp/redis-sdk (Redis 适配)
 
 | 导出     | 用途                                    |
 | -------- | --------------------------------------- |
@@ -252,7 +232,7 @@ const authCall = <T>(action: string, params?: unknown) =>
 
 ---
 
-### 3.5 @csisp/supabase-sdk (Supabase 客户端)
+### 3.4 @csisp/supabase-sdk (Supabase 客户端)
 
 | 导出 | 用途                |
 | ---- | ------------------- |
@@ -286,7 +266,6 @@ flowchart TB
     end
 
     subgraph Packages["共享包"]
-        I["auth"]
         J["config"]
         K["utils<br/>(log)"]
         L["http"]
@@ -311,13 +290,11 @@ flowchart TB
     G -.-> O
     G -.-> Packages
     H -.-> Packages
-    Packages --> I
     Packages --> J
     Packages --> K
     Packages --> L
     Packages --> M
     Packages --> N
-    I --> P
     J --> P
     K --> P
     L --> Frontend
@@ -449,12 +426,12 @@ pnpm run db:reset:local # 重置本地
 
 ### 8.1 大重构
 
-| 序号 | 任务               | 说明                                                                |
-| ---- | ------------------ | ------------------------------------------------------------------- |
-| 1    | ~~移除 rpc 子包~~  | [已完成] 移除 `@csisp/rpc` 包中不再需要的代码                       |
-| 2    | ~~重构 http 子包~~ | [已完成] 重新封装 HTTP 工具，用于浏览器-BFF 间调用                  |
-| 3    | 重构 auth 子包     | 完全重构 `@csisp/auth`，专注 ESM 构建，为前端提供开箱即用的登录组件 |
-| 4    | 提取 logger        | 从 utils 中将 logger 组件提取为独立子包，方便后续扩展日志审计功能   |
+| 序号 | 任务                 | 说明                                                                |
+| ---- | -------------------- | ------------------------------------------------------------------- |
+| 1    | ~~移除 rpc 子包~~    | [已完成] 移除 `@csisp/rpc` 包中不再需要的代码                       |
+| 2    | ~~重构 http 子包~~   | [已完成] 重新封装 HTTP 工具，用于浏览器-BFF 间调用                  |
+| 3    | ~~统一鉴权逻辑收敛~~ | [已完成] 移除历史鉴权共享子包，改为 idp-server + BFF + 前端各自维护 |
+| 4    | 提取 logger          | 从 utils 中将 logger 组件提取为独立子包，方便后续扩展日志审计功能   |
 
 ### 8.2 当前待办
 
@@ -464,7 +441,7 @@ pnpm run db:reset:local # 重置本地
 | 2    | ~~清理 OpenAPI 数据模型~~    | [已完成] 清理直到与现有 idp-server 代码完全贴合                                 |
 | 3    | ~~清理未使用接口与旧逻辑~~   | [已完成] 移除手写实现中已由 Supabase 替代的旧代码                               |
 | 4    | 限制 idp-server 使用范围     | idp-server 代码仅供 idp-client 使用                                             |
-| 5    | [TODO] 桥接 Request 类型     | 处理 nestjs-server 生成代码里的 Request 类型与 Express Request 的桥接问题       |
+| 5    | ~~桥接 Request 类型~~        | [已完成] 适配层已实现 nestjs-server 生成 Request 与 Express Request 的桥接      |
 | 6    | [TODO] BFF 接入 idp SDK      | 在 BFF 层接入 `@csisp-api/bff-idp-server`，实现对 idp-server 的强类型 HTTP 调用 |
 
 ---

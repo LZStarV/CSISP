@@ -1,3 +1,4 @@
+import type { HttpResponse } from '@csisp/http';
 import { Form, Input, Button, Typography, Alert, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -31,7 +32,7 @@ export function Login() {
   useEffect(() => {
     if (ticket) {
       oidcCall<AuthorizationRequestInfo>('getAuthorizationRequest', { ticket })
-        .then(res => {
+        .then((res: HttpResponse<AuthorizationRequestInfo>) => {
           if (!hasError(res)) {
             setAuthInfo(res.result);
           } else {

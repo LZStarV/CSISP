@@ -13,8 +13,6 @@ import {
   type AuthRegisterRequestParams,
   type AuthResendSignupOtpRequestParams,
   type AuthResetPasswordRequestParams,
-  type AuthResetPasswordRequestRequestParams,
-  type AuthRsatokenRequestParams,
   type AuthSendOtpRequestParams,
   type AuthSessionRequestParams,
   type AuthVerifyOtpRequestParams,
@@ -162,20 +160,6 @@ export class AuthApiImpl implements AuthApi {
     _request: Request
   ) {
     return this.service.resetPassword(requestParams.resetPasswordDto);
-  }
-
-  async authResetPasswordRequest(
-    _requestParams: AuthResetPasswordRequestRequestParams,
-    _request: Request
-  ): Promise<any> {
-    throw new InternalServerErrorException('Not implemented');
-  }
-
-  async authRsatoken(
-    _requestParams: AuthRsatokenRequestParams,
-    _request: Request
-  ): Promise<any> {
-    throw new InternalServerErrorException('Not implemented');
   }
 
   async authSendOtp(
