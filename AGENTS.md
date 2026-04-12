@@ -34,7 +34,7 @@ CSISP/
 │   ├── utils/              # 工具库 (Pino logger)
 │   ├── redis-sdk/         # Upstash Redis 适配
 │   ├── supabase-sdk/      # Supabase 客户端
-│   └── rpc/               # RPC 框架 (Thrift + RPC 风格 RESTful API)
+│   └── http/              # HTTP 客户端 (RPC 风格 REST)
 ├── supabase/               # 数据库迁移 (PostgreSQL)
 └── docs/                   # VitePress 文档
 ```
@@ -47,13 +47,13 @@ CSISP/
 
 #### @csisp/idp-server (身份认证服务)
 
-| 属性   | 值                                                                                               |
-| ------ | ------------------------------------------------------------------------------------------------ |
-| 路径   | `apps/backend/idp-server`                                                                        |
-| 框架   | NestJS                                                                                           |
-| 端口   | 4001                                                                                             |
-| 依赖   | `@csisp-api/idp-server` (npm), `@csisp/config`, `@csisp/redis-sdk`, `@csisp/rpc`, `@csisp/utils` |
-| 数据库 | Supabase (GoTrue) + Redis (会话)                                                                 |
+| 属性   | 值                                                                                 |
+| ------ | ---------------------------------------------------------------------------------- |
+| 路径   | `apps/backend/idp-server`                                                          |
+| 框架   | NestJS                                                                             |
+| 端口   | 4001                                                                               |
+| 依赖   | `@csisp-api/idp-server` (npm), `@csisp/config`, `@csisp/redis-sdk`, `@csisp/utils` |
+| 数据库 | Supabase (GoTrue) + Redis (会话)                                                   |
 
 **核心模块**:
 
@@ -96,13 +96,13 @@ CSISP/
 
 #### @csisp/bff (Backend-for-Frontend)
 
-| 属性     | 值                                                                                       |
-| -------- | ---------------------------------------------------------------------------------------- |
-| 路径     | `apps/bff`                                                                               |
-| 框架     | NestJS                                                                                   |
-| 端口     | 4000                                                                                     |
-| API 前缀 | `/api`                                                                                   |
-| 依赖     | `@csisp/config`, `@csisp/redis-sdk`, `@csisp/rpc`, `@csisp/supabase-sdk`, `@csisp/utils` |
+| 属性     | 值                                                                         |
+| -------- | -------------------------------------------------------------------------- |
+| 路径     | `apps/bff`                                                                 |
+| 框架     | NestJS                                                                     |
+| 端口     | 4000                                                                       |
+| API 前缀 | `/api`                                                                     |
+| 依赖     | `@csisp/config`, `@csisp/redis-sdk`, `@csisp/supabase-sdk`, `@csisp/utils` |
 
 **模块结构**:
 
@@ -262,25 +262,6 @@ const authCall = <T>(action: string, params?: unknown) =>
 
 ---
 
-### 3.6 @csisp/rpc (RPC 框架)（未来将被移除）
-
-| 导出              | 用途                             |
-| ----------------- | -------------------------------- |
-| `./core`          | JSON-RPC 2.0 类型定义            |
-| `./constants`     | RPC 协议枚举                     |
-| `./client-fetch`  | HTTP Fetch 客户端                |
-| `./server-nest`   | NestJS 集成 (中间件, 异常过滤器) |
-| `./server-node`   | Node.js 工具                     |
-| `./thrift-client` | Thrift 客户端                    |
-| `./thrift-server` | Thrift 服务端                    |
-
-**支持协议**:
-
-- JSON-RPC 2.0 (现代)
-- Thrift (遗留)
-
-**说明**: 未来计划移除 rpc 子包，重构为 HTTP 封装用于浏览器-BFF 调用。
-
 ---
 
 ## 4. 依赖关系图
@@ -308,7 +289,7 @@ flowchart TB
         I["auth"]
         J["config"]
         K["utils<br/>(log)"]
-        L["rpc"]
+        L["http"]
         M["redis-sdk"]
         N["supabase-sdk"]
         O["@csisp-api/*<br/>(external npm)"]
@@ -339,6 +320,7 @@ flowchart TB
     I --> P
     J --> P
     K --> P
+    L --> Frontend
     M --> Q
     N --> P
     O --> P
@@ -467,12 +449,12 @@ pnpm run db:reset:local # 重置本地
 
 ### 8.1 大重构
 
-| 序号 | 任务           | 说明                                                                |
-| ---- | -------------- | ------------------------------------------------------------------- |
-| 1    | 移除 rpc 子包  | 移除 `@csisp/rpc` 包中不再需要的代码                                |
-| 2    | 重构 http 子包 | 重新封装 HTTP 工具，用于浏览器-BFF 间调用                           |
-| 3    | 重构 auth 子包 | 完全重构 `@csisp/auth`，专注 ESM 构建，为前端提供开箱即用的登录组件 |
-| 4    | 提取 logger    | 从 utils 中将 logger 组件提取为独立子包，方便后续扩展日志审计功能   |
+| 序号 | 任务               | 说明                                                                |
+| ---- | ------------------ | ------------------------------------------------------------------- |
+| 1    | ~~移除 rpc 子包~~  | [已完成] 移除 `@csisp/rpc` 包中不再需要的代码                       |
+| 2    | ~~重构 http 子包~~ | [已完成] 重新封装 HTTP 工具，用于浏览器-BFF 间调用                  |
+| 3    | 重构 auth 子包     | 完全重构 `@csisp/auth`，专注 ESM 构建，为前端提供开箱即用的登录组件 |
+| 4    | 提取 logger        | 从 utils 中将 logger 组件提取为独立子包，方便后续扩展日志审计功能   |
 
 ### 8.2 当前待办
 

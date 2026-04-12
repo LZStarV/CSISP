@@ -12,7 +12,6 @@
   "dependencies": {
     "@csisp/config": "workspace:*",
     "@csisp/redis-sdk": "workspace:*",
-    "@csisp/rpc": "workspace:*",
     "@csisp/supabase-sdk": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@nestjs/common": "catalog:node",

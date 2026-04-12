@@ -1,4 +1,4 @@
-import { call, hasError } from '@csisp/rpc/client-fetch';
+import { call, hasError } from '@csisp/http/client-fetch';
 
 import { config } from '@/config';
 

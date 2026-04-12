@@ -10,11 +10,11 @@
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
+    "@csisp/http": "workspace:*",
     "@ant-design/icons": "catalog:frontend",
     "antd": "catalog:frontend",
     "react": "catalog:frontend",
     "react-dom": "catalog:frontend",
-    "@csisp/rpc": "workspace:*",
     "@csisp/auth": "workspace:*",
     "react-router-dom": "catalog:frontend"
   },

@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 import { TrustedOriginsService } from '@common/cors/trusted-origins.service';
-import { RpcExceptionFilter } from '@csisp/rpc/server-nest';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
@@ -22,8 +21,6 @@ async function bootstrap() {
     },
     credentials: true,
   });
-
-  app.useGlobalFilters(new RpcExceptionFilter());
 
   await app.listen(4000);
 }

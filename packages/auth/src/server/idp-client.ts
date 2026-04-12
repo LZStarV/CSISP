@@ -1,5 +1,5 @@
 import { joinUrl, normalizeBaseUrl } from '@csisp/config';
-import { call as rpcCall } from '@csisp/rpc/client-fetch';
+import { call as httpCall } from '@csisp/http/client-fetch';
 import { Injectable } from '@nestjs/common';
 
 import { authConfig } from '../config';
@@ -60,13 +60,13 @@ export class IdpClient {
   async getAuthorizationRequest(
     ticket: string
   ): Promise<AuthorizationRequestInfo> {
-    const resp: any = await rpcCall<AuthorizationRequestInfo>(
+    const resp = await httpCall<AuthorizationRequestInfo>(
       this.apiPrefix,
       'oidc',
       'getAuthorizationRequest',
       { ticket }
     );
-    if (resp?.result) return resp.result;
+    if (!('error' in resp)) return resp.result;
     throw new Error('getAuthorizationRequest failed');
   }
 }
