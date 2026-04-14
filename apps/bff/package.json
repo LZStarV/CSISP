@@ -10,14 +10,17 @@
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
+    "@csisp-api/bff-idp-server": "0.2.1",
     "@csisp/config": "workspace:*",
     "@csisp/redis-sdk": "workspace:*",
     "@csisp/supabase-sdk": "workspace:*",
     "@csisp/utils": "workspace:*",
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "catalog:node",
     "@nestjs/core": "catalog:node",
     "@nestjs/platform-express": "catalog:node",
-    "http-proxy-middleware": "^2.0.6",
+    "axios": "^1.15.0",
+    "nestjs-cls": "^6.2.0",
     "reflect-metadata": "catalog:node",
     "rxjs": "catalog:node",
     "undici": "^6.19.8",
@@ -25,7 +28,7 @@
   },
   "devDependencies": {
     "@nestjs/cli": "catalog:node",
-    "@types/node": "catalog:dev",
-    "@types/express": "catalog:dev"
+    "@types/express": "catalog:dev",
+    "@types/node": "catalog:dev"
   }
 }

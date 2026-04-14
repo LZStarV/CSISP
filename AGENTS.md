@@ -378,7 +378,7 @@ await fetch('/api/idp/auth/login-internal', {
   body: JSON.stringify({
     jsonrpc: '2.0',
     id: Date.now(),
-    params: { studentId: 'xxx', password: 'xxx' },
+    params: {studentId: 'xxx', password: 'xxx'},
   }),
 });
 ```
@@ -440,7 +440,7 @@ pnpm run db:reset:local # 重置本地
 | 1    | ~~完善 idp-server 接口改造~~ | [已完成] 移除 JSON-RPC 相关描述，重构代码实现逻辑                               |
 | 2    | ~~清理 OpenAPI 数据模型~~    | [已完成] 清理直到与现有 idp-server 代码完全贴合                                 |
 | 3    | ~~清理未使用接口与旧逻辑~~   | [已完成] 移除手写实现中已由 Supabase 替代的旧代码                               |
-| 4    | 限制 idp-server 使用范围     | idp-server 代码仅供 idp-client 使用                                             |
+| 4    | ~~限制 idp-server 使用范围~~ | idp-server 代码仅供 idp-client 使用                                             |
 | 5    | ~~桥接 Request 类型~~        | [已完成] 适配层已实现 nestjs-server 生成 Request 与 Express Request 的桥接      |
 | 6    | [TODO] BFF 接入 idp SDK      | 在 BFF 层接入 `@csisp-api/bff-idp-server`，实现对 idp-server 的强类型 HTTP 调用 |
 
@@ -477,7 +477,3 @@ pnpm run db:reset:local # 重置本地
 2. **换行符**: 项目统一使用 LF，Windows 需配置 Git (`core.autocrlf input`)
 3. **依赖构建**: 修改 workspace 依赖后需重新 `pnpm build`
 4. **API 演进**: 当前处于 RPC → REST 过渡期，部分代码可能有两种风格的混合
-
----
-
-_本文档最后更新: 2026-04-10_
