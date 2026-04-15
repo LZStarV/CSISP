@@ -24,7 +24,9 @@
   "devDependencies": {
     "@types/react": "catalog:dev",
     "@types/react-dom": "catalog:dev",
+    "@types/rollup-plugin-visualizer": "^5.0.3",
     "@vitejs/plugin-react": "catalog:frontend",
+    "rollup-plugin-visualizer": "^7.0.1",
     "sass": "catalog:frontend",
     "typescript": "catalog:",
     "vite": "catalog:frontend"

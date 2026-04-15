@@ -1,6 +1,7 @@
 import path from 'path';
 
 import react from '@vitejs/plugin-react';
+import { visualizer } from 'rollup-plugin-visualizer';
 import { defineConfig } from 'vite';
 
 export default defineConfig(({ command }) => {
@@ -13,6 +14,22 @@ export default defineConfig(({ command }) => {
     },
     envPrefix: ['CSISP_'],
   };
+
+  if (command === 'build') {
+    return {
+      ...common,
+      plugins: [
+        ...common.plugins,
+        visualizer({
+          filename: './dist/stats.html',
+          open: false,
+          gzipSize: true,
+          brotliSize: true,
+        }),
+      ],
+    };
+  }
+
   if (command === 'serve') {
     return {
       ...common,

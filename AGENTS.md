@@ -1,7 +1,7 @@
 # CSISP 项目架构文档
 
 > 本文档为 AI 提供项目上下文，包含架构概述、模块职责、依赖关系及运行方式。
-> **注意**：本文档记录了未来的重构计划，AI 使用时需注意这些待办事项可能尚未完成。
+> **注意**：本文档记录当前架构和实现细节。
 
 ## 1. 项目概览
 
@@ -69,7 +69,7 @@ CSISP/
 - `src/modules/auth/auth.service.ts` - 认证逻辑
 - `src/infra/supabase/gotrue.service.ts` - Supabase 集成
 
-**说明**: 使用外部 npm 包 `@csisp-api/idp-server` (v0.2.1) 作为 IDP 接口定义，正在逐步将手写接口替换为该包的复用代码。
+**说明**: 使用外部 npm 包 `@csisp-api/idp-server` (v0.2.1) 作为 IDP 接口定义，将手写接口替换为该包的复用代码。
 
 ---
 
@@ -86,7 +86,7 @@ CSISP/
 
 **核心模块**:
 
-- `common/rpc/` - HTTP 基础设施
+- `common/http/` - HTTP 基础设施
 - `modules/health/` - 健康检查
 
 ---
@@ -373,7 +373,7 @@ await fetch('/api/idp/auth/login-internal', {
   body: JSON.stringify({
     jsonrpc: '2.0',
     id: Date.now(),
-    params: {studentId: 'xxx', password: 'xxx'},
+    params: { studentId: 'xxx', password: 'xxx' },
   }),
 });
 ```
@@ -386,9 +386,9 @@ await fetch('/api/idp/auth/login-internal', {
 - 通过 AsyncLocalStorage 自动透传客户端的 `Cookie`、`Authorization` 与 `x-trace-id`。
 - 通过全局过滤器透传异常响应及 `Set-Cookie` 头。
 
-### 6.3 演进计划 (@csisp-api)
+### 6.3 接口管理 (@csisp-api)
 
-正在将手写接口替换为 `@csisp-api` 自动生成的接口代码（采用“发双包”策略）:
+项目采用 `@csisp-api` 自动生成的接口代码（采用"发双包"策略）:
 
 1. **idp-server (服务端)**: 使用 `@csisp-api/idp-server` 包（通过 `typescript-nestjs-server` 生成），提供带验证装饰器的 DTO 与 Controller 接口骨架。
 2. **BFF (客户端)**: 使用另一个客户端 SDK 包（通过 `typescript-nestjs` 生成），基于 NestJS HttpModule 实现对后端的强类型调用。
@@ -416,33 +416,7 @@ pnpm run db:reset:local # 重置本地
 
 ---
 
-## 8. TODO (未来计划)
-
-> 以下内容为待办事项，AI 在处理任务时需注意这些变化可能尚未完成。
-
-### 8.1 大重构
-
-| 序号 | 任务                 | 说明                                                                |
-| ---- | -------------------- | ------------------------------------------------------------------- |
-| 1    | ~~移除 rpc 子包~~    | [已完成] 移除 `@csisp/rpc` 包中不再需要的代码                       |
-| 2    | ~~重构 http 子包~~   | [已完成] 重新封装 HTTP 工具，用于浏览器-BFF 间调用                  |
-| 3    | ~~统一鉴权逻辑收敛~~ | [已完成] 移除历史鉴权共享子包，改为 idp-server + BFF + 前端各自维护 |
-| 4    | 提取 logger          | 从 utils 中将 logger 组件提取为独立子包，方便后续扩展日志审计功能   |
-
-### 8.2 当前待办
-
-| 序号 | 任务                         | 说明                                                                                                                              |
-| ---- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | ~~完善 idp-server 接口改造~~ | [已完成] 移除 JSON-RPC 相关描述，重构代码实现逻辑                                                                                 |
-| 2    | ~~清理 OpenAPI 数据模型~~    | [已完成] 清理直到与现有 idp-server 代码完全贴合                                                                                   |
-| 3    | ~~清理未使用接口与旧逻辑~~   | [已完成] 移除手写实现中已由 Supabase 替代的旧代码                                                                                 |
-| 4    | ~~限制 idp-server 使用范围~~ | idp-server 代码仅供 idp-client 使用                                                                                               |
-| 5    | ~~桥接 Request 类型~~        | [已完成] 适配层已实现 nestjs-server 生成 Request 与 Express Request 的桥接                                                        |
-| 6    | ~~BFF 接入 idp SDK~~         | [已完成] 在 BFF 层接入 `@csisp-api/bff-idp-server`，实现对 idp-server 的强类型 HTTP 调用，并使用 AsyncLocalStorage 处理上下文透传 |
-
----
-
-## 9. 关键文件索引
+## 8. 关键文件索引
 
 ### 入口文件
 
@@ -467,9 +441,9 @@ pnpm run db:reset:local # 重置本地
 
 ---
 
-## 10. 注意事项
+## 9. 注意事项
 
 1. **环境变量**: 通过 Infisical 管理，运行时需先登录 (`pnpm infisical:login`)
 2. **换行符**: 项目统一使用 LF，Windows 需配置 Git (`core.autocrlf input`)
 3. **依赖构建**: 修改 workspace 依赖后需重新 `pnpm build`
-4. **API 演进**: 当前处于 RPC → REST 过渡期，部分代码可能有两种风格的混合
+4. **API 风格**: 项目统一采用 RPC 风格的 REST 接口

@@ -2,56 +2,6 @@
 
 > 本项目目前由 LZStarV 个人施工，并非真正已上线的官方平台代码仓库。
 
-## 架构简图
-
-```mermaid
-flowchart TB
-    subgraph Frontend["前端应用"]
-        A["idp-client<br/>(React)"]
-        B["portal<br/>(Vue 3)"]
-        C["admin<br/>(Vue 3)"]
-    end
-
-    subgraph BFF["BFF - @csisp/bff<br/>Port: 4000 /api prefix"]
-        D["IDP 代理<br/>(HTTP Proxy)"]
-        E["Portal Demo"]
-        F["Admin Demo"]
-    end
-
-    subgraph Backend["后端服务"]
-        G["idp-server<br/>Port: 4001"]
-        H["integrated-server<br/>(JSON-RPC)"]
-    end
-
-    subgraph Packages["共享包"]
-        I["auth"]
-        J["config"]
-        K["utils"]
-        L["rpc"]
-        M["redis-sdk"]
-        N["supabase-sdk"]
-    end
-
-    subgraph Infra["基础设施"]
-        O["Supabase<br/>(PostgreSQL)"]
-        P["Upstash Redis"]
-        Q["MongoDB<br/>(Optional)"]
-    end
-
-    Frontend -->|"RPC 风格 REST"| BFF
-    BFF --> D
-    BFF --> E
-    BFF --> F
-    D --> G
-    E --> H
-    F --> H
-    G -.-> Packages
-    H -.-> Packages
-    Packages --> O
-    Packages --> P
-    Packages --> Q
-```
-
 ## 环境要求
 
 - **Node.js**：遵循仓库根目录 `.nvmrc`，推荐使用 **24.x** 版本。

@@ -1,5 +1,7 @@
-import type { IdpClientAuthAction } from '@csisp/contracts';
-import * as contracts from '@csisp/contracts';
+import {
+  IDP_CLIENT_PATH_PREFIX,
+  type IdpClientAuthAction,
+} from '@csisp/contracts';
 
 import { createDomainCall } from '../caller';
 
@@ -21,6 +23,6 @@ export type {
 } from '@csisp/contracts';
 
 export const idpClientAuthCall = createDomainCall<IdpClientAuthAction>(
-  contracts.IDP_CLIENT_PATH_PREFIX,
+  IDP_CLIENT_PATH_PREFIX,
   'auth'
 );

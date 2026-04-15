@@ -1,5 +1,4 @@
-import type { CommonOidcAction } from '@csisp/contracts';
-import * as contracts from '@csisp/contracts';
+import { COMMON_PATH_PREFIX, type CommonOidcAction } from '@csisp/contracts';
 
 import { createDomainCall } from '../caller';
 
@@ -11,6 +10,6 @@ export type {
 } from '@csisp/contracts';
 
 export const commonOidcCall = createDomainCall<CommonOidcAction>(
-  contracts.COMMON_PATH_PREFIX,
+  COMMON_PATH_PREFIX,
   'oidc'
 );
