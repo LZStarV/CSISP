@@ -8,7 +8,7 @@ import { Card, Button, Typography, Space, Alert } from 'antd';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import { authCall, hasError } from '@/api/rpc';
+import { authCall } from '@/api';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   MFAMethod,
@@ -35,13 +35,8 @@ export function MFASelect() {
   async function loadMfa() {
     try {
       const res = await authCall<MfaMethodsResult>('mfa_methods', {});
-      if (
-        res &&
-        !hasError(res) &&
-        Array.isArray(res.result?.multifactor) &&
-        res.result.multifactor.length
-      ) {
-        setMfaMethods(res.result.multifactor);
+      if (res && Array.isArray(res?.multifactor) && res.multifactor.length) {
+        setMfaMethods(res.multifactor);
         setErrorMsg(null);
       } else {
         setErrorMsg('未获取到验证方式列表，请返回登录重试');

@@ -116,20 +116,15 @@ modules/
 └── backoffice/demo/ # Backoffice 示例模块
 ```
 
-**代理实现**: 使用 `http-proxy-middleware` 将请求转发到上游服务:
-
-```typescript
-// common/proxy/http-proxy.ts
-buildJsonProxy({
-  target: `${config.upstream.idpBaseUrl}/api/idp/auth`,
-  stripPrefix: 'api/idp/auth',
-});
-```
+**代理实现**: 已移除旧版 `http-proxy-middleware`。现基于 `@csisp-api/bff-idp-server` SDK，通过强类型接口显式转发调用，并引入 `nestjs-cls` (AsyncLocalStorage) 机制处理 Cookie 与会话上下文透传。
 
 **基础设施**:
 
 - `common/cors/` - 动态 CORS (可信源配置)
 - `common/interceptors/logging.interceptor.ts` - 日志拦截器
+- `common/filters/axios-exception.filter.ts` - REST 错误透传过滤器
+- `infra/idp-sdk.module.ts` - 全局 IDP SDK 挂载与上下行拦截
+- `infra/cls.module.ts` - AsyncLocalStorage 挂载
 - `infra/redis.module.ts` - Redis 注入
 - `infra/supabase.module.ts` - Supabase 注入
 
@@ -387,8 +382,9 @@ await fetch('/api/idp/auth/login-internal', {
 
 **HTTP 代理**:
 
-- BFF 使用 `http-proxy-middleware` 转发请求到后端服务
-- IDP 模块代理到 `IDP_SERVER_URL/api/idp/*`
+- BFF 层使用强类型 SDK (`@csisp-api/bff-idp-server`) 发起强类型的 REST API 调用。
+- 通过 AsyncLocalStorage 自动透传客户端的 `Cookie`、`Authorization` 与 `x-trace-id`。
+- 通过全局过滤器透传异常响应及 `Set-Cookie` 头。
 
 ### 6.3 演进计划 (@csisp-api)
 
@@ -435,14 +431,14 @@ pnpm run db:reset:local # 重置本地
 
 ### 8.2 当前待办
 
-| 序号 | 任务                         | 说明                                                                            |
-| ---- | ---------------------------- | ------------------------------------------------------------------------------- |
-| 1    | ~~完善 idp-server 接口改造~~ | [已完成] 移除 JSON-RPC 相关描述，重构代码实现逻辑                               |
-| 2    | ~~清理 OpenAPI 数据模型~~    | [已完成] 清理直到与现有 idp-server 代码完全贴合                                 |
-| 3    | ~~清理未使用接口与旧逻辑~~   | [已完成] 移除手写实现中已由 Supabase 替代的旧代码                               |
-| 4    | ~~限制 idp-server 使用范围~~ | idp-server 代码仅供 idp-client 使用                                             |
-| 5    | ~~桥接 Request 类型~~        | [已完成] 适配层已实现 nestjs-server 生成 Request 与 Express Request 的桥接      |
-| 6    | [TODO] BFF 接入 idp SDK      | 在 BFF 层接入 `@csisp-api/bff-idp-server`，实现对 idp-server 的强类型 HTTP 调用 |
+| 序号 | 任务                         | 说明                                                                                                                              |
+| ---- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | ~~完善 idp-server 接口改造~~ | [已完成] 移除 JSON-RPC 相关描述，重构代码实现逻辑                                                                                 |
+| 2    | ~~清理 OpenAPI 数据模型~~    | [已完成] 清理直到与现有 idp-server 代码完全贴合                                                                                   |
+| 3    | ~~清理未使用接口与旧逻辑~~   | [已完成] 移除手写实现中已由 Supabase 替代的旧代码                                                                                 |
+| 4    | ~~限制 idp-server 使用范围~~ | idp-server 代码仅供 idp-client 使用                                                                                               |
+| 5    | ~~桥接 Request 类型~~        | [已完成] 适配层已实现 nestjs-server 生成 Request 与 Express Request 的桥接                                                        |
+| 6    | ~~BFF 接入 idp SDK~~         | [已完成] 在 BFF 层接入 `@csisp-api/bff-idp-server`，实现对 idp-server 的强类型 HTTP 调用，并使用 AsyncLocalStorage 处理上下文透传 |
 
 ---
 

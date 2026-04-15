@@ -1,5 +1,3 @@
-CSISP 项目规则（Trae）
-
 1. 代码与风格
    - 必须使用 TypeScript，避免 `any`（文档或类型声明中已明确允许的除外）。
    - Vue 组件文件使用 PascalCase 命名；后端路由统一以 `/api` 为前缀并遵循 RPC 风格 REST 接口设计。
@@ -21,11 +19,3 @@ CSISP 项目规则（Trae）
 写数据库操作时，必须通过 supabase-js data-access 与/或 SECURITY DEFINER RPC 完成，不直接访问数据库连接或原生 SQL。
 
 避免在为参数命名时只使用单字母，而是尽量使用变量全称或简称，以提高代码的可读性和可维护性。
-
-- 浏览器 -- 服务端之间统一采用 JSON-RPC 协议（路由前缀：/api/:sub-project-name/:domain/:action）
-- 服务端 -- 服务端之间采用 Thrift RPC 协议（路由前缀：/thrift/:sub-project-name）
-
-1. 开发流程 (SOP)
-   - 在进行 Node.js 服务端开发、IDL 接口定义或执行逻辑重构时，**必须调用** `csisp-node-sop` Skill。
-   - 数据库由 Supabase 平台集中托管与变更管理。
-   - 强制使用路径别名 (@infra, @modules, @common, @idp-types, @utils)，禁止使用多层级相对路径。

@@ -4,14 +4,13 @@ import { useNavigate } from 'react-router-dom';
 
 import {
   authCall,
-  hasError,
   RegisterParams,
   RegisterResult,
   VerifySignupOtpParams,
   VerifySignupOtpResult,
   ResendSignupOtpParams,
   ResendSignupOtpResult,
-} from '@/api/rpc';
+} from '@/api';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_LOGIN } from '@/routes/router';
 
@@ -49,10 +48,7 @@ export function Signup() {
         student_id: values.student_id,
         display_name: values.display_name,
       };
-      const res = await authCall<RegisterResult>('register', params);
-      if (hasError(res)) {
-        throw new Error(res.error.message || '注册失败');
-      }
+      await authCall<RegisterResult>('register', params);
       setEmail(values.email);
       setOtpStage(true);
       message.success('验证码已发送至邮箱，请输入 8 位验证码完成注册');
@@ -76,10 +72,7 @@ export function Signup() {
         'verifySignupOtp',
         params
       );
-      if (hasError(res)) {
-        throw new Error(res.error.message || '验证码无效或已过期');
-      }
-      if (!res.result?.verified) {
+      if (!res?.verified) {
         throw new Error('验证码无效或已过期');
       }
       message.success('注册已确认，请使用邮箱和密码登录');
@@ -105,10 +98,7 @@ export function Signup() {
         'resendSignupOtp',
         params
       );
-      if (hasError(res)) {
-        throw new Error(res.error.message || '发送失败，请稍后重试');
-      }
-      if (!res.result?.ok) {
+      if (!res?.ok) {
         throw new Error('发送失败，请稍后重试');
       }
       message.success('验证码已重新发送，请查收邮箱');

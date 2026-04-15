@@ -1,23 +1,31 @@
+import { AuthService } from '@csisp-api/bff-idp-server';
 import {
-  AuthEnterRequest,
-  AuthForgotChallengeRequest,
-  AuthForgotInitRequest,
-  AuthForgotVerifyRequest,
-  AuthMultifactorRequest,
-  AuthService,
-  AuthSessionRequest,
-  CreateExchangeCodeDto,
-  LoginInternalDto,
-  RegisterDto,
-  ResendSignupOtpDto,
-  ResetPasswordDto,
-  VerifyOtpDto,
-  VerifySignupOtpDto,
-} from '@csisp-api/bff-idp-server';
-import { Body, Controller, Post } from '@nestjs/common';
+  Body,
+  Controller,
+  Post,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { firstValueFrom, map } from 'rxjs';
 
+import {
+  RegisterDto,
+  LoginInternalDto,
+  VerifySignupOtpDto,
+  ResendSignupOtpDto,
+  VerifyOtpDto,
+  CreateExchangeCodeDto,
+  ResetPasswordDto,
+  AuthMultifactorRequest,
+  AuthEnterRequest,
+  AuthForgotInitRequest,
+  AuthForgotChallengeRequest,
+  AuthForgotVerifyRequest,
+  AuthSessionRequest,
+} from './dto/auth.dto';
+
 @Controller('idp/auth')
+@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 export class IdpAuthController {
   constructor(private readonly authService: AuthService) {}
 

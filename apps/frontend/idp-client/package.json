@@ -10,9 +10,12 @@
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
-    "@csisp/http": "workspace:*",
     "@ant-design/icons": "catalog:frontend",
+    "@csisp-api/bff-idp-server": "0.2.1",
+    "@csisp/http": "workspace:*",
     "antd": "catalog:frontend",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
     "react": "catalog:frontend",
     "react-dom": "catalog:frontend",
     "react-router-dom": "catalog:frontend"

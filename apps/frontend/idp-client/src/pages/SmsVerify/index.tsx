@@ -2,7 +2,7 @@ import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall, hasError } from '@/api/rpc';
+import { authCall } from '@/api';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   ROUTE_LOGIN,
@@ -36,11 +36,9 @@ export function SmsVerify() {
           const res = await authCall<RecoveryInitResult>('forgot_init', {
             studentId,
           });
-          if (!hasError(res)) {
-            const methods = (res.result?.methods ?? []) as any[];
-            const sms = methods.find(m => m?.type === MFAType.Sms);
-            setPhone((sms?.extra as string | undefined) ?? undefined);
-          }
+          const methods = (res?.methods ?? []) as any[];
+          const sms = methods.find(m => m?.type === MFAType.Sms);
+          setPhone((sms?.extra as string | undefined) ?? undefined);
         } catch {
           // ignore
         }
@@ -92,8 +90,7 @@ export function SmsVerify() {
           codeOrAssertion: 'request',
         });
       }
-      if (hasError(res)) throw new Error(res.error.message || '发送失败');
-      const sms = res.result.sms;
+      const sms = res?.sms;
       if (sms && sms.success === false) {
         throw new Error(sms.message || '短信发送失败');
       }
@@ -120,8 +117,7 @@ export function SmsVerify() {
           studentId,
           code: codeValue,
         });
-        if (hasError(res)) throw new Error(res.error.message || '校验失败');
-        const token = res.result?.reset_token;
+        const token = res?.reset_token;
         if (!token) throw new Error('校验失败');
         if (studentId) {
           sessionStorage.setItem(`idp_reset_token:${studentId}`, token);
@@ -131,12 +127,11 @@ export function SmsVerify() {
         }).toString();
         navigate(`${ROUTE_PASSWORD_RESET}?${qs}`);
       } else {
-        const res = await authCall<Next>('multifactor', {
+        await authCall<Next>('multifactor', {
           type: MFAType.Sms,
           phoneOrEmail: phone,
           codeOrAssertion: codeValue,
         });
-        if (hasError(res)) throw new Error(res.error.message || '校验失败');
 
         // 校验成功，跳转到 Finish 页面完成授权流程
         const flowState = (location.state as any) || {};

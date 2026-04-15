@@ -1,14 +1,8 @@
-import type { HttpResponse } from '@csisp/http';
 import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import {
-  authCall,
-  oidcCall,
-  hasError,
-  CreateExchangeCodeResult,
-} from '@/api/rpc';
+import { authCall, oidcCall, CreateExchangeCodeResult } from '@/api';
 import { CLIENT_LOGIN_ENDPOINTS } from '@/config';
 import type { SessionResult, Next, ClientInfo } from '@/types/enum';
 import { generateRandomString } from '@/utils/pkce';
@@ -36,23 +30,21 @@ export function Finish() {
       const state = flowState?.state;
       if (ticket || state) {
         setLoading(true);
-        authCall<Next>('enter', { ticket, state })
-          .then((res: HttpResponse<Next>) => {
-            if (!hasError(res)) {
-              const redirectTo = res.result?.redirectTo;
-              if (redirectTo) {
-                window.location.href = redirectTo;
-              }
-            } else {
-              setErrorMsg(res.error.message || '进入失败');
+        (async () => {
+          try {
+            const res = await authCall<Next>('enter', { ticket, state });
+            const redirectTo = res?.redirectTo;
+            if (redirectTo) {
+              window.location.href = redirectTo;
             }
-          })
-          .catch(() => {
-            setErrorMsg('进入系统请求失败');
-          })
-          .finally(() => {
+          } catch (error) {
+            setErrorMsg(
+              error instanceof Error ? error.message : '进入系统请求失败'
+            );
+          } finally {
             setLoading(false);
-          });
+          }
+        })();
       }
     }
   }, [fromNormalFlow, location.state]);
@@ -60,13 +52,12 @@ export function Finish() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await oidcCall<ClientInfo[]>('clients', {});
-        if (hasError(res))
-          throw new Error(res.error.message || '获取系统列表失败');
-        const data = res.result;
+        const data = await oidcCall<ClientInfo[]>('clients', {});
         setItems(Array.isArray(data) ? data : []);
-      } catch {
-        setErrorMsg('获取系统列表失败');
+      } catch (error) {
+        setErrorMsg(
+          error instanceof Error ? error.message : '获取系统列表失败'
+        );
       }
     })();
   }, []);
@@ -75,13 +66,11 @@ export function Finish() {
     (async () => {
       try {
         const res = await authCall<SessionResult>('session', {});
-        if (!hasError(res)) {
-          const n = (res.result as any)?.name as string | undefined;
-          const sid = (res.result as any)?.student_id as string | undefined;
-          if (n && sid) setUserLabel(`${n}（${sid}）`);
-          else if (sid) setUserLabel(`（${sid}）`);
-          else if (n) setUserLabel(n);
-        }
+        const n = (res as any)?.name as string | undefined;
+        const sid = (res as any)?.student_id as string | undefined;
+        if (n && sid) setUserLabel(`${n}（${sid}）`);
+        else if (sid) setUserLabel(`（${sid}）`);
+        else if (n) setUserLabel(n);
       } catch {}
     })();
   }, []);
@@ -113,10 +102,9 @@ export function Finish() {
           state,
         }
       );
-      if (hasError(res)) throw new Error(res.error.message || '创建会话失败');
-      const code = res.result?.code;
-      const uri = res.result?.redirect_uri;
-      const st = res.result?.state;
+      const code = res?.code;
+      const uri = res?.redirect_uri;
+      const st = res?.state;
       if (!code || !uri) throw new Error('创建会话失败');
       const url =
         uri +
@@ -136,14 +124,15 @@ export function Finish() {
       title: '确认退出登录？',
       onOk: async () => {
         try {
-          const res = await authCall<SessionResult>('session', {
+          await authCall<SessionResult>('session', {
             logout: true,
           });
-          if (hasError(res)) throw new Error('退出失败');
           sessionStorage.removeItem('idp_studentId');
           navigate('/login');
-        } catch {
-          setErrorMsg('退出失败，请重试');
+        } catch (error) {
+          setErrorMsg(
+            error instanceof Error ? error.message : '退出失败，请重试'
+          );
         }
       },
     });

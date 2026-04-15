@@ -2,7 +2,7 @@ import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall, hasError } from '@/api/rpc';
+import { authCall } from '@/api';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_LOGIN } from '@/routes/router';
 import { Next } from '@/types/enum';
@@ -54,13 +54,12 @@ export function ResetPassword() {
       const resetToken =
         tokenFromQuery ?? tokenFromState ?? tokenFromStorage ?? '';
       if (!resetToken) throw new Error('缺少重置令牌，请重新进行验证');
-      const res = await authCall<Next>('reset_password', {
+      await authCall<Next>('reset_password', {
         studentId,
         newPassword: newPwd,
         reason: 'ForgetPassword',
         resetToken,
       });
-      if (hasError(res)) throw new Error(res.error.message || '重置失败');
       navigate(ROUTE_LOGIN);
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '重置失败，请重试');

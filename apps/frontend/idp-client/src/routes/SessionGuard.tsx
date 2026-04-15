@@ -2,7 +2,7 @@ import { message } from 'antd';
 import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall, hasError, VerifyOtpResult } from '@/api/rpc';
+import { authCall, VerifyOtpResult } from '@/api';
 import { ROUTE_LOGIN, ROUTE_FINISH } from '@/routes/router';
 import type { SessionResult } from '@/types/enum';
 
@@ -22,7 +22,7 @@ export function SessionGuard({ children }: { children: ReactNode }) {
             token_hash: tokenHash,
             type: type === 'magic_link' ? 'magic_link' : 'email',
           });
-          if (!hasError(res) && res.result?.verified) {
+          if (res?.verified) {
             navigate(ROUTE_FINISH, { replace: true });
             return;
           }
@@ -34,25 +34,16 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const res = await authCall<SessionResult>('session', {});
-        if (hasError(res)) {
-          const msg = res?.error?.message || '服务器错误或连接失败，请稍后重试';
-          message.error(msg);
-          if (location.pathname !== ROUTE_LOGIN) {
-            navigate(ROUTE_LOGIN);
+        const logged = !!res?.logged;
+        if (logged) {
+          if (location.pathname === ROUTE_LOGIN) {
+            navigate(ROUTE_FINISH, { state: { fromGuard: true } });
             return;
           }
         } else {
-          const logged = !!res.result?.logged;
-          if (logged) {
-            if (location.pathname === ROUTE_LOGIN) {
-              navigate(ROUTE_FINISH, { state: { fromGuard: true } });
-              return;
-            }
-          } else {
-            if (location.pathname !== ROUTE_LOGIN) {
-              navigate(ROUTE_LOGIN);
-              return;
-            }
+          if (location.pathname !== ROUTE_LOGIN) {
+            navigate(ROUTE_LOGIN);
+            return;
           }
         }
       } catch {

@@ -1,59 +1,52 @@
-import type { HttpError, HttpErrorResponse, HttpResponse } from './core';
+import ky from 'ky';
+import type { HTTPError } from 'ky';
 
 // 生成一个随机的 Trace ID
 function generateTraceId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-// 将 HeadersInit 转换为 Record<string, string>
-function toHeaderRecord(headers?: HeadersInit): Record<string, string> {
-  if (!headers) return {};
-  if (headers instanceof Headers) {
-    const normalizedHeaders: Record<string, string> = {};
-    headers.forEach((value, key) => {
-      normalizedHeaders[key] = value;
-    });
-    return normalizedHeaders;
-  }
-  if (Array.isArray(headers)) {
-    return Object.fromEntries(headers);
-  }
-  return headers;
-}
-
-// 从 JSON 响应中读取错误负载
-function readErrorPayload(payload: unknown, status: number): HttpError {
-  if (payload && typeof payload === 'object') {
-    const errorPayload = payload as Record<string, unknown>;
-    const codeValue = errorPayload.code;
-    const messageValue = errorPayload.message;
-    const traceIdValue = errorPayload.traceId;
-    return {
-      code: typeof codeValue === 'string' ? codeValue : `HTTP_${status}`,
-      message:
-        typeof messageValue === 'string' ? messageValue : 'Request failed',
-      details: errorPayload.details,
-      traceId: typeof traceIdValue === 'string' ? traceIdValue : undefined,
-      status,
-    };
-  }
-  return {
-    code: `HTTP_${status}`,
-    message: 'Request failed',
-    details: payload,
-    status,
-  };
-}
-
-// 从 JSON 响应中读取负载
-async function readPayload(response: Response): Promise<unknown> {
-  const contentType = response.headers.get('content-type') ?? '';
-  if (contentType.toLowerCase().includes('application/json')) {
-    return response.json();
-  }
-  const text = await response.text();
-  return text.length > 0 ? text : undefined;
-}
+// 创建一个基础的ky实例，配置通用选项
+const baseKyInstance = ky.create({
+  timeout: 10000,
+  retry: {
+    limit: 3, // 默认重试3次
+    methods: ['get', 'post', 'put', 'delete'],
+    statusCodes: [408, 409, 429, 500, 502, 503, 504],
+  },
+  hooks: {
+    beforeRequest: [
+      (request: Request) => {
+        // 在请求前自动添加trace-id
+        if (!request.headers.get('x-trace-id')) {
+          request.headers.set('x-trace-id', generateTraceId());
+        }
+        // 设置content-type，但如果用户已指定则不覆盖
+        if (!request.headers.get('content-type')) {
+          request.headers.set('content-type', 'application/json');
+        }
+      },
+    ],
+    afterResponse: [
+      async (_request: Request, _options: unknown, response: Response) => {
+        // 可以在这里添加响应日志或其他处理
+        if (!response.ok) {
+          // console.warn(
+          //   `Request failed: ${request.method} ${request.url} - ${response.status}`
+          // );
+        }
+        return response;
+      },
+    ],
+    beforeError: [
+      (error: HTTPError) => {
+        // 在抛出错误前的处理
+        // console.error('Request error:', error);
+        return error;
+      },
+    ],
+  },
+});
 
 // 发送 POST 请求
 export async function call<T>(
@@ -62,34 +55,26 @@ export async function call<T>(
   action: string,
   params?: unknown,
   init?: RequestInit
-): Promise<HttpResponse<T>> {
-  const headers: Record<string, string> = {
-    'content-type': 'application/json',
-    ...toHeaderRecord(init?.headers),
-  };
-  if (!headers['x-trace-id']) {
-    headers['x-trace-id'] = generateTraceId();
-  }
+): Promise<T> {
+  // 构建完整的URL
+  const url = `${prefix}/${domain}/${action}`;
 
-  const response = await fetch(`${prefix}/${domain}/${action}`, {
+  // 合并用户提供的初始化选项
+  const kyOptions: Parameters<typeof ky>[1] = {
     method: 'POST',
-    ...init,
-    headers,
-    body: JSON.stringify(params ?? {}),
+    json: params,
     credentials: init?.credentials ?? 'include',
-  });
+    ...init,
+    // 如果用户提供了headers，将其合并到ky的headers中
+    headers: {
+      'content-type': 'application/json',
+      ...init?.headers,
+    },
+  };
 
-  const payload = await readPayload(response);
-  if (response.ok) {
-    return { result: payload as T };
-  }
-  return { error: readErrorPayload(payload, response.status) };
-}
+  // 使用ky实例发起请求并直接返回结果
+  const response = await baseKyInstance(url, kyOptions);
 
-// 检查响应是否包含错误负载
-export function hasError<T>(
-  result: HttpResponse<T> | unknown
-): result is HttpErrorResponse {
-  if (!result || typeof result !== 'object') return true;
-  return 'error' in result && Boolean((result as HttpErrorResponse).error);
+  // 获取响应数据并返回
+  return response.json() as Promise<T>;
 }

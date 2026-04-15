@@ -11,7 +11,7 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { authCall, hasError } from '@/api/rpc';
+import { authCall } from '@/api';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_LOGIN } from '@/routes/router';
 import { MFA_METHOD_LABELS, MFA_METHOD_DESCRIPTIONS } from '@/types/auth';
@@ -61,9 +61,7 @@ export function ForgotInit() {
         studentId,
         email,
       });
-      if (hasError(res))
-        throw new Error(res.error.message || '获取可用方式失败');
-      const list = (res.result?.methods ?? []) as any[];
+      const list = (res?.methods ?? []) as any[];
       setMethods(Array.isArray(list) ? list : []);
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '获取可用方式失败');

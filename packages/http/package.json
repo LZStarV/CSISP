@@ -19,5 +19,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
+  },
+  "dependencies": {
+    "ky": "^1.0.0"
   }
 }

@@ -1,16 +1,14 @@
-import type { HttpResponse } from '@csisp/http';
 import { Form, Input, Button, Typography, Alert, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
   oidcCall,
-  hasError,
   authCall,
   VerifyOtpResult,
   LoginInternalResult,
   SendOtpResult,
-} from '@/api/rpc';
+} from '@/api';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
 import type { AuthorizationRequestInfo } from '@/types/enum';
@@ -32,15 +30,11 @@ export function Login() {
   useEffect(() => {
     if (ticket) {
       oidcCall<AuthorizationRequestInfo>('getAuthorizationRequest', { ticket })
-        .then((res: HttpResponse<AuthorizationRequestInfo>) => {
-          if (!hasError(res)) {
-            setAuthInfo(res.result);
-          } else {
-            setErrorMsg(res.error.message || '获取授权信息失败');
-          }
+        .then((res: AuthorizationRequestInfo) => {
+          setAuthInfo(res);
         })
-        .catch(() => {
-          setErrorMsg('连接认证服务器失败，请稍后重试');
+        .catch(error => {
+          setErrorMsg(error.message || '获取授权信息失败');
         });
     }
   }, [ticket]);
@@ -52,10 +46,7 @@ export function Login() {
       const res = await authCall<VerifyOtpResult>('verify-otp', {
         token: otpCode,
       });
-      if (hasError(res)) {
-        throw new Error(res.error.message || '验证失败或验证码已过期');
-      }
-      if (res.result?.verified) {
+      if (res?.verified) {
         navigate(ROUTE_FINISH, { replace: true });
       }
     } catch (e) {
@@ -73,21 +64,17 @@ export function Login() {
         email: values.email,
         password: values.password,
       });
-      if (hasError(res)) throw new Error(res.error.message || '登录失败');
-      const stepUp = (res.result?.stepUp ?? '') as 'PENDING_PASSWORD' | string;
+      const stepUp = (res?.stepUp ?? '') as 'PENDING_PASSWORD' | string;
 
       // 登录成功后，如果存在授权请求，需要透传 ticket 或 state 供后续 enter 阶段使用
       const flowState = {
-        ...res.result,
+        ...res,
         ticket,
         state: authInfo?.state || state,
       };
 
       if (stepUp === 'PENDING_PASSWORD') {
-        const sent = await authCall<SendOtpResult>('send-otp', {});
-        if (hasError(sent)) {
-          throw new Error(sent.error.message || '发送验证邮件失败');
-        }
+        await authCall<SendOtpResult>('send-otp', {});
         message.success('验证邮件已发送，请前往邮箱查收并完成验证');
         setOtpSent(true);
         return;
