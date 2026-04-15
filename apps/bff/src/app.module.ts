@@ -7,7 +7,8 @@ import { RedisInfraModule } from '@infra/redis.module';
 import { SupabaseInfraModule } from '@infra/supabase.module';
 import { AdminDemoModule } from '@modules/admin/demo/demo.module';
 import { BackofficeDemoModule } from '@modules/backoffice/demo/demo.module';
-import { IdpModules } from '@modules/idp';
+import { CommonModules } from '@modules/common';
+import { IdpClientModules } from '@modules/idp-client';
 import { DemoModule as PortalDemoModule } from '@modules/portal/demo/demo.module';
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
@@ -22,7 +23,8 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
     PortalDemoModule,
     AdminDemoModule,
     BackofficeDemoModule,
-    ...IdpModules,
+    ...IdpClientModules,
+    ...CommonModules,
   ],
   providers: [
     {

@@ -21,7 +21,7 @@ export default defineConfig(({ command }) => {
         port: 5174,
         allowedHosts: ['idp-client.onrender.com'],
         proxy: {
-          '/api/idp': {
+          '/api/idp-client': {
             target: 'http://127.0.0.1:4000',
             changeOrigin: true,
             secure: false,

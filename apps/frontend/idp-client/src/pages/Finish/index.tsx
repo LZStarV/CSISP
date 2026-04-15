@@ -2,7 +2,12 @@ import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall, oidcCall, CreateExchangeCodeResult } from '@/api';
+import { commonAuthCall } from '@/api/common/auth';
+import { commonOidcCall } from '@/api/common/oidc';
+import {
+  idpClientAuthCall,
+  type CreateExchangeCodeResult,
+} from '@/api/idp-client/auth';
 import { CLIENT_LOGIN_ENDPOINTS } from '@/config';
 import type { SessionResult, Next, ClientInfo } from '@/types/enum';
 import { generateRandomString } from '@/utils/pkce';
@@ -32,7 +37,10 @@ export function Finish() {
         setLoading(true);
         (async () => {
           try {
-            const res = await authCall<Next>('enter', { ticket, state });
+            const res = await idpClientAuthCall<Next>('enter', {
+              ticket,
+              state,
+            });
             const redirectTo = res?.redirectTo;
             if (redirectTo) {
               window.location.href = redirectTo;
@@ -52,7 +60,7 @@ export function Finish() {
   useEffect(() => {
     (async () => {
       try {
-        const data = await oidcCall<ClientInfo[]>('clients', {});
+        const data = await commonOidcCall<ClientInfo[]>('clients', {});
         setItems(Array.isArray(data) ? data : []);
       } catch (error) {
         setErrorMsg(
@@ -65,7 +73,7 @@ export function Finish() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await authCall<SessionResult>('session', {});
+        const res = await commonAuthCall<SessionResult>('session', {});
         const n = (res as any)?.name as string | undefined;
         const sid = (res as any)?.student_id as string | undefined;
         if (n && sid) setUserLabel(`${n}（${sid}）`);
@@ -94,7 +102,7 @@ export function Finish() {
     setErrorMsg(null);
     try {
       const state = generateRandomString(16);
-      const res = await authCall<CreateExchangeCodeResult>(
+      const res = await idpClientAuthCall<CreateExchangeCodeResult>(
         'createExchangeCode',
         {
           app_id: String(item.client_id),
@@ -124,9 +132,7 @@ export function Finish() {
       title: '确认退出登录？',
       onOk: async () => {
         try {
-          await authCall<SessionResult>('session', {
-            logout: true,
-          });
+          await commonAuthCall<SessionResult>('logout', {});
           sessionStorage.removeItem('idp_studentId');
           navigate('/login');
         } catch (error) {

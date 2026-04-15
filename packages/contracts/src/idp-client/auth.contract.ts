@@ -4,7 +4,6 @@ import type {
   AuthForgotInitRequest,
   AuthForgotVerifyRequest,
   AuthMultifactorRequest,
-  AuthSessionRequest,
   CreateExchangeCodeDto,
   LoginInternalDto,
   RegisterDto,
@@ -18,7 +17,7 @@ import { z } from 'zod';
 
 import { buildActionMapFromRoutes } from '../constants/action';
 import { HTTP_METHOD } from '../constants/http';
-import { IDP_AUTH_PATH_PREFIX } from '../constants/path-prefix';
+import { IDP_CLIENT_AUTH_PATH_PREFIX } from '../constants/path-prefix';
 
 const c = initContract();
 
@@ -172,17 +171,7 @@ export const forgotVerifyResponseSchema = z.object({
   reset_token: z.string().optional(),
 });
 
-export const sessionBodySchema = z.object({
-  logout: z.boolean().optional(),
-}) satisfies z.ZodType<AuthSessionRequest>;
-
-export const sessionResponseSchema = z.object({
-  logged: z.boolean(),
-  name: z.string().optional(),
-  student_id: z.string().optional(),
-});
-
-const idpAuthRoutes = {
+const idpClientAuthRoutes = {
   login: {
     method: HTTP_METHOD.POST,
     path: '/login',
@@ -281,18 +270,16 @@ const idpAuthRoutes = {
     responses: { 200: forgotVerifyResponseSchema },
     summary: '忘记密码验证',
   },
-  session: {
-    method: HTTP_METHOD.POST,
-    path: '/session',
-    body: sessionBodySchema,
-    responses: { 200: sessionResponseSchema },
-    summary: '会话操作',
-  },
 } as const satisfies Parameters<typeof c.router>[0];
 
-export const idpAuthContract = c.router(idpAuthRoutes, {
-  pathPrefix: IDP_AUTH_PATH_PREFIX,
+export const idpClientAuthContract = c.router(idpClientAuthRoutes, {
+  pathPrefix: IDP_CLIENT_AUTH_PATH_PREFIX,
   strictStatusCodes: true,
 });
 
-export const IDP_AUTH_ACTION = buildActionMapFromRoutes(idpAuthRoutes);
+export const IDP_CLIENT_AUTH_ACTION =
+  buildActionMapFromRoutes(idpClientAuthRoutes);
+
+// Backward-compatible aliases for existing consumers.
+export const idpAuthContract = idpClientAuthContract;
+export const IDP_AUTH_ACTION = IDP_CLIENT_AUTH_ACTION;

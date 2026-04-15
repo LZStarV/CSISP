@@ -5,9 +5,6 @@
 export const CLIENT_LOGIN_ENDPOINTS: Record<string, string> = {};
 
 export const config = {
-  routes: {
-    apiPrefix: '/api/idp',
-  },
   login: {
     targets: CLIENT_LOGIN_ENDPOINTS,
   },

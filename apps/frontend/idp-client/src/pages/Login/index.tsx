@@ -3,13 +3,15 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
-  oidcCall,
-  authCall,
-  GetAuthorizationRequestResult,
-  LoginResult,
-  VerifyOtpResult,
-  SendOtpResult,
-} from '@/api';
+  commonOidcCall,
+  type GetAuthorizationRequestResult,
+} from '@/api/common/oidc';
+import {
+  idpClientAuthCall,
+  type LoginResult,
+  type SendOtpResult,
+  type VerifyOtpResult,
+} from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
 
@@ -28,7 +30,7 @@ export function Login() {
 
   useEffect(() => {
     if (ticket) {
-      oidcCall<GetAuthorizationRequestResult>('getAuthorizationRequest', {
+      commonOidcCall<GetAuthorizationRequestResult>('getAuthorizationRequest', {
         ticket,
       })
         .then((res: GetAuthorizationRequestResult) => {
@@ -44,7 +46,7 @@ export function Login() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await authCall<VerifyOtpResult>('verify-otp', {
+      const res = await idpClientAuthCall<VerifyOtpResult>('verify-otp', {
         token: otpCode,
       });
       if (res?.verified) {
@@ -61,7 +63,7 @@ export function Login() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await authCall<LoginResult>('login', {
+      const res = await idpClientAuthCall<LoginResult>('login', {
         email: values.email,
         password: values.password,
       });
@@ -75,7 +77,7 @@ export function Login() {
       };
 
       if (stepUp === 'PENDING_PASSWORD') {
-        await authCall<SendOtpResult>('send-otp', {});
+        await idpClientAuthCall<SendOtpResult>('send-otp', {});
         message.success('验证邮件已发送，请前往邮箱查收并完成验证');
         setOtpSent(true);
         return;

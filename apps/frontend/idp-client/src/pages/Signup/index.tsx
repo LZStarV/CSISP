@@ -3,14 +3,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
-  authCall,
-  RegisterParams,
-  RegisterResult,
-  VerifySignupOtpParams,
-  VerifySignupOtpResult,
-  ResendSignupOtpParams,
-  ResendSignupOtpResult,
-} from '@/api';
+  idpClientAuthCall,
+  type RegisterParams,
+  type RegisterResult,
+  type ResendSignupOtpParams,
+  type ResendSignupOtpResult,
+  type VerifySignupOtpParams,
+  type VerifySignupOtpResult,
+} from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_LOGIN } from '@/routes/router';
 
@@ -48,7 +48,7 @@ export function Signup() {
         student_id: values.student_id,
         display_name: values.display_name,
       };
-      await authCall<RegisterResult>('register', params);
+      await idpClientAuthCall<RegisterResult>('register', params);
       setEmail(values.email);
       setOtpStage(true);
       message.success('验证码已发送至邮箱，请输入 8 位验证码完成注册');
@@ -68,7 +68,7 @@ export function Signup() {
     setErrorMsg(null);
     try {
       const params: VerifySignupOtpParams = { email, token: otp };
-      const res = await authCall<VerifySignupOtpResult>(
+      const res = await idpClientAuthCall<VerifySignupOtpResult>(
         'verifySignupOtp',
         params
       );
@@ -94,7 +94,7 @@ export function Signup() {
     setErrorMsg(null);
     try {
       const params: ResendSignupOtpParams = { email };
-      const res = await authCall<ResendSignupOtpResult>(
+      const res = await idpClientAuthCall<ResendSignupOtpResult>(
         'resendSignupOtp',
         params
       );

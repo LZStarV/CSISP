@@ -1,2 +1,3 @@
 export * from './constants';
-export * from './idp-server';
+export * from './common';
+export * from './idp-client';

@@ -2,7 +2,8 @@ import { message } from 'antd';
 import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall, VerifyOtpResult } from '@/api';
+import { commonAuthCall } from '@/api/common/auth';
+import { idpClientAuthCall, type VerifyOtpResult } from '@/api/idp-client/auth';
 import { ROUTE_LOGIN, ROUTE_FINISH } from '@/routes/router';
 import type { SessionResult } from '@/types/enum';
 
@@ -18,7 +19,7 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     if (tokenHash && type) {
       (async () => {
         try {
-          const res = await authCall<VerifyOtpResult>('verify-otp', {
+          const res = await idpClientAuthCall<VerifyOtpResult>('verify-otp', {
             token_hash: tokenHash,
             type: type === 'magic_link' ? 'magic_link' : 'email',
           });
@@ -33,7 +34,7 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     }
     (async () => {
       try {
-        const res = await authCall<SessionResult>('session', {});
+        const res = await commonAuthCall<SessionResult>('session', {});
         const logged = !!res?.logged;
         if (logged) {
           if (location.pathname === ROUTE_LOGIN) {

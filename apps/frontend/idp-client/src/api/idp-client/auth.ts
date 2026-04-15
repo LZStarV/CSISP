@@ -1,11 +1,12 @@
-import type { IdpAuthAction } from '@csisp/contracts';
+import type { IdpClientAuthAction } from '@csisp/contracts';
+import * as contracts from '@csisp/contracts';
 
-import { createDomainCall } from './caller';
+import { createDomainCall } from '../caller';
 
 export type {
   CreateExchangeCodeParams,
   CreateExchangeCodeResult,
-  IdpAuthAction,
+  IdpClientAuthAction,
   LoginParams,
   LoginResult,
   RegisterParams,
@@ -19,4 +20,7 @@ export type {
   VerifySignupOtpResult,
 } from '@csisp/contracts';
 
-export const authCall = createDomainCall<IdpAuthAction>('auth');
+export const idpClientAuthCall = createDomainCall<IdpClientAuthAction>(
+  contracts.IDP_CLIENT_PATH_PREFIX,
+  'auth'
+);

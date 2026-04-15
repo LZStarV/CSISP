@@ -2,7 +2,7 @@ import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall } from '@/api';
+import { idpClientAuthCall } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   ROUTE_LOGIN,
@@ -33,9 +33,12 @@ export function SmsVerify() {
     if (fromForgot && studentId) {
       (async () => {
         try {
-          const res = await authCall<RecoveryInitResult>('forgot_init', {
-            studentId,
-          });
+          const res = await idpClientAuthCall<RecoveryInitResult>(
+            'forgot_init',
+            {
+              studentId,
+            }
+          );
           const methods = (res?.methods ?? []) as any[];
           const sms = methods.find(m => m?.type === MFAType.Sms);
           setPhone((sms?.extra as string | undefined) ?? undefined);
@@ -79,12 +82,12 @@ export function SmsVerify() {
     try {
       let res: any;
       if (fromForgot && studentId) {
-        res = await authCall<Next>('forgot_challenge', {
+        res = await idpClientAuthCall<Next>('forgot_challenge', {
           type: 'sms',
           studentId,
         });
       } else {
-        res = await authCall<Next>('multifactor', {
+        res = await idpClientAuthCall<Next>('multifactor', {
           type: MFAType.Sms,
           phoneOrEmail: phone,
           codeOrAssertion: 'request',
@@ -112,7 +115,7 @@ export function SmsVerify() {
     setErrorMsg(null);
     try {
       if (fromForgot && studentId) {
-        const res = await authCall<VerifyResult>('forgot_verify', {
+        const res = await idpClientAuthCall<VerifyResult>('forgot_verify', {
           type: 'sms',
           studentId,
           code: codeValue,
@@ -127,7 +130,7 @@ export function SmsVerify() {
         }).toString();
         navigate(`${ROUTE_PASSWORD_RESET}?${qs}`);
       } else {
-        await authCall<Next>('multifactor', {
+        await idpClientAuthCall<Next>('multifactor', {
           type: MFAType.Sms,
           phoneOrEmail: phone,
           codeOrAssertion: codeValue,

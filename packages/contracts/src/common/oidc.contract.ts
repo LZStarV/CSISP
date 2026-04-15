@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { buildActionMapFromRoutes } from '../constants/action';
 import { HTTP_METHOD } from '../constants/http';
-import { IDP_OIDC_PATH_PREFIX } from '../constants/path-prefix';
+import { COMMON_OIDC_PATH_PREFIX } from '../constants/path-prefix';
 
 const c = initContract();
 
@@ -28,7 +28,7 @@ export const getAuthorizationRequestResultSchema = z.object({
   state: z.string(),
 });
 
-const idpOidcRoutes = {
+const commonOidcRoutes = {
   clients: {
     method: HTTP_METHOD.POST,
     path: '/clients',
@@ -45,9 +45,9 @@ const idpOidcRoutes = {
   },
 } as const satisfies Parameters<typeof c.router>[0];
 
-export const idpOidcContract = c.router(idpOidcRoutes, {
-  pathPrefix: IDP_OIDC_PATH_PREFIX,
+export const commonOidcContract = c.router(commonOidcRoutes, {
+  pathPrefix: COMMON_OIDC_PATH_PREFIX,
   strictStatusCodes: true,
 });
 
-export const IDP_OIDC_ACTION = buildActionMapFromRoutes(idpOidcRoutes);
+export const COMMON_OIDC_ACTION = buildActionMapFromRoutes(commonOidcRoutes);

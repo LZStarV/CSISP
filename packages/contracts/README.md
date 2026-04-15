@@ -65,14 +65,14 @@ const idpAuthRoutes = {
 
 ```typescript
 import { initContract } from '@ts-rest/core';
-import { IDP_AUTH_PATH_PREFIX } from '../constants/path-prefix';
+import { IDP_CLIENT_AUTH_PATH_PREFIX } from '../constants/path-prefix';
 import { buildActionMapFromRoutes } from '../constants/action';
 
 const c = initContract();
 
 // 1. 生成 Contract
 export const idpAuthContract = c.router(idpAuthRoutes, {
-  pathPrefix: IDP_AUTH_PATH_PREFIX,
+  pathPrefix: IDP_CLIENT_AUTH_PATH_PREFIX,
   strictStatusCodes: true,
 });
 

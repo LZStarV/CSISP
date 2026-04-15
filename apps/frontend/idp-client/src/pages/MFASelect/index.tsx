@@ -8,7 +8,7 @@ import { Card, Button, Typography, Space, Alert } from 'antd';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import { authCall } from '@/api';
+import { idpClientAuthCall } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   MFAMethod,
@@ -34,7 +34,7 @@ export function MFASelect() {
 
   async function loadMfa() {
     try {
-      const res = await authCall<MfaMethodsResult>('mfa_methods', {});
+      const res = await idpClientAuthCall<MfaMethodsResult>('mfa_methods', {});
       if (res && Array.isArray(res?.multifactor) && res.multifactor.length) {
         setMfaMethods(res.multifactor);
         setErrorMsg(null);

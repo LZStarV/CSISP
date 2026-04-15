@@ -2,7 +2,7 @@ import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { authCall } from '@/api';
+import { idpClientAuthCall } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_LOGIN } from '@/routes/router';
 import { Next } from '@/types/enum';
@@ -54,7 +54,7 @@ export function ResetPassword() {
       const resetToken =
         tokenFromQuery ?? tokenFromState ?? tokenFromStorage ?? '';
       if (!resetToken) throw new Error('缺少重置令牌，请重新进行验证');
-      await authCall<Next>('reset_password', {
+      await idpClientAuthCall<Next>('reset_password', {
         studentId,
         newPassword: newPwd,
         reason: 'ForgetPassword',

@@ -11,7 +11,7 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { authCall } from '@/api';
+import { idpClientAuthCall } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_LOGIN } from '@/routes/router';
 import { MFA_METHOD_LABELS, MFA_METHOD_DESCRIPTIONS } from '@/types/auth';
@@ -57,7 +57,7 @@ export function ForgotInit() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await authCall<RecoveryInitResult>('forgot_init', {
+      const res = await idpClientAuthCall<RecoveryInitResult>('forgot_init', {
         studentId,
         email,
       });
