@@ -1,24 +1,32 @@
+import { ZodValidationPipe } from '@common/pipes/zod-validation.pipe';
 import {
   GetAuthorizationRequestParams,
-  OidcService,
-} from '@csisp-api/bff-idp-server';
+  IDP_OIDC_ACTION,
+  IDP_OIDC_PATH_PREFIX,
+  IDP_PATH_PREFIX,
+  getAuthorizationRequestBodySchema,
+} from '@csisp/contracts';
+import { OidcService } from '@csisp-api/bff-idp-server';
 import { Body, Controller, Post } from '@nestjs/common';
 import { firstValueFrom, map } from 'rxjs';
 
-@Controller('idp/oidc')
+const IDP_OIDC_CONTROLLER_PREFIX = `${IDP_PATH_PREFIX}${IDP_OIDC_PATH_PREFIX}`;
+
+@Controller(IDP_OIDC_CONTROLLER_PREFIX)
 export class IdpOidcController {
   constructor(private readonly oidcService: OidcService) {}
 
-  @Post('clients')
+  @Post(IDP_OIDC_ACTION.CLIENTS)
   async clients() {
     return firstValueFrom(
       this.oidcService.oidcClients({}).pipe(map(res => res.data))
     );
   }
 
-  @Post('getAuthorizationRequest')
+  @Post(IDP_OIDC_ACTION.GET_AUTHORIZATION_REQUEST)
   async getAuthorizationRequest(
-    @Body() getAuthorizationRequestParams: GetAuthorizationRequestParams
+    @Body(new ZodValidationPipe(getAuthorizationRequestBodySchema))
+    getAuthorizationRequestParams: GetAuthorizationRequestParams
   ) {
     return firstValueFrom(
       this.oidcService

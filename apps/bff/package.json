@@ -12,6 +12,7 @@
   "dependencies": {
     "@csisp-api/bff-idp-server": "0.2.1",
     "@csisp/config": "workspace:*",
+    "@csisp/contracts": "workspace:*",
     "@csisp/redis-sdk": "workspace:*",
     "@csisp/supabase-sdk": "workspace:*",
     "@csisp/utils": "workspace:*",
@@ -20,8 +21,6 @@
     "@nestjs/core": "catalog:node",
     "@nestjs/platform-express": "catalog:node",
     "axios": "^1.15.0",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.15.1",
     "nestjs-cls": "^6.2.0",
     "reflect-metadata": "catalog:node",
     "rxjs": "catalog:node",

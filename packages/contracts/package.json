@@ -1,0 +1,27 @@
+{
+  "name": "@csisp/contracts",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prebuild": "tsx scripts/generate-contract-type-exports.ts",
+    "build": "tsc -p tsconfig.json",
+    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
+  },
+  "dependencies": {
+    "@csisp-api/bff-idp-server": "0.2.1",
+    "@ts-rest/core": "^3.52.1",
+    "zod": "catalog:node"
+  }
+}

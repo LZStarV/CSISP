@@ -1,8 +1,9 @@
+import { IDP_PATH_PREFIX } from '@csisp/contracts';
 import { HealthService } from '@csisp-api/bff-idp-server';
 import { Controller, Get } from '@nestjs/common';
 import { firstValueFrom, map } from 'rxjs';
 
-@Controller('idp/health')
+@Controller(`${IDP_PATH_PREFIX}/health`)
 export class IdpHealthController {
   constructor(private readonly healthService: HealthService) {}
 

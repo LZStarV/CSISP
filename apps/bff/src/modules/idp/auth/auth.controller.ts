@@ -1,36 +1,50 @@
-import { AuthService } from '@csisp-api/bff-idp-server';
+import { ZodValidationPipe } from '@common/pipes/zod-validation.pipe';
 import {
-  Body,
-  Controller,
-  Post,
-  UsePipes,
-  ValidationPipe,
-} from '@nestjs/common';
+  CreateExchangeCodeParams,
+  EnterParams,
+  ForgotChallengeParams,
+  ForgotInitParams,
+  ForgotVerifyParams,
+  IDP_AUTH_ACTION,
+  IDP_AUTH_PATH_PREFIX,
+  IDP_PATH_PREFIX,
+  LoginParams,
+  MultifactorParams,
+  RegisterParams,
+  ResetPasswordParams,
+  ResendSignupOtpParams,
+  SessionParams,
+  VerifyOtpParams,
+  VerifySignupOtpParams,
+  createExchangeCodeBodySchema,
+  enterBodySchema,
+  forgotChallengeBodySchema,
+  forgotInitBodySchema,
+  forgotVerifyBodySchema,
+  loginBodySchema,
+  multifactorBodySchema,
+  registerBodySchema,
+  resendSignupOtpBodySchema,
+  resetPasswordBodySchema,
+  sessionBodySchema,
+  verifyOtpBodySchema,
+  verifySignupOtpBodySchema,
+} from '@csisp/contracts';
+import { AuthService } from '@csisp-api/bff-idp-server';
+import { Body, Controller, Post } from '@nestjs/common';
 import { firstValueFrom, map } from 'rxjs';
 
-import {
-  RegisterDto,
-  LoginInternalDto,
-  VerifySignupOtpDto,
-  ResendSignupOtpDto,
-  VerifyOtpDto,
-  CreateExchangeCodeDto,
-  ResetPasswordDto,
-  AuthMultifactorRequest,
-  AuthEnterRequest,
-  AuthForgotInitRequest,
-  AuthForgotChallengeRequest,
-  AuthForgotVerifyRequest,
-  AuthSessionRequest,
-} from './dto/auth.dto';
+const IDP_AUTH_CONTROLLER_PREFIX = `${IDP_PATH_PREFIX}${IDP_AUTH_PATH_PREFIX}`;
 
-@Controller('idp/auth')
-@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+@Controller(IDP_AUTH_CONTROLLER_PREFIX)
 export class IdpAuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('login')
-  async authLogin(@Body() loginInternalDto: LoginInternalDto) {
+  @Post(IDP_AUTH_ACTION.LOGIN)
+  async authLogin(
+    @Body(new ZodValidationPipe(loginBodySchema))
+    loginInternalDto: LoginParams
+  ) {
     return firstValueFrom(
       this.authService
         .authLogin({ LoginInternalDto: loginInternalDto })
@@ -38,8 +52,11 @@ export class IdpAuthController {
     );
   }
 
-  @Post('register')
-  async authRegister(@Body() registerDto: RegisterDto) {
+  @Post(IDP_AUTH_ACTION.REGISTER)
+  async authRegister(
+    @Body(new ZodValidationPipe(registerBodySchema))
+    registerDto: RegisterParams
+  ) {
     return firstValueFrom(
       this.authService
         .authRegister({ RegisterDto: registerDto })
@@ -47,8 +64,11 @@ export class IdpAuthController {
     );
   }
 
-  @Post('verifySignupOtp')
-  async authVerifySignupOtp(@Body() verifySignupOtpDto: VerifySignupOtpDto) {
+  @Post(IDP_AUTH_ACTION.VERIFY_SIGNUP_OTP)
+  async authVerifySignupOtp(
+    @Body(new ZodValidationPipe(verifySignupOtpBodySchema))
+    verifySignupOtpDto: VerifySignupOtpParams
+  ) {
     return firstValueFrom(
       this.authService
         .authVerifySignupOtp({ VerifySignupOtpDto: verifySignupOtpDto })
@@ -56,8 +76,11 @@ export class IdpAuthController {
     );
   }
 
-  @Post('resendSignupOtp')
-  async authResendSignupOtp(@Body() resendSignupOtpDto: ResendSignupOtpDto) {
+  @Post(IDP_AUTH_ACTION.RESEND_SIGNUP_OTP)
+  async authResendSignupOtp(
+    @Body(new ZodValidationPipe(resendSignupOtpBodySchema))
+    resendSignupOtpDto: ResendSignupOtpParams
+  ) {
     return firstValueFrom(
       this.authService
         .authResendSignupOtp({ ResendSignupOtpDto: resendSignupOtpDto })
@@ -65,15 +88,18 @@ export class IdpAuthController {
     );
   }
 
-  @Post('send-otp')
+  @Post(IDP_AUTH_ACTION.SEND_OTP)
   async authSendOtp() {
     return firstValueFrom(
       this.authService.authSendOtp({}).pipe(map(res => res.data))
     );
   }
 
-  @Post('verify-otp')
-  async authVerifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+  @Post(IDP_AUTH_ACTION.VERIFY_OTP)
+  async authVerifyOtp(
+    @Body(new ZodValidationPipe(verifyOtpBodySchema))
+    verifyOtpDto: VerifyOtpParams
+  ) {
     return firstValueFrom(
       this.authService
         .authVerifyOtp({ VerifyOtpDto: verifyOtpDto })
@@ -81,9 +107,10 @@ export class IdpAuthController {
     );
   }
 
-  @Post('createExchangeCode')
+  @Post(IDP_AUTH_ACTION.CREATE_EXCHANGE_CODE)
   async authCreateExchangeCode(
-    @Body() createExchangeCodeDto: CreateExchangeCodeDto
+    @Body(new ZodValidationPipe(createExchangeCodeBodySchema))
+    createExchangeCodeDto: CreateExchangeCodeParams
   ) {
     return firstValueFrom(
       this.authService
@@ -94,28 +121,39 @@ export class IdpAuthController {
     );
   }
 
-  @Post('multifactor')
+  @Post(IDP_AUTH_ACTION.MULTIFACTOR)
   async authMultifactor(
-    @Body() authMultifactorRequest: AuthMultifactorRequest
+    @Body(new ZodValidationPipe(multifactorBodySchema))
+    authMultifactorRequest: MultifactorParams
   ) {
     return firstValueFrom(
       this.authService
-        .authMultifactor({ AuthMultifactorRequest: authMultifactorRequest })
+        .authMultifactor({
+          AuthMultifactorRequest: authMultifactorRequest,
+        })
         .pipe(map(res => res.data))
     );
   }
 
-  @Post('reset_password')
-  async authResetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+  @Post(IDP_AUTH_ACTION.RESET_PASSWORD)
+  async authResetPassword(
+    @Body(new ZodValidationPipe(resetPasswordBodySchema))
+    resetPasswordDto: ResetPasswordParams
+  ) {
     return firstValueFrom(
       this.authService
-        .authResetPassword({ ResetPasswordDto: resetPasswordDto })
+        .authResetPassword({
+          ResetPasswordDto: resetPasswordDto,
+        })
         .pipe(map(res => res.data))
     );
   }
 
-  @Post('enter')
-  async authEnter(@Body() authEnterRequest: AuthEnterRequest) {
+  @Post(IDP_AUTH_ACTION.ENTER)
+  async authEnter(
+    @Body(new ZodValidationPipe(enterBodySchema))
+    authEnterRequest: EnterParams
+  ) {
     return firstValueFrom(
       this.authService
         .authEnter({ AuthEnterRequest: authEnterRequest })
@@ -123,25 +161,31 @@ export class IdpAuthController {
     );
   }
 
-  @Post('mfa_methods')
+  @Post(IDP_AUTH_ACTION.MFA_METHODS)
   async authMfaMethods() {
     return firstValueFrom(
       this.authService.authMfaMethods({}).pipe(map(res => res.data))
     );
   }
 
-  @Post('forgot_init')
-  async authForgotInit(@Body() authForgotInitRequest: AuthForgotInitRequest) {
+  @Post(IDP_AUTH_ACTION.FORGOT_INIT)
+  async authForgotInit(
+    @Body(new ZodValidationPipe(forgotInitBodySchema))
+    authForgotInitRequest: ForgotInitParams
+  ) {
     return firstValueFrom(
       this.authService
-        .authForgotInit({ AuthForgotInitRequest: authForgotInitRequest })
+        .authForgotInit({
+          AuthForgotInitRequest: authForgotInitRequest,
+        })
         .pipe(map(res => res.data))
     );
   }
 
-  @Post('forgot_challenge')
+  @Post(IDP_AUTH_ACTION.FORGOT_CHALLENGE)
   async authForgotChallenge(
-    @Body() authForgotChallengeRequest: AuthForgotChallengeRequest
+    @Body(new ZodValidationPipe(forgotChallengeBodySchema))
+    authForgotChallengeRequest: ForgotChallengeParams
   ) {
     return firstValueFrom(
       this.authService
@@ -152,9 +196,10 @@ export class IdpAuthController {
     );
   }
 
-  @Post('forgot_verify')
+  @Post(IDP_AUTH_ACTION.FORGOT_VERIFY)
   async authForgotVerify(
-    @Body() authForgotVerifyRequest: AuthForgotVerifyRequest
+    @Body(new ZodValidationPipe(forgotVerifyBodySchema))
+    authForgotVerifyRequest: ForgotVerifyParams
   ) {
     return firstValueFrom(
       this.authService
@@ -163,8 +208,11 @@ export class IdpAuthController {
     );
   }
 
-  @Post('session')
-  async authSession(@Body() authSessionRequest: AuthSessionRequest) {
+  @Post(IDP_AUTH_ACTION.SESSION)
+  async authSession(
+    @Body(new ZodValidationPipe(sessionBodySchema))
+    authSessionRequest: SessionParams
+  ) {
     return firstValueFrom(
       this.authService
         .authSession({ AuthSessionRequest: authSessionRequest })

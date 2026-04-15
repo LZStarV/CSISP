@@ -12,6 +12,7 @@
   "dependencies": {
     "@ant-design/icons": "catalog:frontend",
     "@csisp-api/bff-idp-server": "0.2.1",
+    "@csisp/contracts": "workspace:*",
     "@csisp/http": "workspace:*",
     "antd": "catalog:frontend",
     "class-transformer": "^0.5.1",

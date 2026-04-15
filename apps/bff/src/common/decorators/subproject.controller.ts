@@ -4,7 +4,7 @@ export function SubprojectController(
   sub: 'portal' | 'admin' | 'backoffice',
   path?: string
 ): ClassDecorator {
-  const prefix = path ? `${sub}/${path}` : sub;
+  const prefix = path ? `api/${sub}/${path}` : `api/${sub}`;
   return Controller(prefix);
 }
 

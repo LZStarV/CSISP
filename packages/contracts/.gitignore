@@ -1,0 +1,2 @@
+src/**/types/*.types.generated.ts
+src/**/types/index.ts

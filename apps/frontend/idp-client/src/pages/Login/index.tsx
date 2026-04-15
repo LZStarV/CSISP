@@ -5,20 +5,19 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   oidcCall,
   authCall,
+  GetAuthorizationRequestResult,
+  LoginResult,
   VerifyOtpResult,
-  LoginInternalResult,
   SendOtpResult,
 } from '@/api';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
-import type { AuthorizationRequestInfo } from '@/types/enum';
 
 export function Login() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [authInfo, setAuthInfo] = useState<AuthorizationRequestInfo | null>(
-    null
-  );
+  const [authInfo, setAuthInfo] =
+    useState<GetAuthorizationRequestResult | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -29,8 +28,10 @@ export function Login() {
 
   useEffect(() => {
     if (ticket) {
-      oidcCall<AuthorizationRequestInfo>('getAuthorizationRequest', { ticket })
-        .then((res: AuthorizationRequestInfo) => {
+      oidcCall<GetAuthorizationRequestResult>('getAuthorizationRequest', {
+        ticket,
+      })
+        .then((res: GetAuthorizationRequestResult) => {
           setAuthInfo(res);
         })
         .catch(error => {
@@ -60,7 +61,7 @@ export function Login() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await authCall<LoginInternalResult>('login', {
+      const res = await authCall<LoginResult>('login', {
         email: values.email,
         password: values.password,
       });
