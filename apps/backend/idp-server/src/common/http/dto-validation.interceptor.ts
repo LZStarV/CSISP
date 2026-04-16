@@ -1,9 +1,13 @@
 import {
+  CommonApiException,
+  CommonErrorCode,
+} from '@common/errors/common-error-codes';
+import {
   Injectable,
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  BadRequestException,
+  HttpStatus,
 } from '@nestjs/common';
 import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
@@ -34,7 +38,11 @@ export class DtoValidationInterceptor implements NestInterceptor {
     const dto = plainToInstance(DtoCls, body);
     const errs = validateSync(dto, { whitelist: true });
     if (errs.length) {
-      throw new BadRequestException('Invalid params');
+      throw new CommonApiException(
+        CommonErrorCode.BadRequest,
+        'Invalid params',
+        HttpStatus.BAD_REQUEST
+      );
     }
     req.body = dto;
     return next.handle();

@@ -1,5 +1,9 @@
+import {
+  CommonApiException,
+  CommonErrorCode,
+} from '@common/errors/common-error-codes';
 import { getIdpLogger } from '@infra/logger';
-import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
+import { Injectable, PipeTransform, HttpStatus } from '@nestjs/common';
 
 type RequestBody = {
   [key: string]: unknown;
@@ -22,7 +26,11 @@ export class RequestBodyPipe implements PipeTransform {
       }
     }
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      throw new BadRequestException('Invalid request body');
+      throw new CommonApiException(
+        CommonErrorCode.BadRequest,
+        'Invalid request body',
+        HttpStatus.BAD_REQUEST
+      );
     }
     const rawParams = body ?? {};
     const params: Record<string, any> = {};

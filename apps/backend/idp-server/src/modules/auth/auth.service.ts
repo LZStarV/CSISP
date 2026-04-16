@@ -2,8 +2,12 @@ import crypto from 'crypto';
 
 import {
   AuthErrorCode,
-  JsonRpcAuthException,
+  AuthApiException,
 } from '@common/errors/auth-error-codes';
+import {
+  CommonApiException,
+  CommonErrorCode,
+} from '@common/errors/common-error-codes';
 import { config } from '@config';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
@@ -26,7 +30,8 @@ import { ExchangeStore } from '@infra/redis/exchange.store';
 import { StepUpStore } from '@infra/redis/stepup.store';
 import { SupabaseDataAccess } from '@infra/supabase';
 import { GotrueService } from '@infra/supabase';
-import { Injectable, HttpException } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { OidcPolicyHelper } from '@utils/oidc/oidc.policy';
 import {
@@ -140,7 +145,12 @@ export class AuthService {
         .service()
         .from('user')
         .insert({ student_id: String(studentId) });
-      if (error) throw new HttpException('Finalize failed', 500);
+      if (error)
+        throw new CommonApiException(
+          CommonErrorCode.InternalError,
+          'Finalize failed',
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
       try {
         await this.kv.del(`reg:student:${normalized}`);
       } catch {}
@@ -162,8 +172,8 @@ export class AuthService {
         type: 'signup',
       });
     } catch {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.OTP_INVALID_OR_EXPIRED,
+      throw new AuthApiException(
+        AuthErrorCode.OtpInvalidOrExpired,
         'OTP invalid or expired'
       );
     }
@@ -214,8 +224,8 @@ export class AuthService {
         { event: 'login', result: 'failed', email: dto.email },
         'auth login failed'
       );
-      throw new JsonRpcAuthException(
-        AuthErrorCode.UNAUTHORIZED,
+      throw new AuthApiException(
+        AuthErrorCode.Unauthorized,
         'Invalid email or password'
       );
     }
@@ -228,36 +238,33 @@ export class AuthService {
     const logger = getIdpBaseLogger().child({ module: 'auth' });
     const sid = (req as any).cookies?.idp_stepup as string | undefined;
     if (!sid) {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.UNAUTHORIZED,
+      throw new AuthApiException(
+        AuthErrorCode.Unauthorized,
         'No step-up session'
       );
     }
     const store = new StepUpStore(this.kv);
     const cur = await store.getState(sid);
     if (!cur) {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.UNAUTHORIZED,
+      throw new AuthApiException(
+        AuthErrorCode.Unauthorized,
         'Step-up session not found'
       );
     }
     if (cur.state === 'VERIFIED') {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.UNAUTHORIZED,
+      throw new AuthApiException(
+        AuthErrorCode.Unauthorized,
         'Already verified'
       );
     }
     if (cur.state !== 'PENDING_PASSWORD') {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.AUTH_STEP_UP_REQUIRED,
+      throw new AuthApiException(
+        AuthErrorCode.AuthStepUpRequired,
         'Step-up state mismatch'
       );
     }
     if (!cur.email) {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.UNAUTHORIZED,
-        'Email missing'
-      );
+      throw new AuthApiException(AuthErrorCode.Unauthorized, 'Email missing');
     }
     await store.setPendingEmailOtp(sid, 600);
     await this.gotrue.signInWithOtp({ email: cur.email });
@@ -283,28 +290,28 @@ export class AuthService {
     const logger = getIdpBaseLogger().child({ module: 'auth' });
     const sid = (req as any).cookies?.idp_stepup as string | undefined;
     if (!sid) {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.UNAUTHORIZED,
+      throw new AuthApiException(
+        AuthErrorCode.Unauthorized,
         'No step-up session'
       );
     }
     const store = new StepUpStore(this.kv);
     const cur = await store.getState(sid);
     if (!cur) {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.UNAUTHORIZED,
+      throw new AuthApiException(
+        AuthErrorCode.Unauthorized,
         'Step-up session not found'
       );
     }
     if (cur.state === 'VERIFIED') {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.UNAUTHORIZED,
+      throw new AuthApiException(
+        AuthErrorCode.Unauthorized,
         'Already verified'
       );
     }
     if (cur.state !== 'PENDING_EMAIL_OTP') {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.AUTH_STEP_UP_REQUIRED,
+      throw new AuthApiException(
+        AuthErrorCode.AuthStepUpRequired,
         'Step-up state mismatch'
       );
     }
@@ -336,8 +343,8 @@ export class AuthService {
         },
         'auth verify otp failed'
       );
-      throw new JsonRpcAuthException(
-        AuthErrorCode.OTP_INVALID_OR_EXPIRED,
+      throw new AuthApiException(
+        AuthErrorCode.OtpInvalidOrExpired,
         'OTP invalid or expired'
       );
     }
@@ -353,16 +360,16 @@ export class AuthService {
     const logger = getIdpBaseLogger().child({ module: 'auth' });
     const sid = (req as any).cookies?.idp_stepup as string | undefined;
     if (!sid) {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.AUTH_STEP_UP_REQUIRED,
+      throw new AuthApiException(
+        AuthErrorCode.AuthStepUpRequired,
         'No step-up session'
       );
     }
     const step = new StepUpStore(this.kv);
     const cur = await step.getState(sid);
     if (!cur || cur.state !== 'VERIFIED') {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.AUTH_STEP_UP_REQUIRED,
+      throw new AuthApiException(
+        AuthErrorCode.AuthStepUpRequired,
         'Step-up not verified'
       );
     }
@@ -384,8 +391,8 @@ export class AuthService {
         },
         'auth create exchange code rate limited'
       );
-      throw new JsonRpcAuthException(
-        AuthErrorCode.RATE_LIMITED,
+      throw new AuthApiException(
+        AuthErrorCode.RateLimited,
         'Too many requests'
       );
     }
@@ -406,8 +413,8 @@ export class AuthService {
         client!.allowed_redirect_uris
       );
     if (!allowed) {
-      throw new JsonRpcAuthException(
-        AuthErrorCode.EXCHANGE_CODE_INVALID,
+      throw new AuthApiException(
+        AuthErrorCode.ExchangeCodeInvalid,
         'redirect_uri not allowed'
       );
     }
@@ -467,7 +474,11 @@ export class AuthService {
       .eq('user_id', user.id)
       .maybeSingle<MfaPick>();
     if (error) {
-      throw new HttpException('Failed to load MFA settings', 500);
+      throw new CommonApiException(
+        CommonErrorCode.InternalError,
+        'Failed to load MFA settings',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
 
     if (!mfaSettings) {
@@ -493,7 +504,11 @@ export class AuthService {
     _params: MultifactorDto,
     _res?: Response
   ): Promise<NextResult> {
-    throw new HttpException('Multifactor is not implemented', 501);
+    throw new CommonApiException(
+      CommonErrorCode.InternalError,
+      'Multifactor is not implemented',
+      HttpStatus.NOT_IMPLEMENTED
+    );
   }
 
   async session(uid?: number): Promise<AuthSessionResult> {
@@ -598,7 +613,11 @@ export class AuthService {
     type: string;
     studentId: string;
   }): Promise<NextResult> {
-    throw new HttpException('Recovery via SMS not implemented', 501);
+    throw new CommonApiException(
+      CommonErrorCode.InternalError,
+      'Recovery via SMS not implemented',
+      HttpStatus.NOT_IMPLEMENTED
+    );
   }
 
   // 忘记密码：校验验证码并下发令牌
@@ -607,7 +626,11 @@ export class AuthService {
     studentId: string;
     code: string;
   }): Promise<AuthForgotVerifyResult> {
-    throw new HttpException('Recovery via SMS not implemented', 501);
+    throw new CommonApiException(
+      CommonErrorCode.InternalError,
+      'Recovery via SMS not implemented',
+      HttpStatus.NOT_IMPLEMENTED
+    );
   }
   /**
    * 重置密码
@@ -622,12 +645,21 @@ export class AuthService {
       .select('id,student_id')
       .eq('student_id', _params.studentId)
       .maybeSingle<UserPick>();
-    if (!user) throw new HttpException('User not found', 404);
+    if (!user)
+      throw new CommonApiException(
+        CommonErrorCode.NotFound,
+        'User not found',
+        HttpStatus.NOT_FOUND
+      );
 
     // 校验重置令牌（使用 TicketIssuer）
     const tokenVal = await this.resetTicketIssuer.verify(_params.resetToken);
     if (!tokenVal || Number(tokenVal) !== user.id) {
-      throw new HttpException('Invalid reset token', 401);
+      throw new CommonApiException(
+        CommonErrorCode.Unauthorized,
+        'Invalid reset token',
+        HttpStatus.UNAUTHORIZED
+      );
     }
     const hashed = await hashPasswordScrypt(_params.newPassword);
     {
@@ -635,7 +667,12 @@ export class AuthService {
         p_student_id: _params.studentId,
         p_new_hash: hashed,
       });
-      if (error) throw new HttpException('Reset password failed', 500);
+      if (error)
+        throw new CommonApiException(
+          CommonErrorCode.InternalError,
+          'Reset password failed',
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
     }
     // 标记令牌失效（消费令牌）
     await this.resetTicketIssuer.consume(_params.resetToken);
@@ -716,7 +753,11 @@ export class AuthService {
     }
 
     if (uid === null || uid === undefined) {
-      throw new HttpException('Unauthorized: session invalid', 401);
+      throw new CommonApiException(
+        CommonErrorCode.Unauthorized,
+        'Unauthorized: session invalid',
+        HttpStatus.UNAUTHORIZED
+      );
     }
 
     // 使用 TicketIssuer 发放授权码

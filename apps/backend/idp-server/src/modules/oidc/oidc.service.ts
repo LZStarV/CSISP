@@ -1,3 +1,7 @@
+import {
+  CommonApiException,
+  CommonErrorCode,
+} from '@common/errors/common-error-codes';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import {
@@ -7,7 +11,7 @@ import {
 import { RedisPrefix } from '@idp-types/redis';
 import { getIdpLogger } from '@infra/logger';
 import { SupabaseDataAccess } from '@infra/supabase';
-import { Inject, Injectable, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, HttpStatus } from '@nestjs/common';
 import { OIDCScope } from '@utils/oidc/oidc.policy';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
 
@@ -46,7 +50,12 @@ export class OidcService {
     dto: GetAuthorizationRequestDto
   ): Promise<AuthorizationRequestInfo> {
     const req = await this.ticketIssuer.verify(dto.ticket);
-    if (!req) throw new BadRequestException('Invalid ticket');
+    if (!req)
+      throw new CommonApiException(
+        CommonErrorCode.BadRequest,
+        'Invalid ticket',
+        HttpStatus.BAD_REQUEST
+      );
 
     const { data: client } = await this.sda
       .service()

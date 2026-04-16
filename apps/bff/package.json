@@ -10,7 +10,7 @@
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
-    "@csisp-api/bff-idp-server": "0.2.1",
+    "@csisp-api/bff-idp-server": "0.2.2",
     "@csisp/config": "workspace:*",
     "@csisp/contracts": "workspace:*",
     "@csisp/redis-sdk": "workspace:*",

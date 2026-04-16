@@ -1,9 +1,13 @@
 import {
+  CommonApiException,
+  CommonErrorCode,
+} from '@common/errors/common-error-codes';
+import {
   CallHandler,
   ExecutionContext,
   Injectable,
   NestInterceptor,
-  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 
@@ -30,7 +34,11 @@ export class RateLimitInterceptor implements NestInterceptor {
     } else {
       item.count += 1;
       if (item.count > MAX_REQ) {
-        throw new HttpException('Too Many Requests', 429);
+        throw new CommonApiException(
+          CommonErrorCode.RateLimited,
+          'Too Many Requests',
+          HttpStatus.TOO_MANY_REQUESTS
+        );
       }
     }
     return next.handle();
