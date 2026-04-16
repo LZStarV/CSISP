@@ -4,7 +4,8 @@ import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ command }) => {
+export default defineConfig(({ command, mode }) => {
+  const isDevelopment = command === 'serve' && mode !== 'production';
   const common = {
     plugins: [react()],
     resolve: {
@@ -38,10 +39,12 @@ export default defineConfig(({ command }) => {
         port: 5174,
         allowedHosts: ['idp-client.onrender.com'],
         proxy: {
-          '/api/idp-client': {
-            target: 'http://127.0.0.1:4000',
+          '/api': {
+            target: isDevelopment
+              ? 'http://127.0.0.1:4000'
+              : 'https://csisp-bff.onrender.com',
             changeOrigin: true,
-            secure: false,
+            secure: !isDevelopment,
           },
         },
       },
