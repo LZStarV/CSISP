@@ -13,5 +13,5 @@ export class CreateExchangeCodeDto implements GeneratedCreateExchangeCodeDto {
   @IsOptional()
   @IsString()
   @Length(1, 256)
-  state?: string;
+  state?: string | null;
 }

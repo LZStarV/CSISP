@@ -33,7 +33,6 @@ export class OidcPolicyHelper {
         whitelist = [allowed];
       }
     }
-
     return whitelist.includes(uri);
   }
 

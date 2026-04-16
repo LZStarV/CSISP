@@ -1,6 +1,7 @@
+import { AuthEnterRequest } from '@csisp-api/idp-server';
 import { Length, IsOptional, IsString } from 'class-validator';
 
-export class EnterDto {
+export class EnterDto implements AuthEnterRequest {
   @IsOptional()
   @IsString()
   @Length(1, 256)

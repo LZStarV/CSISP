@@ -71,7 +71,7 @@ pnpm dev:bff
 
 > 注意：
 >
-> - 在开发前需要检查是否已经执行过 `pnpm infisical:login`，否则会有环境变量相关报错。
+> - 在开发前需要检查是否已经执行过 `infisical login`，否则会有环境变量相关报错。
 > - 如果遇到 `Cannot find module '@csisp/xxx'` 错误，说明 workspace 依赖未构建，请先执行 `pnpm build`。
 
 ### 代码格式化

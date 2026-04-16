@@ -1,7 +1,7 @@
-import { MFAType } from '@csisp-api/idp-server';
+import { MFAType, AuthMultifactorRequest } from '@csisp-api/idp-server';
 import { Length, IsEnum, IsString } from 'class-validator';
 
-export class MultifactorDto {
+export class MultifactorDto implements AuthMultifactorRequest {
   @IsEnum(MFAType)
   type!: MFAType;
 

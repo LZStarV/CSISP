@@ -1,5 +1,8 @@
-import { ResetPasswordDto as GeneratedResetPasswordDto } from '@csisp-api/idp-server';
-import { Length, IsString } from 'class-validator';
+import {
+  ResetPasswordDto as GeneratedResetPasswordDto,
+  ResetReason,
+} from '@csisp-api/idp-server';
+import { Length, IsString, IsOptional } from 'class-validator';
 
 export class ResetPasswordDto implements GeneratedResetPasswordDto {
   @IsString()
@@ -13,4 +16,8 @@ export class ResetPasswordDto implements GeneratedResetPasswordDto {
   @IsString()
   @Length(1, 128)
   resetToken!: string;
+
+  @IsOptional()
+  @IsString()
+  reason?: ResetReason;
 }

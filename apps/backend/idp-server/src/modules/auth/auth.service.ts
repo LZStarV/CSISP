@@ -26,9 +26,9 @@ import { ExchangeStore } from '@infra/redis/exchange.store';
 import { StepUpStore } from '@infra/redis/stepup.store';
 import { SupabaseDataAccess } from '@infra/supabase';
 import { GotrueService } from '@infra/supabase';
-import { OidcPolicyHelper } from '@modules/oidc/helpers/oidc.policy';
 import { Injectable, HttpException } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
+import { OidcPolicyHelper } from '@utils/oidc/oidc.policy';
 import {
   SessionIssuer,
   defaultSessionOptions,

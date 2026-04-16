@@ -23,10 +23,10 @@ export class RegisterDto implements GeneratedRegisterDto {
   @IsOptional()
   @IsString()
   @Length(1, 128)
-  display_name?: string;
+  display_name?: string | null;
 
   @IsOptional()
   @IsString()
   @Length(1, 512)
-  redirect_uri?: string;
+  redirect_uri?: string | null;
 }

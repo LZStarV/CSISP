@@ -8,9 +8,10 @@ import { RedisPrefix } from '@idp-types/redis';
 import { getIdpLogger } from '@infra/logger';
 import { SupabaseDataAccess } from '@infra/supabase';
 import { Inject, Injectable, BadRequestException } from '@nestjs/common';
+import { OIDCScope } from '@utils/oidc/oidc.policy';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
 
-import { OIDCScope } from './helpers/oidc.policy';
+import { GetAuthorizationRequestDto } from './dto/get-authorization-request.dto';
 
 type OidcClientPick = {
   client_id: string;
@@ -42,9 +43,9 @@ export class OidcService {
    * 获取授权请求详情 (Ticket 模式)
    */
   async getAuthorizationRequest(
-    ticket: string
+    dto: GetAuthorizationRequestDto
   ): Promise<AuthorizationRequestInfo> {
-    const req = await this.ticketIssuer.verify(ticket);
+    const req = await this.ticketIssuer.verify(dto.ticket);
     if (!req) throw new BadRequestException('Invalid ticket');
 
     const { data: client } = await this.sda
