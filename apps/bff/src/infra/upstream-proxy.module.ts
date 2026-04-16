@@ -1,6 +1,6 @@
 import { config } from '@config';
 import { ApiModule, Configuration } from '@csisp-api/bff-idp-server';
-import { HttpService } from '@nestjs/axios';
+import { HttpModule, HttpService } from '@nestjs/axios';
 import { Global, Module, OnModuleInit } from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
 import type { Request, Response } from 'express';
@@ -9,6 +9,7 @@ import { ClsService } from 'nestjs-cls';
 @Global()
 @Module({
   imports: [
+    HttpModule,
     ApiModule.forRootAsync({
       useFactory: () => {
         return new Configuration({
@@ -19,7 +20,7 @@ import { ClsService } from 'nestjs-cls';
   ],
   exports: [ApiModule],
 })
-export class IdpSdkModule implements OnModuleInit {
+export class UpstreamProxyModule implements OnModuleInit {
   constructor(
     private readonly httpService: HttpService,
     private readonly cls: ClsService

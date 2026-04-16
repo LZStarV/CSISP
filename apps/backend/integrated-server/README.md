@@ -42,13 +42,13 @@ pnpm -C apps/backend/integrated-server run db:types
 - 请求示例：
 
 ```json
-{"jsonrpc": "2.0", "id": 1, "params": {}}
+{ "jsonrpc": "2.0", "id": 1, "params": {} }
 ```
 
 - 响应示例：
 
 ```json
-{"jsonrpc": "2.0", "id": 1, "result": {"ok": true, "ts": 1768826815279}}
+{ "jsonrpc": "2.0", "id": 1, "result": { "ok": true, "ts": 1768826815279 } }
 ```
 
 - 错误响应（统一 200 状态，error 包含 code/message/data）：
@@ -57,7 +57,7 @@ pnpm -C apps/backend/integrated-server run db:types
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "error": {"code": -32600, "message": "Invalid JSON-RPC request"}
+  "error": { "code": -32600, "message": "Invalid JSON-RPC request" }
 }
 ```
 

@@ -2,9 +2,9 @@ import { CorsModule } from '@common/cors/cors.module';
 import { AxiosExceptionFilter } from '@common/filters/axios-exception.filter';
 import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
 import { AppClsModule } from '@infra/cls.module';
-import { IdpSdkModule } from '@infra/idp-sdk.module';
 import { RedisInfraModule } from '@infra/redis.module';
 import { SupabaseInfraModule } from '@infra/supabase.module';
+import { UpstreamProxyModule } from '@infra/upstream-proxy.module';
 import { AdminDemoModule } from '@modules/admin/demo/demo.module';
 import { BackofficeDemoModule } from '@modules/backoffice/demo/demo.module';
 import { CommonModules } from '@modules/common';
@@ -16,7 +16,7 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 @Module({
   imports: [
     AppClsModule,
-    IdpSdkModule,
+    UpstreamProxyModule,
     SupabaseInfraModule,
     RedisInfraModule,
     CorsModule,
