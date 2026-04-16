@@ -1,3 +1,4 @@
+import { getBffLogger } from '@common/logger';
 import { ZodValidationPipe } from '@common/pipes/zod-validation.pipe';
 import {
   GetAuthorizationRequestParams,
@@ -14,10 +15,16 @@ const IDP_OIDC_CONTROLLER_PREFIX = `${COMMON_PATH_PREFIX}${COMMON_OIDC_PATH_PREF
 
 @Controller(IDP_OIDC_CONTROLLER_PREFIX)
 export class IdpOidcController {
+  private readonly logger = getBffLogger('idp-oidc');
+
   constructor(private readonly oidcService: OidcService) {}
 
   @Post(COMMON_OIDC_ACTION.CLIENTS)
   async clients() {
+    this.logger.info(
+      { action: COMMON_OIDC_ACTION.CLIENTS },
+      'IDP OIDC proxy request'
+    );
     return firstValueFrom(
       this.oidcService.oidcClients({}).pipe(map(res => res.data))
     );
@@ -28,6 +35,10 @@ export class IdpOidcController {
     @Body(new ZodValidationPipe(getAuthorizationRequestBodySchema))
     getAuthorizationRequestParams: GetAuthorizationRequestParams
   ) {
+    this.logger.info(
+      { action: COMMON_OIDC_ACTION.GET_AUTHORIZATION_REQUEST },
+      'IDP OIDC proxy request'
+    );
     return firstValueFrom(
       this.oidcService
         .oidcGetAuthorizationRequest({

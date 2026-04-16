@@ -1,4 +1,4 @@
-import { getLogger } from '@common/logger';
+import { getBffLogger } from '@common/logger';
 import {
   CallHandler,
   ExecutionContext,
@@ -21,7 +21,10 @@ export class LoggingInterceptor implements NestInterceptor {
       req?.headers?.['x-trace-id'] ??
       req?.headers?.['X-Trace-Id'] ??
       req?.headers?.['x-traceid'];
-    const logger = getLogger(typeof traceId === 'string' ? traceId : undefined);
+    const logger = getBffLogger(
+      undefined,
+      typeof traceId === 'string' ? traceId : undefined
+    );
 
     logger.info({ phase: 'start', method, url }, 'Request started');
     return next.handle().pipe(

@@ -1,3 +1,4 @@
+import { getBffLogger } from '@common/logger';
 import { ZodValidationPipe } from '@common/pipes/zod-validation.pipe';
 import {
   COMMON_AUTH_ACTION,
@@ -14,6 +15,8 @@ const COMMON_AUTH_CONTROLLER_PREFIX = `${COMMON_PATH_PREFIX}${COMMON_AUTH_PATH_P
 
 @Controller(COMMON_AUTH_CONTROLLER_PREFIX)
 export class CommonAuthController {
+  private readonly logger = getBffLogger('common-auth');
+
   constructor(private readonly authService: AuthService) {}
 
   @Post(COMMON_AUTH_ACTION.SESSION)
@@ -21,6 +24,10 @@ export class CommonAuthController {
     @Body(new ZodValidationPipe(sessionBodySchema))
     authSessionRequest: SessionParams
   ) {
+    this.logger.info(
+      { action: COMMON_AUTH_ACTION.SESSION },
+      'Common auth proxy request'
+    );
     return firstValueFrom(
       this.authService
         .authSession({ AuthSessionRequest: authSessionRequest })
@@ -30,6 +37,10 @@ export class CommonAuthController {
 
   @Post(COMMON_AUTH_ACTION.LOGOUT)
   async logout() {
+    this.logger.info(
+      { action: COMMON_AUTH_ACTION.LOGOUT },
+      'Common auth proxy request'
+    );
     return firstValueFrom(
       this.authService
         .authSession({ AuthSessionRequest: { logout: true } })
