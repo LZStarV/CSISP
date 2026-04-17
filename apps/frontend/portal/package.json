@@ -11,11 +11,14 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@csisp/http": "workspace:*",
     "vue": "catalog:frontend",
     "pinia": "catalog:frontend",
     "vue-router": "catalog:frontend",
     "axios": "catalog:frontend",
-    "naive-ui": "catalog:frontend",
+    "ant-design-vue": "catalog:frontend",
+    "@ant-design/icons-vue": "catalog:frontend",
+    "localforage": "catalog:frontend",
     "echarts": "catalog:frontend",
     "vue-echarts": "catalog:frontend"
   },

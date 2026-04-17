@@ -55,8 +55,9 @@ catalogs:
     react: ^18.2.0
     'react-dom': ^18.2.0
     'react-router-dom': ^7.13.0
-    'naive-ui': ^2.38.1
     antd: ^5.18.4
+    ant-design-vue: ^4.2.6
+    '@ant-design/icons-vue': ^7.0.1
     '@ant-design/icons': ^5.5.1
     vite: ^5.4.8
     '@vitejs/plugin-vue': ^5.0.0
@@ -69,6 +70,7 @@ catalogs:
     zod: ^3.25.76
     lucide-react: ^0.563.0
     '@vicons/ionicons5': ^0.13.0
+    localforage: ^1.10.0
 
   # Dev Catalog - 开发工具共享
   # 适用于：所有项目的 devDependencies

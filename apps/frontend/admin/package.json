@@ -14,7 +14,6 @@
     "@vicons/ionicons5": "catalog:frontend",
     "axios": "catalog:frontend",
     "echarts": "catalog:frontend",
-    "naive-ui": "catalog:frontend",
     "pinia": "catalog:frontend",
     "vue": "catalog:frontend",
     "vue-echarts": "catalog:frontend",
