@@ -1,5 +1,9 @@
 import { SupabaseDataAccess } from '@csisp/supabase-sdk';
-import { Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 @Injectable()
 export class TrustedOriginsService {
@@ -14,10 +18,10 @@ export class TrustedOriginsService {
       .service()
       .rpc('bff_get_trusted_frontends');
     if (error) {
-      throw error;
+      throw new BadGatewayException(error.message);
     }
     if (!Array.isArray(data)) {
-      throw new Error(
+      throw new InternalServerErrorException(
         'bff_get_trusted_frontends must return a JSON array of strings'
       );
     }

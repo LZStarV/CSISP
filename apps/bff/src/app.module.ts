@@ -1,5 +1,6 @@
 import { CorsModule } from '@common/cors/cors.module';
-import { AxiosExceptionFilter } from '@common/filters/axios-exception.filter';
+import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
+import { HttpFallbackExceptionFilter } from '@common/filters/http-fallback-exception.filter';
 import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
 import { AppClsModule } from '@infra/cls.module';
 import { RedisInfraModule } from '@infra/redis.module';
@@ -28,7 +29,11 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
     },
     {
       provide: APP_FILTER,
-      useClass: AxiosExceptionFilter,
+      useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpFallbackExceptionFilter,
     },
   ],
 })
