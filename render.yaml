@@ -57,6 +57,9 @@ services:
       - type: rewrite
         source: /api/*
         destination: https://csisp-bff.onrender.com/api/
+      - type: rewrite
+        source: /*
+        destination: /index.html
 
   - type: web
     runtime: static
@@ -77,6 +80,9 @@ services:
       - type: rewrite
         source: /api/*
         destination: https://csisp-bff.onrender.com/api/
+      - type: rewrite
+        source: /*
+        destination: /index.html
 
   - type: web
     runtime: static
@@ -97,6 +103,9 @@ services:
       - type: rewrite
         source: /api/*
         destination: https://csisp-bff.onrender.com/api/
+      - type: rewrite
+        source: /*
+        destination: /index.html
 
 envVarGroups:
   - name: csisp-env-prod
