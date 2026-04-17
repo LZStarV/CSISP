@@ -1,11 +1,8 @@
 import { RedisModule } from '@csisp/redis-sdk/nest';
 import { SupabaseModule } from '@csisp/supabase-sdk';
 import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { RateLimitInterceptor } from './common/interceptors/rate-limit.interceptor';
 import { config } from './config';
 
 @Module({
@@ -21,16 +18,6 @@ import { config } from './config';
       namespace: config.redis.namespace,
     }),
     MongooseModule.forRoot(config.mongo.uri),
-  ],
-  providers: [
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: RateLimitInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
-    },
   ],
 })
 export class AppModule {}

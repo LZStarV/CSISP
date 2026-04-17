@@ -1,7 +1,7 @@
 import { join } from 'path';
 
 import { RedisModule } from '@csisp/redis-sdk/nest';
-import { SupabaseModule } from '@infra/supabase';
+import { SupabaseModule } from '@csisp/supabase-sdk';
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -9,6 +9,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { RateLimitInterceptor } from './common/interceptors/rate-limit.interceptor';
 import { config } from './config';
+import { GotrueService } from './infra/supabase/gotrue.service';
 import { DomainModules } from './modules';
 
 @Module({
@@ -22,10 +23,15 @@ import { DomainModules } from './modules';
       token: config.redis.upstash.token,
       namespace: config.redis.namespace,
     }),
-    SupabaseModule,
+    SupabaseModule.register({
+      url: config.supabase.url,
+      serviceRoleKey: config.supabase.serviceRoleKey,
+      anonKey: config.supabase.anonKey,
+    }),
     ...DomainModules,
   ],
   providers: [
+    GotrueService,
     {
       provide: APP_INTERCEPTOR,
       useClass: RateLimitInterceptor,
@@ -35,5 +41,6 @@ import { DomainModules } from './modules';
       useClass: LoggingInterceptor,
     },
   ],
+  exports: [GotrueService],
 })
 export class AppModule {}

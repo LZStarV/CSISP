@@ -1,17 +1,12 @@
-import { config } from '@config';
-import { Injectable } from '@nestjs/common';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseDataAccess } from '@csisp/supabase-sdk';
+import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class GotrueService {
-  private readonly client: SupabaseClient;
-
-  constructor() {
-    this.client = createClient(config.supabase.url, config.supabase.anonKey, {
-      auth: { persistSession: false, detectSessionInUrl: false },
-      db: { schema: 'public' },
-    });
-  }
+  constructor(
+    @Inject(SupabaseDataAccess)
+    private readonly supabaseDataAccess: SupabaseDataAccess
+  ) {}
 
   // 登录
   // @param params 登录参数
@@ -21,7 +16,8 @@ export class GotrueService {
     email: string;
     password: string;
   }): Promise<void> {
-    const { error } = await this.client.auth.signInWithPassword({
+    const client = this.supabaseDataAccess.service();
+    const { error } = await client.auth.signInWithPassword({
       email: params.email,
       password: params.password,
     });
@@ -35,7 +31,8 @@ export class GotrueService {
   // @returns 登录结果
   // @throws 登录失败时抛出异常
   async signInWithOtp(params: { email: string }): Promise<void> {
-    const { error } = await this.client.auth.signInWithOtp({
+    const client = this.supabaseDataAccess.service();
+    const { error } = await client.auth.signInWithOtp({
       email: params.email,
     });
     if (error) {
@@ -52,7 +49,8 @@ export class GotrueService {
     token: string;
     type: 'email' | 'signup';
   }): Promise<void> {
-    const { error } = await this.client.auth.verifyOtp({
+    const client = this.supabaseDataAccess.service();
+    const { error } = await client.auth.verifyOtp({
       email: params.email,
       token: params.token,
       type: params.type,
@@ -72,7 +70,8 @@ export class GotrueService {
     data?: Record<string, any>;
     emailRedirectTo?: string;
   }): Promise<void> {
-    const { error } = await this.client.auth.signUp({
+    const client = this.supabaseDataAccess.service();
+    const { error } = await client.auth.signUp({
       email: params.email,
       password: params.password,
       options: {
@@ -90,7 +89,8 @@ export class GotrueService {
   // @returns 发送注册 OTP 结果
   // @throws 发送注册 OTP 失败时抛出异常
   async resendSignupOtp(params: { email: string }): Promise<void> {
-    const { error } = await this.client.auth.resend({
+    const client = this.supabaseDataAccess.service();
+    const { error } = await client.auth.resend({
       type: 'signup',
       email: params.email,
     });

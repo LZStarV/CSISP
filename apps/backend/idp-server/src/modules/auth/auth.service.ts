@@ -11,6 +11,7 @@ import {
 import { config } from '@config';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
+import { SupabaseDataAccess } from '@csisp/supabase-sdk';
 import {
   AuthNextStep,
   AuthForgotInitResult,
@@ -28,7 +29,6 @@ import { getIdpLogger } from '@infra/logger';
 import { getIdpBaseLogger } from '@infra/logger';
 import { ExchangeStore } from '@infra/redis/exchange.store';
 import { StepUpStore } from '@infra/redis/stepup.store';
-import { SupabaseDataAccess } from '@infra/supabase';
 import { GotrueService } from '@infra/supabase';
 import { HttpStatus } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';

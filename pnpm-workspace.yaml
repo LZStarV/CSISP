@@ -22,6 +22,8 @@ catalogs:
     '@nestjs/platform-express': ^10.4.0
     '@nestjs/sequelize': ^10.0.0
     '@nestjs/cli': ^10.4.9
+    '@nestjs/serve-static': "^4.0.0"
+    '@supabase/supabase-js': ^2.99.1
     sequelize: ^6.35.0
     sequelize-typescript: ^2.1.6
     pg: ^8.11.3

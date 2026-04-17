@@ -4,13 +4,13 @@ import {
 } from '@common/errors/common-error-codes';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
+import { SupabaseDataAccess } from '@csisp/supabase-sdk';
 import {
   type ClientInfo,
   type AuthorizationRequestInfo,
 } from '@csisp-api/idp-server';
 import { RedisPrefix } from '@idp-types/redis';
 import { getIdpLogger } from '@infra/logger';
-import { SupabaseDataAccess } from '@infra/supabase';
 import { Inject, Injectable, HttpStatus } from '@nestjs/common';
 import { OIDCScope } from '@utils/oidc/oidc.policy';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
