@@ -55,8 +55,8 @@ services:
         - apps/frontend/admin/**
     routes:
       - type: rewrite
-        source: /api/**
-        destination: https://csisp-bff.onrender.com/api/
+        source: /api/*
+        destination: https://csisp-bff.onrender.com/api/*
       - type: rewrite
         source: /*
         destination: /index.html
@@ -78,8 +78,8 @@ services:
         - apps/frontend/portal/**
     routes:
       - type: rewrite
-        source: /api/**
-        destination: https://csisp-bff.onrender.com/api/
+        source: /api/*
+        destination: https://csisp-bff.onrender.com/api/*
       - type: rewrite
         source: /*
         destination: /index.html
@@ -101,8 +101,8 @@ services:
         - apps/frontend/idp-client/**
     routes:
       - type: rewrite
-        source: /api/**
-        destination: https://csisp-bff.onrender.com/api/
+        source: /api/*
+        destination: https://csisp-bff.onrender.com/api/*
       - type: rewrite
         source: /*
         destination: /index.html

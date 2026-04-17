@@ -1,4 +1,5 @@
 import { getBffLogger } from '@common/logger';
+import { config } from '@config';
 import { ApiModule, Configuration } from '@csisp-api/bff-idp-server';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { Global, Module, OnModuleInit } from '@nestjs/common';
@@ -12,15 +13,15 @@ import { ClsService } from 'nestjs-cls';
     HttpModule,
     ApiModule.forRootAsync({
       useFactory: () => {
-        return new Configuration();
+        return new Configuration({
+          basePath: config.upstream.idpBaseUrl,
+        });
       },
     }),
   ],
   exports: [ApiModule],
 })
 export class UpstreamProxyModule implements OnModuleInit {
-  private readonly logger = getBffLogger('upstream-proxy');
-
   constructor(
     private readonly httpService: HttpService,
     private readonly cls: ClsService
