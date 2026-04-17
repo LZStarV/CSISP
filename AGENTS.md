@@ -33,7 +33,8 @@ CSISP/
 │   ├── utils/              # 工具库 (Pino logger)
 │   ├── redis-sdk/         # Upstash Redis 适配
 │   ├── supabase-sdk/      # Supabase 客户端
-│   └── http/              # HTTP 客户端 (RPC 风格 REST)
+│   ├── http/              # HTTP 客户端 (RPC 风格 REST)
+│   └── contracts/         # API 契约定义
 ├── supabase/               # 数据库迁移 (PostgreSQL)
 └── docs/                   # VitePress 文档
 ```
@@ -46,13 +47,13 @@ CSISP/
 
 #### @csisp/idp-server (身份认证服务)
 
-| 属性   | 值                                                                                 |
-| ------ | ---------------------------------------------------------------------------------- |
-| 路径   | `apps/backend/idp-server`                                                          |
-| 框架   | NestJS                                                                             |
-| 端口   | 4001                                                                               |
-| 依赖   | `@csisp-api/idp-server` (npm), `@csisp/config`, `@csisp/redis-sdk`, `@csisp/utils` |
-| 数据库 | Supabase (GoTrue) + Redis (会话)                                                   |
+| 属性   | 值                                                                           |
+| ------ | ---------------------------------------------------------------------------- |
+| 路径   | `apps/backend/idp-server`                                                    |
+| 框架   | NestJS                                                                       |
+| 端口   | 4001                                                                         |
+| 依赖   | `@csisp-api/idp-server`, `@csisp/config`, `@csisp/redis-sdk`, `@csisp/utils` |
+| 数据库 | Supabase (GoTrue) + Redis (会话)                                             |
 
 **核心模块**:
 
@@ -69,7 +70,7 @@ CSISP/
 - `src/modules/auth/auth.service.ts` - 认证逻辑
 - `src/infra/supabase/gotrue.service.ts` - Supabase 集成
 
-**说明**: 使用外部 npm 包 `@csisp-api/idp-server` (v0.2.1) 作为 IDP 接口定义，将手写接口替换为该包的复用代码。
+**说明**: 使用外部 npm 包 `@csisp-api/idp-server` 作为 IDP 接口定义。
 
 ---
 
@@ -81,7 +82,7 @@ CSISP/
 | 框架     | NestJS                                                                     |
 | 协议     | OpenAPI (RPC 风格 RESTful API)                                             |
 | 命名规范 | `Domain.Action` (如 `health.ping`)                                         |
-| 数据库   | MongoDB (Mongoose) / PostgreSQL (Sequelize)                                |
+| 数据库   | MongoDB (Mongoose) / PostgreSQL (Supabase)                                 |
 | 依赖     | `@csisp/config`, `@csisp/redis-sdk`, `@csisp/supabase-sdk`, `@csisp/utils` |
 
 **核心模块**:
@@ -107,13 +108,12 @@ CSISP/
 
 ```
 modules/
-├── idp/              # IDP 代理模块
-│   ├── auth/         # 代理 /api/idp/auth → IDP Server
-│   ├── oidc/         # 代理 /api/idp/oidc → IDP Server
-│   └── health/       # 健康检查
-├── portal/demo/      # Portal 示例模块
-├── admin/demo/       # Admin 示例模块
-└── backoffice/demo/ # Backoffice 示例模块
+├── idp-client/         # IDP 客户端代理模块
+│   ├── auth/           # 代理 /api/idp/auth → IDP Server
+│   ├── oidc/           # 代理 /api/idp/oidc → IDP Server
+│   └── health/         # 健康检查
+├── common/             # 公共模块
+│   └── auth/           # 公共认证模块
 ```
 
 **代理实现**: 已移除旧版 `http-proxy-middleware`。现基于 `@csisp-api/bff-idp-server` SDK，通过强类型接口显式转发调用，并引入 `nestjs-cls` (AsyncLocalStorage) 机制处理 Cookie 与会话上下文透传。
@@ -122,8 +122,8 @@ modules/
 
 - `common/cors/` - 动态 CORS (可信源配置)
 - `common/interceptors/logging.interceptor.ts` - 日志拦截器
-- `common/filters/axios-exception.filter.ts` - REST 错误透传过滤器
-- `infra/idp-sdk.module.ts` - 全局 IDP SDK 挂载与上下行拦截
+- `common/filters/` - HTTP 异常过滤器
+- `infra/upstream-proxy.module.ts` - 上游服务代理模块
 - `infra/cls.module.ts` - AsyncLocalStorage 挂载
 - `infra/redis.module.ts` - Redis 注入
 - `infra/supabase.module.ts` - Supabase 注入
@@ -146,14 +146,16 @@ modules/
 
 - `src/main.tsx` - 入口
 - `src/App.tsx` - 根组件 (含 SessionGuard)
-- `src/api/rpc.ts` - RPC 客户端封装
+- `src/api/caller.ts` - API 调用封装
 - `src/routes/SessionGuard.tsx` - 会话守卫
 - `src/config/index.ts` - API 前缀配置 (`/api/idp`)
 
-**通信方式**: RPC 风格的 REST 接口 over Fetch
+**通信方式**: RPC 风格的 REST 接口 over Fetch，使用 `@csisp/http` 包提供的 ky 封装工具
 
 ```typescript
 // API 调用示例
+import { call } from '@csisp/http';
+
 const authCall = <T>(action: string, params?: unknown) =>
   call<T>('/api/idp', 'auth', action, params);
 
@@ -237,6 +239,24 @@ const authCall = <T>(action: string, params?: unknown) =>
 
 ---
 
+### 3.5 @csisp/contracts (API 契约定义)
+
+| 导出 | 用途                     |
+| ---- | ------------------------ |
+| `.`  | 定义前端——BFF 之间的契约 |
+
+用于定义前端与 BFF 之间的 API 契约，确保接口的一致性。
+
+---
+
+### 3.6 @csisp/http (HTTP 客户端)
+
+| 导出 | 用途                        |
+| ---- | --------------------------- |
+| `.`  | 提供前端调用 BFF 接口的工具 |
+
+基于 ky 封装的 HTTP 客户端，提供统一的请求处理、错误处理和追踪 ID 生成等功能。
+
 ---
 
 ## 4. 依赖关系图
@@ -251,8 +271,6 @@ flowchart TB
 
     subgraph BFF["BFF - @csisp/bff<br/>Port: 4000 /api prefix"]
         D["IDP 代理<br/>(HTTP Proxy)"]
-        E["Portal Demo"]
-        F["Admin Demo"]
     end
 
     subgraph Backend["后端服务"]
@@ -266,22 +284,19 @@ flowchart TB
         L["http"]
         M["redis-sdk"]
         N["supabase-sdk"]
+        P["contracts"]
         O["@csisp-api/*<br/>(external npm)"]
     end
 
     subgraph Infra["基础设施"]
-        P["Supabase<br/>(PostgreSQL)"]
-        Q["Upstash Redis"]
-        R["MongoDB<br/>(Optional)"]
+        Q["Supabase<br/>(PostgreSQL)"]
+        R["Upstash Redis"]
+        S["MongoDB<br/>(Optional)"]
     end
 
     Frontend -->|"RPC 风格 REST"| BFF
     BFF --> D
-    BFF --> E
-    BFF --> F
     D --> G
-    E --> H
-    F --> H
     G -.-> O
     G -.-> Packages
     H -.-> Packages
@@ -290,12 +305,14 @@ flowchart TB
     Packages --> L
     Packages --> M
     Packages --> N
-    J --> P
-    K --> P
+    Packages --> P
+    J --> Q
+    K --> Q
     L --> Frontend
-    M --> Q
-    N --> P
-    O --> P
+    M --> R
+    N --> Q
+    O --> Q
+    P --> Frontend
 ```
 
 ---
@@ -367,14 +384,13 @@ Content-Type: application/json
 **示例** (idp-client):
 
 ```typescript
+// 使用 @csisp/http 包提供的 call 方法
+import { call } from '@csisp/http';
+
 // /api/idp/auth/login-internal
-await fetch('/api/idp/auth/login-internal', {
-  method: 'POST',
-  body: JSON.stringify({
-    jsonrpc: '2.0',
-    id: Date.now(),
-    params: { studentId: 'xxx', password: 'xxx' },
-  }),
+const result = await call('/api/idp', 'auth', 'login-internal', {
+  studentId: 'xxx',
+  password: 'xxx',
 });
 ```
 
@@ -383,16 +399,18 @@ await fetch('/api/idp/auth/login-internal', {
 **HTTP 代理**:
 
 - BFF 层使用强类型 SDK (`@csisp-api/bff-idp-server`) 发起强类型的 REST API 调用。
-- 通过 AsyncLocalStorage 自动透传客户端的 `Cookie`、`Authorization` 与 `x-trace-id`。
+- 通过 `nestjs-cls` 和 `AsyncLocalStorage` 自动透传客户端的 `Cookie`、`Authorization` 与 `x-trace-id`。
 - 通过全局过滤器透传异常响应及 `Set-Cookie` 头。
 
 ### 6.3 接口管理 (@csisp-api)
 
-项目采用 `@csisp-api` 自动生成的接口代码（采用"发双包"策略）:
+项目采用 `@csisp-api` 自动生成的接口代码（采用"发双包"策略），这些包来自 csisp-api-sdk-registry 项目，通过 Apifox 维护接口，使用 openapi-typescript-generator 工具生成代码:
 
 1. **idp-server (服务端)**: 使用 `@csisp-api/idp-server` 包（通过 `typescript-nestjs-server` 生成），提供带验证装饰器的 DTO 与 Controller 接口骨架。
 2. **BFF (客户端)**: 使用另一个客户端 SDK 包（通过 `typescript-nestjs` 生成），基于 NestJS HttpModule 实现对后端的强类型调用。
 3. **前端 (浏览器)**: 独立封装 fetch 等工具调用 BFF，不依赖上述 npm 包。
+
+**注意**: 这些包仅限 HTTP 服务端——BFF 之间使用，未来可能会接入 gRPC，届时对于 gRPC 接口将不再使用这些包。
 
 ---
 
