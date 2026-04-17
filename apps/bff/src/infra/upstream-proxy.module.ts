@@ -1,5 +1,8 @@
 import { config } from '@config';
-import { ApiModule, Configuration } from '@csisp-api/bff-idp-server';
+import {
+  ApiModule as IdpServerApiModule,
+  Configuration,
+} from '@csisp-api/bff-idp-server';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { Global, Module, OnModuleInit } from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
@@ -10,15 +13,15 @@ import { ClsService } from 'nestjs-cls';
 @Module({
   imports: [
     HttpModule,
-    ApiModule.forRootAsync({
+    IdpServerApiModule.forRootAsync({
       useFactory: () => {
         return new Configuration({
-          basePath: config.upstream.idpBaseUrl,
+          basePath: `${config.upstream.idpBaseUrl}/api/idp`,
         });
       },
     }),
   ],
-  exports: [ApiModule],
+  exports: [IdpServerApiModule],
 })
 export class UpstreamProxyModule implements OnModuleInit {
   constructor(

@@ -10,7 +10,7 @@ function generateTraceId(): string {
 const baseKyInstance = ky.create({
   timeout: 10000,
   retry: {
-    limit: 3, // 默认重试3次
+    limit: 0,
     methods: ['get', 'post', 'put', 'delete'],
     statusCodes: [408, 409, 429, 500, 502, 503, 504],
   },
