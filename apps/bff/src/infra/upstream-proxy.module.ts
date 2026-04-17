@@ -1,4 +1,3 @@
-import { getBffLogger } from '@common/logger';
 import { config } from '@config';
 import { ApiModule, Configuration } from '@csisp-api/bff-idp-server';
 import { HttpModule, HttpService } from '@nestjs/axios';
