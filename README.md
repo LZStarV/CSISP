@@ -20,8 +20,11 @@ nvm use 24
 npm i -g @infisical/cli
 # npm 下载容易超时，可以改用 cnpm 进行下载也可以通过 Winget, Homebrew 等包管理器安装
 
-# 安装 pnpm（版本＞=10）、turbo（monorepo 管理）、whistle（代理工具）
-npm i -g pnpm turbo whistle
+# 安装 pnpm（版本＞=10）、turbo（monorepo 管理）
+npm i -g pnpm turbo
+
+# FE 建议安装 whistle（代理工具）
+npm i -g whistle
 ```
 
 ### 克隆仓库前的推荐 Git 配置（尤其是 Windows）
@@ -63,9 +66,9 @@ turbo build --filter=@csisp/idp-client
 然后可以在根 `package.json` 中运行子项目的开发脚本：
 
 ```bash
-pnpm dev:idp:server
+pnpm stag:idp:server
 pnpm dev:idp:client
-pnpm dev:bff
+pnpm stag:bff
 # ......
 ```
 
@@ -126,13 +129,3 @@ pnpm -F @csisp/docs build
 
 4. **关于提交影响**：
    - 在这种场景下即使将这些 diff 提交到远端，GitHub 上文件的换行格式仍会保持为 LF，但会新增一次包含大量只改换行变更的提交，增加历史噪声，故不推荐在业务提交中混入这类全局换行修正。
-
-## TODO (未来计划)
-
-本项目处于持续演进中，部分代码正在经历重构。未来的大重构计划包括：
-
-- 移除 `rpc` 子包，重新封装 HTTP 工具用于浏览器-BFF 调用
-- 重构 `auth` 子包，专注 ESM 构建，为前端提供开箱即用的登录组件
-- 提取 `utils` 中的 logger 为独立子包，支持日志审计扩展
-
-完整的待办事项和技术细节请参阅 **[AGENTS.md](./AGENTS.md)**。

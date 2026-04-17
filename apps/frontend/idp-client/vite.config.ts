@@ -37,7 +37,7 @@ export default defineConfig(({ command, mode }) => {
       server: {
         host: '127.0.0.1',
         port: 5174,
-        allowedHosts: ['idp-client.onrender.com'],
+        allowedHosts: ['csisp-idp-client.onrender.com'],
         proxy: {
           '/api': {
             target: isDevelopment
