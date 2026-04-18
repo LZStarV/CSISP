@@ -1,4 +1,5 @@
 import {
+  envHostPortString,
   envOptionalString,
   envUrlString,
   envString,
@@ -7,7 +8,7 @@ import {
 import { z } from 'zod';
 
 export const EnvSchema = z.object({
-  CSISP_BACKEND_INTEGRATED_URL: envUrlString(),
+  INTEGRATED_SERVER_URL: envHostPortString(),
   IDP_SERVER_URL: envUrlString(),
   SUPABASE_URL: envUrlString(),
   SUPABASE_SERVICE_ROLE_KEY: envString(),

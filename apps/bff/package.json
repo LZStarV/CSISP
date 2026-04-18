@@ -10,7 +10,7 @@
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
-    "@csisp-api/bff-idp-server": "0.2.2",
+    "@csisp-api/bff-idp-server": "0.2.4",
     "@csisp-api/bff-integrated-server": "0.1.2",
     "@csisp/config": "workspace:*",
     "@csisp/contracts": "workspace:*",
@@ -20,6 +20,7 @@
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "catalog:node",
     "@nestjs/core": "catalog:node",
+    "@nestjs/microservices": "^11.1.19",
     "@nestjs/platform-express": "catalog:node",
     "axios": "^1.15.0",
     "nestjs-cls": "^6.2.0",

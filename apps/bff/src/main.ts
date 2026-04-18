@@ -9,7 +9,7 @@ async function bootstrap() {
 
   const trusted = app.get(TrustedOriginsService, { strict: false } as any);
   app.enableCors({
-    origin: async (origin, callback) => {
+    origin: async (origin: string | undefined, callback: any) => {
       try {
         const allowed = await trusted.isAllowed(origin);
         callback(null, allowed);

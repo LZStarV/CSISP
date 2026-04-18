@@ -45,6 +45,11 @@ export function envUrlString() {
   return z.string().url();
 }
 
+// 环境变量解析器，返回 host:port 格式（用于 gRPC 等服务地址）
+export function envHostPortString() {
+  return z.string().regex(/^[a-zA-Z0-9._-]+:\d+$/);
+}
+
 // 环境变量解析器，返回整数类型
 export function envIntString() {
   return z.coerce.number().int().positive();

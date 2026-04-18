@@ -4,6 +4,7 @@ export {
   envString,
   envOptionalString,
   envUrlString,
+  envHostPortString,
   envIntString,
   envNonNegativeIntString,
   envBoolString,

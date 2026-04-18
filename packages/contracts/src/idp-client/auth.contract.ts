@@ -279,7 +279,3 @@ export const idpClientAuthContract = c.router(idpClientAuthRoutes, {
 
 export const IDP_CLIENT_AUTH_ACTION =
   buildActionMapFromRoutes(idpClientAuthRoutes);
-
-// Backward-compatible aliases for existing consumers.
-export const idpAuthContract = idpClientAuthContract;
-export const IDP_AUTH_ACTION = IDP_CLIENT_AUTH_ACTION;

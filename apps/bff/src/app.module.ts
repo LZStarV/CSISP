@@ -3,11 +3,12 @@ import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 import { HttpFallbackExceptionFilter } from '@common/filters/http-fallback-exception.filter';
 import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
 import { AppClsModule } from '@infra/cls.module';
+import { UpstreamProxyModule } from '@infra/http-client.module';
 import { RedisInfraModule } from '@infra/redis.module';
 import { SupabaseInfraModule } from '@infra/supabase.module';
-import { UpstreamProxyModule } from '@infra/upstream-proxy.module';
 import { CommonModules } from '@modules/common';
 import { IdpClientModules } from '@modules/idp-client';
+import { PortalModules } from '@modules/portal';
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
@@ -20,6 +21,7 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
     CorsModule,
 
     ...IdpClientModules,
+    ...PortalModules,
     ...CommonModules,
   ],
   providers: [

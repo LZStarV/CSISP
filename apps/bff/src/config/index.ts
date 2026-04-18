@@ -8,10 +8,8 @@ export const config = {
     isDev: (process.env.NODE_ENV || 'development') === 'development',
   },
   upstream: {
-    backendIntegratedBaseUrl: normalizeBaseUrl(
-      env.CSISP_BACKEND_INTEGRATED_URL
-    ),
     idpBaseUrl: normalizeBaseUrl(env.IDP_SERVER_URL),
+    integratedServerUrl: env.INTEGRATED_SERVER_URL,
   },
   cors: {
     enabled: true,
