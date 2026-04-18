@@ -559,6 +559,9 @@ importers:
       '@ant-design/icons-vue':
         specifier: catalog:frontend
         version: 7.0.1(vue@3.5.28(typescript@5.9.3))
+      '@csisp/contracts':
+        specifier: workspace:*
+        version: link:../../../packages/contracts
       '@csisp/http':
         specifier: workspace:*
         version: link:../../../packages/http

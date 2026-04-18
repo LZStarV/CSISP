@@ -1,2 +1,2 @@
 export * from './caller';
-export * from './portal';
+export * from './portal/demo';

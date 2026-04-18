@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@csisp/http": "workspace:*",
+    "@csisp/contracts": "workspace:*",
     "vue": "catalog:frontend",
     "pinia": "catalog:frontend",
     "vue-router": "catalog:frontend",
