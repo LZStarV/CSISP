@@ -12,8 +12,8 @@
   "dependencies": {
     "@csisp-api/idp-server": "0.2.2",
     "@csisp/config": "workspace:*",
-    "@csisp/supabase-sdk": "workspace:*",
     "@csisp/redis-sdk": "workspace:*",
+    "@csisp/supabase-sdk": "workspace:*",
     "@csisp/utils": "workspace:*",
     "@nestjs/common": "catalog:node",
     "@nestjs/core": "catalog:node",

@@ -17,12 +17,13 @@ catalogs:
   # Node Catalog - Node.js 后端项目共享
   # 适用于：integrated-server, bff, backoffice, idp/server
   node:
-    '@nestjs/common': ^10.4.22
-    '@nestjs/core': ^10.4.22
-    '@nestjs/platform-express': ^10.4.0
-    '@nestjs/sequelize': ^10.0.0
-    '@nestjs/cli': ^10.4.9
-    '@nestjs/serve-static': "^4.0.0"
+    '@nestjs/common': ^11.1.19
+    '@nestjs/core': ^11.1.19
+    '@nestjs/platform-express': ^11.1.19
+    '@nestjs/sequelize': ^11.1.19
+    '@nestjs/cli': ^11.0.21
+    '@nestjs/mongoose': ^11.0.4
+    '@nestjs/serve-static': "^5.0.5"
     '@supabase/supabase-js': ^2.99.1
     sequelize: ^6.35.0
     sequelize-typescript: ^2.1.6
@@ -30,7 +31,6 @@ catalogs:
     'pg-hstore': ^2.3.4
     mongodb: ^6.8.0
     mongoose: ^9.0.2
-    '@nestjs/mongoose': ^11.0.4
     redis: ^4.6.13
     ioredis: ^5.3.2
     jsonwebtoken: ^9.0.2
