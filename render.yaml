@@ -1,7 +1,7 @@
 previews:
   generation: off
 services:
-  - type: web
+  - type: pserv
     runtime: node
     name: csisp-integrated-server
     plan: free
@@ -24,6 +24,11 @@ services:
     startCommand: pnpm -F @csisp/bff start
     envVars:
       - fromGroup: csisp-env-prod
+      - key: INTEGRATED_SERVER_HOST
+        fromService:
+          name: csisp-integrated-server
+          type: pserv
+          envVarKey: RENDER_INTERNAL_HOSTNAME
 
   - type: web
     runtime: node

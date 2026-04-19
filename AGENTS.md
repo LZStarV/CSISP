@@ -21,9 +21,9 @@
 CSISP/
 ├── apps/
 │   ├── backend/
-│   │   ├── idp-server/        # 身份认证服务 (NestJS)
-│   │   └── integrated-server/ # 主业务服务 (NestJS, RPC 风格 RESTful API)
-│   ├── bff/                  # Backend-for-Frontend (NestJS, HTTP Proxy)
+│   │   ├── idp-server/        # 身份认证服务 (NestJS, RPC 风格 RESTful API)
+│   │   └── integrated-server/ # 主业务服务 (NestJS, gRPC)
+│   ├── bff/                  # Backend-for-Frontend (NestJS)
 │   └── frontend/
 │       ├── idp-client/      # IDP 登录页 (React + Ant Design)
 │       ├── portal/          # web 前台 (Vue 3 + Ant Design Vue)
