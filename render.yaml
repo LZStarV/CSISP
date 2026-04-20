@@ -4,7 +4,7 @@ services:
   - type: pserv
     runtime: node
     name: csisp-integrated-server
-    plan: free
+    plan: starter
     rootDir: .
     buildCommand: >
       pnpm i --frozen-lockfile &&
