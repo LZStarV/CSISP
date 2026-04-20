@@ -1,17 +1,15 @@
+import type {
+  GetAuthorizationRequestResult,
+  LoginResult,
+  SendOtpResult,
+  VerifyOtpResult,
+} from '@csisp/contracts';
 import { Form, Input, Button, Typography, Alert, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import {
-  commonOidcCall,
-  type GetAuthorizationRequestResult,
-} from '@/api/common/oidc';
-import {
-  idpClientAuthCall,
-  type LoginResult,
-  type SendOtpResult,
-  type VerifyOtpResult,
-} from '@/api/idp-client/auth';
+import { commonOidcCall } from '@/api/common/oidc';
+import { idpClientAuthCall } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
 

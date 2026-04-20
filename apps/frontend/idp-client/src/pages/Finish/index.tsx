@@ -1,13 +1,11 @@
+import type { CreateExchangeCodeResult } from '@csisp/contracts';
 import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { commonAuthCall } from '@/api/common/auth';
 import { commonOidcCall } from '@/api/common/oidc';
-import {
-  idpClientAuthCall,
-  type CreateExchangeCodeResult,
-} from '@/api/idp-client/auth';
+import { idpClientAuthCall } from '@/api/idp-client/auth';
 import { CLIENT_LOGIN_ENDPOINTS } from '@/config';
 import type { SessionResult, Next, ClientInfo } from '@/types/enum';
 import { generateRandomString } from '@/utils/pkce';

@@ -1,9 +1,10 @@
+import type { VerifyOtpResult } from '@csisp/contracts';
 import { message } from 'antd';
 import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { commonAuthCall } from '@/api/common/auth';
-import { idpClientAuthCall, type VerifyOtpResult } from '@/api/idp-client/auth';
+import { idpClientAuthCall } from '@/api/idp-client/auth';
 import { ROUTE_LOGIN, ROUTE_FINISH } from '@/routes/router';
 import type { SessionResult } from '@/types/enum';
 

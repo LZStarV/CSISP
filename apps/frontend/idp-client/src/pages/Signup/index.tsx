@@ -1,16 +1,16 @@
+import type {
+  RegisterParams,
+  RegisterResult,
+  ResendSignupOtpParams,
+  ResendSignupOtpResult,
+  VerifySignupOtpParams,
+  VerifySignupOtpResult,
+} from '@csisp/contracts';
 import { Form, Input, Button, Typography, Alert, message, Space } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import {
-  idpClientAuthCall,
-  type RegisterParams,
-  type RegisterResult,
-  type ResendSignupOtpParams,
-  type ResendSignupOtpResult,
-  type VerifySignupOtpParams,
-  type VerifySignupOtpResult,
-} from '@/api/idp-client/auth';
+import { idpClientAuthCall } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_LOGIN } from '@/routes/router';
 
