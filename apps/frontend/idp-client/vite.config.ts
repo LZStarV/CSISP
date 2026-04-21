@@ -4,8 +4,8 @@ import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ command, mode }) => {
-  const isDevelopment = command === 'serve' && mode !== 'production';
+export default defineConfig(({ command }) => {
+  const isDevelopment = command === 'serve';
   const common = {
     plugins: [react()],
     resolve: {

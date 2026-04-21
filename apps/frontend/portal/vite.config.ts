@@ -4,8 +4,8 @@ import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
-export default defineConfig(({ command, mode }) => {
-  const isDevelopment = command === 'serve' && mode !== 'production';
+export default defineConfig(({ command }) => {
+  const isDevelopment = command === 'serve';
   const common = {
     plugins: [vue()],
     envPrefix: ['CSISP_'],

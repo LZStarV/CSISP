@@ -5,8 +5,7 @@
       "args": ["-y", "@upstash/context7-mcp@latest"],
       "env": {
         "DEFAULT_MINIMUM_TOKENS": "10000"
-      },
-      "disabled": true
+      }
     }
   }
 }
