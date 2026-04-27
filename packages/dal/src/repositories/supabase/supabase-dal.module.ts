@@ -1,10 +1,11 @@
 import { SupabaseDataAccess, SUPABASE_SERVICE } from '@csisp/supabase-sdk';
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 
 import { SupabaseMfaSettingsRepository } from './mfa-settings.repository';
 import { SupabaseOidcClientRepository } from './oidc-client.repository';
 import { SupabaseUserRepository } from './user.repository';
 
+@Global()
 @Module({
   providers: [
     {

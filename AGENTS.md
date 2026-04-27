@@ -83,7 +83,7 @@ CSISP/
 | 框架     | NestJS                                                                     |
 | 协议     | gRPC + OpenAPI (RPC 风格 RESTful API)                                      |
 | 命名规范 | `Domain.Action` (如 `health.ping`)                                         |
-| 数据库   | MongoDB (Mongoose) / PostgreSQL (Supabase)                                 |
+| 数据库   | MongoDB (Typegoose + Mongoose) / PostgreSQL (Supabase)                     |
 | 依赖     | `@csisp/config`, `@csisp/redis-sdk`, `@csisp/supabase-sdk`, `@csisp/utils` |
 
 **核心模块**:
@@ -731,6 +731,43 @@ pnpm run link:dev      # 链接开发项目
 pnpm run db:pull:dev   # 拉取远端结构
 pnpm run db:diff:dev   # 生成迁移
 pnpm run db:reset:local # 重置本地
+```
+
+### 7.2 MongoDB
+
+- **类型**: 文档数据库
+- **ORM**: Typegoose (Mongoose 的 TypeScript 封装)
+- **模型定义**: 使用装饰器定义（代码优先）
+- **位置**: `packages/dal/src/types/mongo.types.ts` 和 `packages/dal/src/repositories/mongo/`
+
+**核心依赖**:
+
+- `@typegoose/typegoose` - TypeScript 装饰器支持
+- `@m8a/nestjs-typegoose` - NestJS 集成模块
+- `mongoose` - MongoDB ODM
+
+**使用流程**:
+
+1. 在 `packages/dal/src/types/mongo.types.ts` 中使用装饰器定义模型
+2. 在 `packages/dal/src/repositories/mongo/` 中创建对应的 Repository
+3. 在 `MongoDalModule` 中通过 `TypegooseModule.forFeature()` 注册模型
+4. 在应用服务中通过依赖注入使用 Repository
+
+**示例模型定义**:
+
+```typescript
+import { prop, modelOptions } from '@typegoose/typegoose';
+
+@modelOptions({
+  schemaOptions: {
+    collection: 'demo',
+    timestamps: true,
+  },
+})
+export class Demo {
+  @prop({ required: true, type: String })
+  public demo!: string;
+}
 ```
 
 ---

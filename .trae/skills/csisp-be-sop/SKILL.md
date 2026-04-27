@@ -40,37 +40,55 @@ description: 'CSISP 后端微服务开发 SOP。Invoke when developing new micro
 | 用户相关、权限、配置         | Supabase | 关系型数据，需要事务支持 |
 | 内容相关（帖子、公告、评论） | MongoDB  | 文档型数据，灵活扩展     |
 
-> **TODO：** Supabase 数据访问层（DAL）已在 `packages/dal` 中实现，采用 Repository 模式，已集成到 idp-server。MongoDB DAL 待完善。
+> **DAL 现状：** Supabase 和 MongoDB 的数据访问层（DAL）在 `packages/dal` 中，采用 Repository 模式。
 
-**MongoDB Schema 示例**（以某服务端项目为例）：
+**MongoDB 模型示例**（使用 Typegoose，在 `packages/dal/src/types/mongo.types.ts` 中定义）：
 
 ```typescript
-// apps/backend/{service}/src/modules/forum/schemas/post.schema.ts
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { prop, modelOptions } from '@typegoose/typegoose';
+import { DocumentType, ReturnModelType } from '@typegoose/typegoose';
 
-@Schema({ timestamps: true })
-export class Post extends Document {
-  @Prop({ required: true })
-  title: string;
+@modelOptions({
+  schemaOptions: {
+    collection: 'posts',
+    timestamps: true, // 自动添加 createdAt 和 updatedAt
+  },
+})
+export class Post {
+  @prop({ required: true, type: String })
+  public title!: string;
 
-  @Prop({ required: true })
-  content: string;
+  @prop({ required: true, type: String })
+  public content!: string;
 
-  @Prop({ required: true })
-  authorId: string;
+  @prop({ required: true, type: String })
+  public authorId!: string;
 
-  @Prop({ default: 'default' })
-  type: string;
+  @prop({ type: String, default: 'default' })
+  public type?: string;
 
-  @Prop({ default: 0 })
-  viewCount: number;
+  @prop({ type: Number, default: 0 })
+  public viewCount?: number;
 
-  @Prop({ default: 0 })
-  replyCount: number;
+  @prop({ type: Number, default: 0 })
+  public replyCount?: number;
+
+  // 可以直接定义实例方法
+  public incrementViewCount(): void {
+    this.viewCount = (this.viewCount || 0) + 1;
+  }
+
+  // 可以直接定义静态方法
+  public static async findByAuthorId(authorId: string) {
+    return this.find({ authorId });
+  }
 }
 
-export const PostSchema = SchemaFactory.createForClass(Post);
+// 导出类型
+export type PostDocument = DocumentType<Post>;
+export type PostModel = ReturnModelType<typeof Post>;
+export type PostInsert = Omit<Post, keyof PostDocument>;
+export type PostUpdate = Partial<PostInsert>;
 ```
 
 ### 1.3 接口设计原则
@@ -132,8 +150,6 @@ import { ForumServiceController } from '@csisp-api/{service}';
 apps/backend/{service}/src/
 ├── modules/
 │   └── {domain}/
-│       ├── schemas/
-│       │   └── {entity}.schema.ts
 │       ├── dto/
 │       │   ├── {action}.dto.ts
 │       │   └── index.ts
@@ -179,28 +195,80 @@ export class AuthService {
 }
 ```
 
-#### 3.3.2 MongoDB 建模（待完善 DAL）
+#### 3.3.2 MongoDB DAL 使用
 
-**文件**：`apps/backend/{service}/src/modules/{domain}/schemas/{entity}.schema.ts`
+MongoDB 的模型和 Repository 都在 `@csisp/dal` 包中统一管理，使用 Typegoose 实现。
+
+**步骤 1：定义模型**（如果模型不存在）
+
+在 `packages/dal/src/types/mongo.types.ts` 中添加模型定义（参考 1.2 节示例）。
+
+**步骤 2：创建 Repository**（如果需要）
+
+在 `packages/dal/src/repositories/mongo/` 中创建 Repository：
 
 ```typescript
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { InjectModel } from '@m8a/nestjs-typegoose';
+import { ReturnModelType } from '@typegoose/typegoose';
 
-@Schema({ timestamps: true })
-export class {Entity} extends Document {
-  @Prop({ required: true })
-  field1: string;
+import {
+  Post,
+  type PostDocument,
+  type PostInsert,
+  type PostUpdate,
+} from '../../types';
 
-  @Prop({ type: () => String, required: true })
-  field2: string;
+export class MongoPostRepository {
+  constructor(
+    @InjectModel(Post)
+    private readonly postModel: ReturnModelType<typeof Post>
+  ) {}
 
-  @Prop({ default: 0 })
-  field3: number;
+  async findById(id: string): Promise<PostDocument | null> {
+    return this.postModel.findById(id).exec();
+  }
+
+  async findAll(): Promise<PostDocument[]> {
+    return this.postModel.find().exec();
+  }
+
+  async create(data: PostInsert): Promise<PostDocument> {
+    const post = new this.postModel(data);
+    return post.save();
+  }
+
+  async update(id: string, data: PostUpdate): Promise<PostDocument | null> {
+    return this.postModel.findByIdAndUpdate(id, data, { new: true }).exec();
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.postModel.findByIdAndDelete(id).exec();
+  }
 }
-
-export const {Entity}Schema = SchemaFactory.createForClass({Entity});
 ```
+
+**步骤 3：注册到 MongoDalModule**
+
+在 `packages/dal/src/repositories/mongo/mongo-dal.module.ts` 中注册：
+
+```typescript
+import { Module } from '@nestjs/common';
+import { TypegooseModule } from '@m8a/nestjs-typegoose';
+
+import { Post } from '../../types';
+import { MongoPostRepository } from './post.repository';
+
+@Module({
+  imports: [TypegooseModule.forFeature([Post])],
+  providers: [MongoPostRepository],
+  exports: [MongoPostRepository],
+})
+export class MongoDalModule {}
+```
+
+**步骤 4：在服务中使用**
+
+在应用服务中导入并使用 `MongoDalModule` 和 Repository（参考下面的 3.5 和 3.7 节）。
 
 ### 3.4 DTO 定义
 
@@ -229,33 +297,41 @@ export * from './get-post-detail.dto';
 
 **文件**：`apps/backend/{service}/src/modules/{domain}/{domain}.service.ts`
 
+使用 `@csisp/dal` 中的 Repository（推荐方式）：
+
 ```typescript
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { {Entity}, {Entity}Schema } from './schemas/{entity}.schema';
-import { Create{Entity}Dto } from './dto/create-{entity}.dto';
+import {
+  MongoPostRepository,
+  type PostInsert,
+  type PostDocument,
+} from '@csisp/dal';
+import { CreatePostDto } from './dto/create-post.dto';
 
 @Injectable()
-export class {Domain}Service {
-  private readonly logger = new Logger({Domain}Service.name);
+export class ForumService {
+  private readonly logger = new Logger(ForumService.name);
 
   constructor(
-    @InjectModel({Entity}.name)
-    private readonly {entity}Model: Model<{Entity}>,
+    private readonly postRepository: MongoPostRepository // 注入 Repository
   ) {}
 
-  async create(createDto: Create{Entity}Dto): Promise<{Entity}> {
-    const created = new this.{entity}Model(createDto);
-    return created.save();
+  async create(createDto: CreatePostDto): Promise<PostDocument> {
+    const insertData: PostInsert = {
+      title: createDto.title,
+      content: createDto.content,
+      authorId: createDto.authorId,
+      type: createDto.type,
+    };
+    return this.postRepository.create(insertData);
   }
 
-  async findAll(): Promise<{Entity}[]> {
-    return this.{entity}Model.find().exec();
+  async findAll(): Promise<PostDocument[]> {
+    return this.postRepository.findAll();
   }
 
-  async findOne(id: string): Promise<{Entity} | null> {
-    return this.{entity}Model.findById(id).exec();
+  async findOne(id: string): Promise<PostDocument | null> {
+    return this.postRepository.findById(id);
   }
 }
 ```
@@ -294,14 +370,13 @@ export class {Domain}GrpcController {
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { {Domain}Service } from './{domain}.service';
-import { {Domain}GrpcController } from './{domain}.grpc.controller';
-import { {Entity}, {Entity}Schema } from './schemas/{entity}.schema';
+import { MongoDalModule } from '@csisp/dal';  // 导入 MongoDB DAL 模块
+import { ForumService } from './forum.service';
+import { ForumGrpcController } from './forum.grpc.controller';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: {Entity}.name, schema: {Entity}Schema }]),
+    MongoDalModule,  // 导入 DAL 模块
   ],
   controllers: [{Domain}GrpcController],
   providers: [{Domain}Service],
@@ -314,10 +389,13 @@ export class {Domain}Module {}
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { {Domain}Module } from './modules/{domain}/{domain}.module';
+import { TypegooseModule } from '@m8a/nestjs-typegoose';
+import { config } from '@config';
+import { ForumModule } from './modules/forum/forum.module';
 
 @Module({
   imports: [
+    TypegooseModule.forRoot(config.mongo.uri),
     // ... 其他模块
     {Domain}Module,
   ],

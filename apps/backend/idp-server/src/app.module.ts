@@ -10,7 +10,6 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { RateLimitInterceptor } from './common/interceptors/rate-limit.interceptor';
 import { config } from './config';
-import { GotrueService } from './infra/supabase/gotrue.service';
 import { DomainModules } from './modules';
 
 @Module({
@@ -33,7 +32,6 @@ import { DomainModules } from './modules';
     ...DomainModules,
   ],
   providers: [
-    GotrueService,
     {
       provide: APP_INTERCEPTOR,
       useClass: RateLimitInterceptor,
@@ -43,6 +41,5 @@ import { DomainModules } from './modules';
       useClass: LoggingInterceptor,
     },
   ],
-  exports: [GotrueService],
 })
 export class AppModule {}

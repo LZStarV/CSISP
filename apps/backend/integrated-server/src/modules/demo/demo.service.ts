@@ -1,3 +1,4 @@
+import { MongoDemoRepository } from '@csisp/dal';
 import {
   GetDemoInfoRequest,
   GetDemoInfoResponse,
@@ -7,13 +8,30 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class DemoService {
+  constructor(private readonly demoRepository: MongoDemoRepository) {}
+
   async getDemoInfo(request: GetDemoInfoRequest): Promise<GetDemoInfoResponse> {
     try {
-      // 模拟业务逻辑
+      // MongoDB DAL 使用示例
+      // 1. 创建一个 Demo 记录
+      const newDemo = await this.demoRepository.create({
+        demo: `Demo for ${request.demoId}`,
+      });
+
+      // 2. 查询所有 Demo
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const allDemos = await this.demoRepository.findAll();
+
+      // 3. 根据 ID 查询
+      const foundDemo = await this.demoRepository.findById(
+        newDemo._id.toString()
+      );
+
+      // 构建响应
       const demoInfo: DemoInfo = {
         demoId: request.demoId,
         title: `Demo Title for ${request.demoId}`,
-        description: `This is a demo description for ${request.demoId}`,
+        description: `This is a demo description for ${request.demoId} (MongoDB record: ${foundDemo?.demo})`,
         createTime: Date.now(),
       };
 

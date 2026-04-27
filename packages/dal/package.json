@@ -18,7 +18,11 @@
     }
   },
   "dependencies": {
-    "@csisp/supabase-sdk": "workspace:*"
+    "@csisp/supabase-sdk": "workspace:*",
+    "@m8a/nestjs-typegoose": "^12.0.1",
+    "@nestjs/mongoose": "catalog:node",
+    "@typegoose/typegoose": "^13.2.1",
+    "mongoose": "catalog:node"
   },
   "peerDependencies": {
     "@nestjs/common": ">=9"
