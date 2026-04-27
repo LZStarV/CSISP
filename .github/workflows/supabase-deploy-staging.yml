@@ -7,13 +7,11 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/config.toml'
-      - 'supabase/seed.sql'
       - 'supabase/functions/**'
   pull_request:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/config.toml'
-      - 'supabase/seed.sql'
       - 'supabase/functions/**'
   workflow_dispatch:
 

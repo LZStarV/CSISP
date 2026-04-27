@@ -7,7 +7,6 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/config.toml'
-      - 'supabase/seed.sql'
       - 'supabase/functions/**'
   workflow_dispatch:
 
