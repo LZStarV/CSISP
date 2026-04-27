@@ -14,19 +14,62 @@ src/
 │   ├── mongo.types.ts       # MongoDB 模型定义（Typegoose）
 │   └── index.ts
 ├── repositories/
+│   ├── base/                # 通用基础接口和类型
+│   │   ├── interface.ts     # IBaseRepository, IQueryableRepository
+│   │   └── index.ts
+│   ├── types/               # 跨 Repository 使用的通用类型
+│   │   ├── user.types.ts    # UserWithMfa, UserRecoveryInfo 等
+│   │   └── index.ts
 │   ├── supabase/
+│   │   ├── base.supabase.repository.ts  # Supabase 基类
 │   │   ├── user.repository.ts
 │   │   ├── mfa-settings.repository.ts
 │   │   ├── oidc-client.repository.ts
 │   │   ├── supabase-dal.module.ts  # NestJS 封装
 │   │   └── index.ts
 │   ├── mongo/
+│   │   ├── base.mongo.repository.ts  # MongoDB 基类
 │   │   ├── demo.repository.ts
 │   │   ├── mongo-dal.module.ts  # NestJS 封装
 │   │   └── index.ts
 │   └── index.ts
 └── index.ts
 ```
+
+<br />
+
+## Repository 架构设计
+
+### 设计原则
+
+1. **通用基础接口** (`repositories/base/`)
+   - `IBaseRepository<T, TId, TInsert, TUpdate>`: 定义基础 CRUD 操作
+   - `IQueryableRepository<T, ...>`: 支持高级查询操作
+
+2. **数据库特定基类**
+   - `BaseSupabaseRepository`: Supabase 的基类实现
+   - `BaseMongoRepository`: MongoDB 的基类实现
+
+3. **业务接口定义策略**
+   - **简单 CRUD 场景**: 不需要专门的接口，直接使用基类
+   - **需要自定义方法**: 在对应的 Repository 文件内定义接口
+   - **跨 Repository 类型**: 放在 `repositories/types/` 目录下
+
+### 何时需要定义专门的接口？
+
+| 场景               | 是否需要接口 | 示例                                                                 |
+| ------------------ | ------------ | -------------------------------------------------------------------- |
+| 只有基础 CRUD      | 否           | `Demo` 表 - 只有 findById, findAll, create, update, delete           |
+| 需要自定义查询方法 | 是           | `User` 表 - 需要 findByEmail, findWithMfaSettings                    |
+| 需要多数据库实现   | 是           | 如果未来需要同时有 `SupabaseUserRepository` 和 `MongoUserRepository` |
+
+### 定义新 Repository 的步骤
+
+1. 在 `repositories/supabase/` 或 `repositories/mongo/` 创建新文件
+2. 继承对应的基类
+3. 如果需要自定义方法，在同一文件内定义接口
+4. 在对应的 `index.ts` 中导出
+5. 在 `*-dal.module.ts` 中注册 Provider
 
 <br />
 
@@ -215,12 +258,10 @@ const users = await userRepository.findMany({}, { limit: 20, offset: 0 });
 
 ### Repository 特定类型
 
+跨 Repository 使用的类型定义在 `repositories/types/` 目录下：
+
 ```typescript
-import type {
-  UserFilterParams,
-  UserWithMfa,
-  UserRecoveryInfo,
-} from '@csisp/dal';
+import type { UserWithMfa, UserRecoveryInfo, RecoveryMethod } from '@csisp/dal';
 ```
 
 <br />

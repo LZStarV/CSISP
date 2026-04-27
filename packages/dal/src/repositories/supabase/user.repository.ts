@@ -4,136 +4,97 @@ import { SupabaseDataAccess } from '@csisp/supabase-sdk';
 import type {
   UserRow,
   UserInsert,
-  PaginationParams,
+  UserUpdate,
   MfaSettingsRow,
 } from '../../types';
+import type { IQueryableRepository } from '../base';
+import type { UserWithMfa, UserRecoveryInfo } from '../types';
 
-/** 用户过滤参数 */
-export type UserFilterParams = Partial<Pick<UserRow, 'student_id' | 'status'>>;
+import { BaseSupabaseRepository } from './base.supabase.repository';
 
-/** 带 MFA 设置的用户信息 */
-export interface UserWithMfa extends UserRow {
-  mfaSettings?: Pick<
-    MfaSettingsRow,
-    'sms_enabled' | 'email_enabled' | 'otp_enabled' | 'fido2_enabled'
-  >;
+/**
+ * 用户 Repository 接口 - 仅在需要多个实现时才定义，否则可以直接用类
+ */
+export interface IUserRepository extends IQueryableRepository<
+  UserRow,
+  number,
+  UserInsert,
+  UserUpdate
+> {
+  findByEmail(email: string): Promise<UserRow | null>;
+  findByStudentId(studentId: string): Promise<UserRow | null>;
+  findByIds(ids: number[]): Promise<UserRow[]>;
+  findWithMfaSettings(id: number): Promise<UserWithMfa | null>;
+  findRecoveryInfo(email: string): Promise<UserRecoveryInfo | null>;
+  resetPassword(studentId: string, newHash: string): Promise<void>;
 }
 
-/** 用户找回密码信息 */
-export interface UserRecoveryInfo extends Pick<UserRow, 'id' | 'student_id'> {
-  methods: RecoveryMethod[];
-}
-
-/** 找回密码的验证方法 */
-export interface RecoveryMethod {
-  type: 'sms' | 'email' | 'totp' | 'fido2';
-  enabled: boolean;
-  extra?: string;
-  reason?: string;
-}
-
-export class SupabaseUserRepository {
-  constructor(private readonly sda: SupabaseDataAccess) {}
-
-  async findById(id: number): Promise<UserRow | null> {
-    const { data } = await this.sda
-      .service()
-      .from('user')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    return data;
+export class SupabaseUserRepository
+  extends BaseSupabaseRepository<UserRow, number, UserInsert, UserUpdate>
+  implements IUserRepository
+{
+  constructor(sda: SupabaseDataAccess) {
+    super(sda, 'user', 'id');
   }
 
+  /**
+   * 根据邮箱查询
+   */
   async findByEmail(email: string): Promise<UserRow | null> {
-    const { data } = await this.sda
-      .service()
-      .from('user')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
-
-    return data;
+    return this.findOne({ email });
   }
 
+  /**
+   * 根据学号查询
+   */
   async findByStudentId(studentId: string): Promise<UserRow | null> {
-    const { data } = await this.sda
-      .service()
-      .from('user')
-      .select('*')
-      .eq('student_id', studentId)
-      .maybeSingle();
-
-    return data;
+    return this.findOne({ student_id: studentId });
   }
 
+  /**
+   * 根据 ID 列表查询
+   */
   async findByIds(ids: number[]): Promise<UserRow[]> {
     const { data } = await this.sda
       .service()
-      .from('user')
+      .from(this.tableName)
       .select('*')
       .in('id', ids);
 
-    return data ?? [];
+    return (data as UserRow[]) || [];
   }
 
-  async findMany(
-    filter: UserFilterParams,
-    pagination: PaginationParams
-  ): Promise<UserRow[]> {
-    let query = this.sda.service().from('user').select('*');
-
-    if (filter.student_id) {
-      query = query.eq('student_id', filter.student_id);
-    }
-    if (filter.status) {
-      query = query.eq('status', filter.status);
-    }
-
-    const { data } = await query.range(
-      pagination.offset ?? 0,
-      (pagination.offset ?? 0) + (pagination.limit ?? 50) - 1
-    );
-
-    return data ?? [];
-  }
-
-  async create(data: UserInsert): Promise<UserRow> {
-    const { data: result, error } = await this.sda
+  /**
+   * 查找用户及其 MFA 设置 - 使用嵌套查询优化 N+1 问题
+   */
+  async findWithMfaSettings(id: number): Promise<UserWithMfa | null> {
+    const { data } = await this.sda
       .service()
       .from('user')
-      .insert(data)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return result;
-  }
-
-  async update(id: number, data: Partial<UserInsert>): Promise<UserRow> {
-    const { data: result, error } = await this.sda
-      .service()
-      .from('user')
-      .update(data)
+      .select('*, mfa:mfa_settings(*)')
       .eq('id', id)
-      .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
-    return result;
+    if (!data) return null;
+
+    const user = data as UserRow & { mfa?: MfaSettingsRow[] };
+
+    return {
+      ...user,
+      mfaSettings: user.mfa?.[0]
+        ? {
+            sms_enabled: user.mfa[0].sms_enabled,
+            email_enabled: user.mfa[0].email_enabled,
+            otp_enabled: user.mfa[0].otp_enabled,
+            fido2_enabled: user.mfa[0].fido2_enabled,
+          }
+        : undefined,
+    };
   }
 
-  async delete(id: number): Promise<void> {
-    const { error } = await this.sda
-      .service()
-      .from('user')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-  }
-
-  /** 查找用户找回密码信息 */
+  /**
+   * 查找用户找回密码信息
+   */
   async findRecoveryInfo(_email: string): Promise<UserRecoveryInfo | null> {
     const { data: user } = await this.sda
       .service()
@@ -151,38 +112,9 @@ export class SupabaseUserRepository {
     };
   }
 
-  /** 查找用户及其 MFA 设置 */
-  async findWithMfaSettings(id: number): Promise<UserWithMfa | null> {
-    const { data: user } = await this.sda
-      .service()
-      .from('user')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (!user) return null;
-
-    const { data: mfa } = await this.sda
-      .service()
-      .from('mfa_settings')
-      .select('sms_enabled, email_enabled, otp_enabled, fido2_enabled')
-      .eq('user_id', id)
-      .maybeSingle();
-
-    return {
-      ...user,
-      mfaSettings: mfa
-        ? {
-            sms_enabled: mfa.sms_enabled,
-            email_enabled: mfa.email_enabled,
-            otp_enabled: mfa.otp_enabled,
-            fido2_enabled: mfa.fido2_enabled,
-          }
-        : undefined,
-    };
-  }
-
-  /** 重置用户密码 */
+  /**
+   * 重置密码
+   */
   async resetPassword(studentId: string, newHash: string): Promise<void> {
     const { error } = await this.sda.service().rpc('auth_reset_password', {
       p_student_id: studentId,

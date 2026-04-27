@@ -1,5 +1,6 @@
 import { DtoValidationInterceptor } from '@common/http/dto-validation.interceptor';
 import { config } from '@config';
+import { MongoDalModule } from '@csisp/dal';
 import { RedisModule } from '@csisp/redis-sdk/nest';
 import { SupabaseModule } from '@csisp/supabase-sdk';
 import { TypegooseModule } from '@m8a/nestjs-typegoose';
@@ -20,6 +21,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
       namespace: config.redis.namespace,
     }),
     TypegooseModule.forRoot(config.mongo.uri),
+    MongoDalModule,
     ...DomainModules,
   ],
   providers: [

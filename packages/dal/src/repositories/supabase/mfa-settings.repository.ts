@@ -6,61 +6,58 @@ import type {
   MfaSettingsInsert,
   MfaSettingsUpdate,
 } from '../../types';
+import type { IQueryableRepository } from '../base';
 
-export class SupabaseMfaSettingsRepository {
-  constructor(private readonly sda: SupabaseDataAccess) {}
+import { BaseSupabaseRepository } from './base.supabase.repository';
 
+/**
+ * MFA 设置 Repository 接口
+ */
+export interface IMfaSettingsRepository extends IQueryableRepository<
+  MfaSettingsRow,
+  number,
+  MfaSettingsInsert,
+  MfaSettingsUpdate
+> {
+  findByUserId(userId: number): Promise<MfaSettingsRow | null>;
+  upsert(userId: number, data: MfaSettingsInsert): Promise<MfaSettingsRow>;
+}
+
+export class SupabaseMfaSettingsRepository
+  extends BaseSupabaseRepository<
+    MfaSettingsRow,
+    number,
+    MfaSettingsInsert,
+    MfaSettingsUpdate
+  >
+  implements IMfaSettingsRepository
+{
+  constructor(sda: SupabaseDataAccess) {
+    super(sda, 'mfa_settings', 'id');
+  }
+
+  /**
+   * 根据用户 ID 查询
+   */
   async findByUserId(userId: number): Promise<MfaSettingsRow | null> {
-    const { data } = await this.sda
-      .service()
-      .from('mfa_settings')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    return data;
+    return this.findOne({ user_id: userId });
   }
 
-  async create(data: MfaSettingsInsert): Promise<MfaSettingsRow> {
-    const { data: result, error } = await this.sda
-      .service()
-      .from('mfa_settings')
-      .insert(data)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return result;
-  }
-
-  async update(
-    userId: number,
-    data: Partial<MfaSettingsUpdate>
-  ): Promise<MfaSettingsRow> {
-    const { data: result, error } = await this.sda
-      .service()
-      .from('mfa_settings')
-      .update(data)
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return result;
-  }
-
+  /**
+   * 插入或更新
+   */
   async upsert(
     userId: number,
     data: MfaSettingsInsert
   ): Promise<MfaSettingsRow> {
     const { data: result, error } = await this.sda
       .service()
-      .from('mfa_settings')
+      .from(this.tableName)
       .upsert({ ...data, user_id: userId })
       .select()
       .single();
 
     if (error) throw error;
-    return result;
+    return result as MfaSettingsRow;
   }
 }
