@@ -1,49 +1,64 @@
-CSISP 数据库变更与迁移指南（Supabase）
+# CSISP Supabase
 
-目录结构
+这个目录包含 Supabase 数据库的所有迁移文件和配置。
 
-- supabase/
-  - migrations/ 存放所有迁移 SQL（仓库的唯一事实来源）
-  - config.toml Supabase CLI 配置
-  - README.md 本指南
-  - package.json 常用脚本
+## 目录结构
 
-先决条件
+```
+supabase/
+├── migrations/         # 所有数据库迁移 SQL 文件（唯一事实来源）
+├── functions/          # Supabase Edge Functions（可选）
+├── config.toml         # Supabase CLI 配置
+├── package.json        # 常用脚本
+└── README.md           # 本文档
+```
 
-- 工具安装：已安装 Supabase CLI、Docker。
-- 凭据管理：所有变量通过 Infisical 注入，不要在仓库中硬编码。
-- 首次登录与链接：
-  - 在 supabase 目录执行
-    - pnpm run login
-    - pnpm run link
+## 常用脚本
 
-常用脚本（位于 supabase/package.json）
+在当前目录（`/supabase`）下执行：
 
-- pnpm run login
-  - 调起 CLI 登录，写入本地凭据（一次性/凭据过期后再执行）
-- pnpm run link
-  - 将本地 CLI 链接到项目（使用 SUPABASE_URL_REF）
-- pnpm run db:pull
-  - 拉取远端数据库结构（首次可能提示确认，选择 Y）
-- pnpm run db:reset:dev
-  - 在本地将数据库重置到空库，并按顺序回放所有迁移（验证迁移链可重复）
-- pnpm run migrations:list
-  - 查看“本地迁移文件集”和“远端迁移历史”的对应关系
+| 命令                       | 说明                                                |
+| -------------------------- | --------------------------------------------------- |
+| `pnpm run login`           | Supabase CLI 登录（本机一次性）                     |
+| `pnpm run link`            | 链接到远程 Supabase 项目（使用 `SUPABASE_URL_REF`） |
+| `pnpm run db:pull`         | 拉取远程数据库结构到本地，生成迁移文件              |
+| `pnpm run db:reset:dev`    | 本地从 0 重放所有迁移，验证链路完整                 |
+| `pnpm run migrations:list` | 对比本地迁移文件与远程历史，查看状态                |
 
-注意事项
+## 标准开发流程
 
-- 只通过迁移演进结构：禁止在控制台或客户端直接改表结构，防止历史漂移。
-- 迁移小步可回滚：一个功能一组迁移；DDL 与数据修复（DML）尽量分开。
-- 不泄露凭据：所有密钥、URL 从 Infisical 注入；如敏感信息泄露请立即在控制台旋转并更新。
-- Dev/Prod 区分：Dev 上生成与验证迁移；Prod 仅在 CI 中执行迁移，不在本机对生产执行。
+### 1. 本地准备
 
-FAQ
+```bash
+# 确保已登录并链接项目
+pnpm run login
+pnpm run link
+```
 
-- 提示使用 /private/tmp/.s.PGSQL.5432：常见于未正确传入 --db-url 或未 link，CLI 回退到本地套接字；使用 link 流程可避免。
-- FATAL no pg_hba.conf entry … no encryption：直连 URL 未建立 TLS；优先使用 link 流程（受管 TLS）。
-- Update remote migration history table?：首次 db pull 提示，选择 Y 将远端历史与本地基线对齐。
+### 2. 生成迁移文件
 
-参考
+完成本地或隔离环境验证后，使用 `supabase db diff` 生成迁移文件：
 
-- 详细流程请参考：`.trae/skills/supabase-dev-workflow/SKILL.md`
-- 脚本入口：supabase/package.json
+```bash
+supabase db diff --file <migration_description>
+```
+
+### 3. 本地验证
+
+在提交前，在本地完整重放所有迁移：
+
+```bash
+pnpm run db:reset:dev
+```
+
+### 4. 提交与发布
+
+- 迁移文件随 PR 提交到代码库
+- CI 会在 Dev/Staging 环境自动执行 `supabase migration up`
+- PR 合并到 `main` 后，CI 会自动将迁移应用到生产环境
+
+## 迁移规范
+
+- **迁移是唯一事实来源**：所有数据库结构变更都必须通过迁移文件
+- **小步迁移**：保持每个迁移的范围小且单一，便于回滚
+- **不可删除已提交迁移**：尤其基线迁移文件，删除会导致历史不一致

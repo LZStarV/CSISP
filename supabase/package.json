@@ -6,8 +6,8 @@
     "login": "supabase login",
     "start:dev": "supabase start",
     "link": "infisical run  --env=staging -- sh -lc 'supabase link --project-ref \"$SUPABASE_URL_REF\"'",
-    "db:pull": "supabase db pull",
+    "db:pull": "infisical run --env=staging -- sh -lc 'supabase db pull --db-url \"$DATABASE_URL\"'",
     "db:reset:dev": "supabase db reset",
-    "migrations:list": "supabase migration list"
+    "migrations:list": "infisical run --env=staging -- sh -lc 'supabase migration list --db-url \"$DATABASE_URL\"'"
   }
 }
