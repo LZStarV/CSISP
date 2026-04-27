@@ -134,7 +134,7 @@ export class SupabaseUserRepository {
   }
 
   /** 查找用户找回密码信息 */
-  async findRecoveryInfo(email: string): Promise<UserRecoveryInfo | null> {
+  async findRecoveryInfo(_email: string): Promise<UserRecoveryInfo | null> {
     const { data: user } = await this.sda
       .service()
       .from('user')

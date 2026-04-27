@@ -23,7 +23,7 @@ catalogs:
     '@nestjs/sequelize': ^11.1.19
     '@nestjs/cli': ^11.0.21
     '@nestjs/mongoose': ^11.0.4
-    '@nestjs/serve-static': "^5.0.5"
+    '@nestjs/serve-static': '^5.0.5'
     '@supabase/supabase-js': ^2.99.1
     sequelize: ^6.35.0
     sequelize-typescript: ^2.1.6

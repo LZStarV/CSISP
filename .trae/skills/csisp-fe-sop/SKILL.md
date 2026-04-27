@@ -697,7 +697,3 @@ pnpm -F {frontend-app} format
 1. 定位问题：前端组件 / BFF Controller / Contract
 2. 修复代码
 3. 验证与检查
-
----
-
-_本文档基于论坛系统开发经验总结而成，包含踩过的坑与最佳实践。_

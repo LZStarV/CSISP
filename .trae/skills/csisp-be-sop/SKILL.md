@@ -115,7 +115,18 @@ import { ForumServiceController } from '@csisp-api/{service}';
 
 ## 3. 服务端开发
 
-### 3.1 目录结构
+### 3.1 Supabase 数据库开发流程（如果需要调整数据库结构）
+
+如果需要调整数据库结构，请按以下步骤操作：
+
+1. **本地环境准备**：在本地启动 Docker Supabase，执行 `db:pull` 将预发布环境数据库同步到本地（详细步骤参考 `supabase-dev-workflow`）
+2. **结构变更与迁移**：在本地调整数据库结构后，使用 `supabase db diff` 生成迁移文件
+3. **类型更新**：调整完成后，运行 `pnpm gen:types:local` 脚本生成新的类型文件（`packages/supabase-sdk/src/types/type.ts`）
+4. **重新构建与测试**：更新类型后，在对应项目执行 `build` 并进行测试
+
+> **详细步骤**：完整的 Supabase 数据库开发流程请参考 `supabase-dev-workflow`
+
+### 3.2 目录结构
 
 ```
 apps/backend/{service}/src/
@@ -133,9 +144,9 @@ apps/backend/{service}/src/
 └── app.module.ts
 ```
 
-### 3.2 数据访问层 (DAL) 使用
+### 3.3 数据访问层 (DAL) 使用
 
-#### 3.2.1 Supabase DAL
+#### 3.3.1 Supabase DAL
 
 对于 Supabase 存储的数据，使用 `@csisp/dal` 包中的 Repository：
 
@@ -168,7 +179,7 @@ export class AuthService {
 }
 ```
 
-#### 3.2.2 MongoDB 建模（待完善 DAL）
+#### 3.3.2 MongoDB 建模（待完善 DAL）
 
 **文件**：`apps/backend/{service}/src/modules/{domain}/schemas/{entity}.schema.ts`
 
@@ -191,7 +202,7 @@ export class {Entity} extends Document {
 export const {Entity}Schema = SchemaFactory.createForClass({Entity});
 ```
 
-### 3.3 DTO 定义
+### 3.4 DTO 定义
 
 **文件**：`apps/backend/{service}/src/modules/{domain}/dto/{action}.dto.ts`
 
@@ -214,7 +225,7 @@ export * from './get-post-detail.dto';
 // ... 其他 DTO
 ```
 
-### 3.4 Service 实现
+### 3.5 Service 实现
 
 **文件**：`apps/backend/{service}/src/modules/{domain}/{domain}.service.ts`
 
@@ -249,7 +260,7 @@ export class {Domain}Service {
 }
 ```
 
-### 3.5 Controller 实现
+### 3.6 Controller 实现
 
 **文件**：`apps/backend/{service}/src/modules/{domain}/{domain}.grpc.controller.ts`
 
@@ -277,7 +288,7 @@ export class {Domain}GrpcController {
 }
 ```
 
-### 3.6 Module 注册
+### 3.7 Module 注册
 
 **文件**：`apps/backend/{service}/src/modules/{domain}/{domain}.module.ts`
 
@@ -361,7 +372,3 @@ pnpm -F {service} lint
 1. 定位问题：Service / Controller / Schema
 2. 修复代码
 3. 测试与验证
-
----
-
-_本文档基于论坛系统开发经验总结而成，包含踩过的坑与最佳实践。_
