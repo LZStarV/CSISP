@@ -1,5 +1,5 @@
 {
-  "name": "@csisp/supabase-sdk",
+  "name": "@csisp/dal",
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
@@ -7,9 +7,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "gen:types": "tsx scripts/gen-types.ts",
-    "gen:types:local": "tsx scripts/gen-types.ts --env local",
-    "format:types": "prettier --write src/types/type.ts"
+    "format": "prettier --write src/**/*.ts",
+    "lint": "eslint src/**/*.ts"
   },
   "exports": {
     ".": {
@@ -18,16 +17,13 @@
       "require": "./dist/index.js"
     }
   },
-  "files": [
-    "dist/"
-  ],
   "dependencies": {
-    "@supabase/supabase-js": "^2.99.1"
+    "@csisp/supabase-sdk": "workspace:*"
   },
   "peerDependencies": {
     "@nestjs/common": ">=9"
   },
   "devDependencies": {
-    "supabase": ">=1.8.1"
+    "typescript": "^5.0.0"
   }
 }

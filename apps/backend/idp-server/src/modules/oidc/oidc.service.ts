@@ -2,9 +2,9 @@ import {
   CommonApiException,
   CommonErrorCode,
 } from '@common/errors/common-error-codes';
+import { SupabaseOidcClientRepository } from '@csisp/dal';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
-import { SupabaseDataAccess } from '@csisp/supabase-sdk';
 import {
   type ClientInfo,
   type AuthorizationRequestInfo,
@@ -16,13 +16,6 @@ import { OIDCScope } from '@utils/oidc/oidc.policy';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
 
 import { GetAuthorizationRequestDto } from './dto/get-authorization-request.dto';
-
-type OidcClientPick = {
-  client_id: string;
-  name: string | null;
-  allowed_redirect_uris: string[] | string | null;
-  scopes: OIDCScope[] | null;
-};
 
 const logger = getIdpLogger('oidc-service');
 
@@ -57,12 +50,9 @@ export class OidcService {
         HttpStatus.BAD_REQUEST
       );
 
-    const { data: client } = await this.sda
-      .service()
-      .from('oidc_clients')
-      .select('name')
-      .eq('client_id', req.client_id)
-      .maybeSingle<{ name: string | null }>();
+    const client = await this.oidcClientRepository.findByClientId(
+      req.client_id
+    );
 
     return {
       client_id: req.client_id,
@@ -83,7 +73,7 @@ export class OidcService {
   }
 
   constructor(
-    private readonly sda: SupabaseDataAccess,
+    private readonly oidcClientRepository: SupabaseOidcClientRepository,
     @Inject(REDIS_KV) private readonly kv: RedisKV
   ) {
     this.ticketIssuer = new TicketIssuer<AuthorizationRequestData>(
@@ -97,13 +87,8 @@ export class OidcService {
   }
 
   async listClients(): Promise<ClientInfo[]> {
-    type ClientPick = OidcClientPick;
     logger.info('listClients started');
-    const { data: rows2 } = await this.sda
-      .service()
-      .from('oidc_clients')
-      .select('client_id,name,allowed_redirect_uris,scopes');
-    const list = (rows2 ?? []) as ClientPick[];
+    const list = await this.oidcClientRepository.findAll();
     logger.info({ count: list.length }, 'Clients fetched');
     return list.map(r => {
       let scopes: ClientInfo.ScopesEnum[] = [];
@@ -118,7 +103,7 @@ export class OidcService {
       return {
         client_id: String(r.client_id),
         name: r.name ?? undefined,
-        default_redirect_uri: uris[0],
+        default_redirect_uri: uris[0] as string | undefined,
         scopes,
       };
     });

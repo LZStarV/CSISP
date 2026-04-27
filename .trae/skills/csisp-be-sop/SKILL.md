@@ -40,7 +40,7 @@ description: 'CSISP 后端微服务开发 SOP。Invoke when developing new micro
 | 用户相关、权限、配置         | Supabase | 关系型数据，需要事务支持 |
 | 内容相关（帖子、公告、评论） | MongoDB  | 文档型数据，灵活扩展     |
 
-> **TODO：** 当前 Schema 定义在 `schemas/` 目录中，与业务逻辑混杂。未来计划抽离为独立的数据访问层（Data Access Layer），统一管理服务端数据模型。
+> **TODO：** Supabase 数据访问层（DAL）已在 `packages/dal` 中实现，采用 Repository 模式，已集成到 idp-server。MongoDB DAL 待完善。
 
 **MongoDB Schema 示例**（以某服务端项目为例）：
 
@@ -133,7 +133,42 @@ apps/backend/{service}/src/
 └── app.module.ts
 ```
 
-### 3.2 MongoDB 建模
+### 3.2 数据访问层 (DAL) 使用
+
+#### 3.2.1 Supabase DAL
+
+对于 Supabase 存储的数据，使用 `@csisp/dal` 包中的 Repository：
+
+1. **在 app.module.ts 中全局导入**（一次配置，所有模块可用）：
+
+```typescript
+import { SupabaseDalModule } from '@csisp/dal';
+
+@Module({
+  imports: [
+    SupabaseDalModule,
+    // ...
+  ],
+})
+export class AppModule {}
+```
+
+2. **在 Service 中注入并使用 Repository**：
+
+```typescript
+import { SupabaseUserRepository } from '@csisp/dal';
+
+@Injectable()
+export class AuthService {
+  constructor(private readonly userRepository: SupabaseUserRepository) {}
+
+  async getStudent(studentId: string) {
+    return this.userRepository.findByStudentId(studentId);
+  }
+}
+```
+
+#### 3.2.2 MongoDB 建模（待完善 DAL）
 
 **文件**：`apps/backend/{service}/src/modules/{domain}/schemas/{entity}.schema.ts`
 

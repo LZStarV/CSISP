@@ -9,9 +9,13 @@ import {
   CommonErrorCode,
 } from '@common/errors/common-error-codes';
 import { config } from '@config';
+import {
+  SupabaseUserRepository,
+  SupabaseMfaSettingsRepository,
+  SupabaseOidcClientRepository,
+} from '@csisp/dal';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
-import { SupabaseDataAccess } from '@csisp/supabase-sdk';
 import {
   AuthNextStep,
   AuthForgotInitResult,
@@ -49,15 +53,6 @@ import { MultifactorDto } from './dto/multifactor.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
-type MfaSettingsPick = {
-  sms_enabled: boolean | null;
-  email_enabled: boolean | null;
-  fido2_enabled: boolean | null;
-  otp_enabled: boolean | null;
-  phone_number: string | null;
-  required: boolean | null;
-};
-
 /**
  * 认证服务
  * - rsatoken：返回 RSA 公钥与短时 token
@@ -78,7 +73,9 @@ export class AuthService {
   private readonly oidcCodeIssuer: TicketIssuer<any>;
 
   constructor(
-    private readonly sda: SupabaseDataAccess,
+    private readonly userRepository: SupabaseUserRepository,
+    private readonly mfaSettingsRepository: SupabaseMfaSettingsRepository,
+    private readonly oidcClientRepository: SupabaseOidcClientRepository,
     private readonly gotrue: GotrueService,
     @Inject(REDIS_KV) private readonly kv: RedisKV
   ) {
@@ -125,14 +122,8 @@ export class AuthService {
     if (!normalized) return false;
     const studentId = await this.kv.get(`reg:student:${normalized}`);
     if (!studentId) return false;
-    type UserPick = { id: number; student_id: string | null };
     // 再按 student_id 查询
-    const { data: bySid } = await this.sda
-      .service()
-      .from('user')
-      .select('id,student_id')
-      .eq('student_id', String(studentId))
-      .maybeSingle<UserPick>();
+    const bySid = await this.userRepository.findByStudentId(String(studentId));
     if (bySid?.id) {
       try {
         await this.kv.del(`reg:student:${normalized}`);
@@ -140,22 +131,19 @@ export class AuthService {
       return true;
     }
     // 插入
-    {
-      const { error } = await this.sda
-        .service()
-        .from('user')
-        .insert({ student_id: String(studentId) });
-      if (error)
-        throw new CommonApiException(
-          CommonErrorCode.InternalError,
-          'Finalize failed',
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
-      try {
-        await this.kv.del(`reg:student:${normalized}`);
-      } catch {}
-      return true;
+    try {
+      await this.userRepository.create({ student_id: String(studentId) });
+    } catch {
+      throw new CommonApiException(
+        CommonErrorCode.InternalError,
+        'Finalize failed',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
+    try {
+      await this.kv.del(`reg:student:${normalized}`);
+    } catch {}
+    return true;
   }
 
   /**
@@ -396,21 +384,13 @@ export class AuthService {
         'Too many requests'
       );
     }
-    const { data: client } = await this.sda
-      .service()
-      .from('oidc_clients')
-      .select('allowed_redirect_uris,status')
-      .eq('client_id', dto.app_id)
-      .maybeSingle<{
-        allowed_redirect_uris: string[] | string | null;
-        status: string;
-      }>();
+    const client = await this.oidcClientRepository.findByClientId(dto.app_id);
     const active = client && client.status === 'active';
     const allowed =
       active &&
       OidcPolicyHelper.isRedirectUriAllowed(
         dto.redirect_uri,
-        client!.allowed_redirect_uris
+        client!.allowed_redirect_uris as string | string[] | null
       );
     if (!allowed) {
       throw new AuthApiException(
@@ -463,23 +443,7 @@ export class AuthService {
       { type: MFAType.NUMBER_3, enabled: false },
     ];
 
-    type MfaPick = MfaSettingsPick;
-
-    const { data: mfaSettings, error } = await this.sda
-      .service()
-      .from('mfa_settings')
-      .select(
-        'sms_enabled,email_enabled,fido2_enabled,otp_enabled,phone_number,required'
-      )
-      .eq('user_id', user.id)
-      .maybeSingle<MfaPick>();
-    if (error) {
-      throw new CommonApiException(
-        CommonErrorCode.InternalError,
-        'Failed to load MFA settings',
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
+    const mfaSettings = await this.mfaSettingsRepository.findByUserId(user.id);
 
     if (!mfaSettings) {
       return { mfa, requiresMfa: false };
@@ -513,20 +477,9 @@ export class AuthService {
 
   async session(uid?: number): Promise<AuthSessionResult> {
     if (!uid) return { logged: false };
-    type UserPick = {
-      id: number;
-      username: string | null;
-      student_id: string | null;
-    };
-    const { data: user } = await this.sda
-      .service()
-      .from('user')
-      .select('id,username,student_id')
-      .eq('id', uid)
-      .maybeSingle<UserPick>();
+    const user = await this.userRepository.findById(uid);
     return {
       logged: true,
-      name: user?.username ?? undefined,
       student_id: user?.student_id ?? undefined,
     };
   }
@@ -534,35 +487,14 @@ export class AuthService {
   // 忘记密码：初始化
   async forgotInit(params: { email: string }): Promise<AuthForgotInitResult> {
     const email = String(params.email ?? '').trim();
-    type UserPick = {
-      id: number;
-      username: string | null;
-      student_id: string | null;
-      phone: string | null;
-      email: string | null;
-    };
-    const { data: user } = await this.sda
-      .service()
-      .from('user')
-      .select('id,username,student_id,phone,email')
-      .eq('email', email)
-      .maybeSingle<UserPick>();
-    const methods: RecoveryMethod[] = [];
-    if (!user) {
+    const recoveryInfo = await this.userRepository.findRecoveryInfo(email);
+    if (!recoveryInfo) {
       return {
         student_id: '',
         methods: [],
       };
     }
-    const { data: cfg } = await this.sda
-      .service()
-      .from('mfa_settings')
-      .select(
-        'sms_enabled,email_enabled,fido2_enabled,otp_enabled,phone_number'
-      )
-      .eq('user_id', user.id)
-      .maybeSingle<MfaSettingsPick>();
-    const boundPhone = user.phone ?? cfg?.phone_number ?? null;
+    const methods: RecoveryMethod[] = [];
     // SMS
     {
       const enabled = false;
@@ -570,23 +502,16 @@ export class AuthService {
       methods.push({
         type: MFAType.NUMBER_0,
         enabled,
-        extra: boundPhone ?? undefined,
         reason,
       });
     }
     // Email（占位）
     {
-      const boundEmail = user.email ?? null;
-      const enabled = !!cfg?.email_enabled && !!boundEmail;
-      const reason = !cfg?.email_enabled
-        ? RecoveryUnavailableReason.NUMBER_2
-        : !boundEmail
-          ? RecoveryUnavailableReason.NUMBER_1
-          : RecoveryUnavailableReason.NUMBER_3;
+      const enabled = false;
+      const reason = RecoveryUnavailableReason.NUMBER_3;
       methods.push({
         type: MFAType.NUMBER_1,
-        enabled: enabled && false,
-        extra: boundEmail ?? undefined,
+        enabled,
         reason,
       });
     }
@@ -602,8 +527,7 @@ export class AuthService {
       reason: RecoveryUnavailableReason.NUMBER_3,
     });
     return {
-      student_id: user.student_id ?? '',
-      name: user.username ?? undefined,
+      student_id: recoveryInfo.student_id,
       methods,
     };
   }
@@ -638,13 +562,7 @@ export class AuthService {
    * - 成功后进入多因子校验
    */
   async resetPassword(_params: ResetPasswordDto): Promise<NextResult> {
-    type UserPick = { id: number; student_id: string | null };
-    const { data: user } = await this.sda
-      .service()
-      .from('user')
-      .select('id,student_id')
-      .eq('student_id', _params.studentId)
-      .maybeSingle<UserPick>();
+    const user = await this.userRepository.findByStudentId(_params.studentId);
     if (!user)
       throw new CommonApiException(
         CommonErrorCode.NotFound,
@@ -663,16 +581,7 @@ export class AuthService {
     }
     const hashed = await hashPasswordScrypt(_params.newPassword);
     {
-      const { error } = await this.sda.service().rpc('auth_reset_password', {
-        p_student_id: _params.studentId,
-        p_new_hash: hashed,
-      });
-      if (error)
-        throw new CommonApiException(
-          CommonErrorCode.InternalError,
-          'Reset password failed',
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
+      await this.userRepository.resetPassword(_params.studentId, hashed);
     }
     // 标记令牌失效（消费令牌）
     await this.resetTicketIssuer.consume(_params.resetToken);
@@ -706,29 +615,11 @@ export class AuthService {
     }
 
     const studentId = params.studentId;
-    type UserPickEnter = {
-      id: number;
-      username: string | null;
-      student_id: string | null;
-      status: string | null;
-    };
-    let user: UserPickEnter | null = null;
+    let user: any = null;
     if (studentId) {
-      const q = await this.sda
-        .service()
-        .from('user')
-        .select('id,username,student_id,status')
-        .eq('student_id', studentId)
-        .maybeSingle<UserPickEnter>();
-      user = q.data ?? null;
+      user = await this.userRepository.findByStudentId(studentId);
     } else if (uidFromSess) {
-      const q = await this.sda
-        .service()
-        .from('user')
-        .select('id,username,student_id,status')
-        .eq('id', uidFromSess)
-        .maybeSingle<UserPickEnter>();
-      user = q.data ?? null;
+      user = await this.userRepository.findById(uidFromSess);
     } else {
       user = null;
     }
@@ -788,17 +679,7 @@ export class AuthService {
     const uid = await this.sessionIssuer.get(sid);
     if (!uid) return [];
 
-    type UserPick = {
-      id: number;
-      phone: string | null;
-    };
-    const { data: user } = await this.sda
-      .service()
-      .from('user')
-      .select('id,phone')
-      .eq('id', Number(uid))
-      .maybeSingle<UserPick>();
-
+    const user = await this.userRepository.findById(Number(uid));
     if (!user) return [];
 
     const { mfa } = await this.getMfaMethods(user);

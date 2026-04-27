@@ -1,5 +1,6 @@
 import { join } from 'path';
 
+import { SupabaseDalModule } from '@csisp/dal';
 import { RedisModule } from '@csisp/redis-sdk/nest';
 import { SupabaseModule } from '@csisp/supabase-sdk';
 import { Module } from '@nestjs/common';
@@ -28,6 +29,7 @@ import { DomainModules } from './modules';
       serviceRoleKey: config.supabase.serviceRoleKey,
       anonKey: config.supabase.anonKey,
     }),
+    SupabaseDalModule,
     ...DomainModules,
   ],
   providers: [
