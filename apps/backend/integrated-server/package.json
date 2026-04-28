@@ -10,7 +10,7 @@
     "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
   },
   "dependencies": {
-    "@csisp-api/integrated-server": "0.1.2",
+    "@csisp-api/integrated-server": "catalog:",
     "@csisp/config": "workspace:*",
     "@csisp/dal": "workspace:*",
     "@csisp/redis-sdk": "workspace:*",
