@@ -1,5 +1,13 @@
-import { PortalModule } from './demo/demo.module';
+import { PortalAnnounceModule } from './announce/announce.module';
+import { PortalDemoModule } from './demo/demo.module';
+import { PortalForumModule } from './forum/forum.module';
 
-export { PortalModule } from './demo/demo.module';
+export { PortalDemoModule } from './demo/demo.module';
+export { PortalForumModule } from './forum/forum.module';
+export { PortalAnnounceModule } from './announce/announce.module';
 
-export const PortalModules = [PortalModule];
+export const PortalModules = [
+  PortalDemoModule,
+  PortalForumModule,
+  PortalAnnounceModule,
+];

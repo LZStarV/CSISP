@@ -1,10 +1,10 @@
 import { GrpcClientModule } from '@infra/grpc-client.module';
 import { Module } from '@nestjs/common';
 
-import { PortalDemoController } from './demo.controller';
+import { PortalForumController } from './forum.controller';
 
 @Module({
   imports: [GrpcClientModule],
-  controllers: [PortalDemoController],
+  controllers: [PortalForumController],
 })
-export class PortalDemoModule {}
+export class PortalForumModule {}

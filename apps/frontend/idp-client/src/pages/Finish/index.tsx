@@ -1,16 +1,13 @@
-import type { CreateExchangeCodeResult } from '@csisp/contracts';
 import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { commonAuthCall } from '@/api/common/auth';
-import { commonOidcCall } from '@/api/common/oidc';
-import { idpClientAuthCall } from '@/api/idp-client/auth';
+import { commonAuthApi } from '@/api/common/auth';
+import { commonOidcApi } from '@/api/common/oidc';
+import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { CLIENT_LOGIN_ENDPOINTS } from '@/config';
-import type { SessionResult, Next, ClientInfo } from '@/types/enum';
+import type { ClientInfo } from '@/types/enum';
 import { generateRandomString } from '@/utils/pkce';
-
-// no-op
 
 export function Finish() {
   const [items, setItems] = useState<ClientInfo[]>([]);
@@ -35,7 +32,7 @@ export function Finish() {
         setLoading(true);
         (async () => {
           try {
-            const res = await idpClientAuthCall<Next>('enter', {
+            const res = await idpClientAuthApi.enter({
               ticket,
               state,
             });
@@ -58,7 +55,7 @@ export function Finish() {
   useEffect(() => {
     (async () => {
       try {
-        const data = await commonOidcCall<ClientInfo[]>('clients', {});
+        const data = await commonOidcApi.clients();
         setItems(Array.isArray(data) ? data : []);
       } catch (error) {
         setErrorMsg(
@@ -71,7 +68,7 @@ export function Finish() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await commonAuthCall<SessionResult>('session', {});
+        const res = await commonAuthApi.session();
         const n = (res as any)?.name as string | undefined;
         const sid = (res as any)?.student_id as string | undefined;
         if (n && sid) setUserLabel(`${n}（${sid}）`);
@@ -100,14 +97,11 @@ export function Finish() {
     setErrorMsg(null);
     try {
       const state = generateRandomString(16);
-      const res = await idpClientAuthCall<CreateExchangeCodeResult>(
-        'createExchangeCode',
-        {
-          app_id: String(item.client_id),
-          redirect_uri: item.default_redirect_uri as string,
-          state,
-        }
-      );
+      const res = await idpClientAuthApi.createExchangeCode({
+        app_id: String(item.client_id),
+        redirect_uri: item.default_redirect_uri as string,
+        state,
+      });
       const code = res?.code;
       const uri = res?.redirect_uri;
       const st = res?.state;
@@ -130,7 +124,7 @@ export function Finish() {
       title: '确认退出登录？',
       onOk: async () => {
         try {
-          await commonAuthCall<SessionResult>('logout', {});
+          await commonAuthApi.logout();
           sessionStorage.removeItem('idp_studentId');
           navigate('/login');
         } catch (error) {

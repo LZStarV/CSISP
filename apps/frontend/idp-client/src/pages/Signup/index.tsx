@@ -1,16 +1,13 @@
 import type {
   RegisterParams,
-  RegisterResult,
   ResendSignupOtpParams,
-  ResendSignupOtpResult,
   VerifySignupOtpParams,
-  VerifySignupOtpResult,
 } from '@csisp/contracts';
 import { Form, Input, Button, Typography, Alert, message, Space } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { idpClientAuthCall } from '@/api/idp-client/auth';
+import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_LOGIN } from '@/routes/router';
 
@@ -48,7 +45,7 @@ export function Signup() {
         student_id: values.student_id,
         display_name: values.display_name,
       };
-      await idpClientAuthCall<RegisterResult>('register', params);
+      await idpClientAuthApi.register(params);
       setEmail(values.email);
       setOtpStage(true);
       message.success('验证码已发送至邮箱，请输入 8 位验证码完成注册');
@@ -68,10 +65,7 @@ export function Signup() {
     setErrorMsg(null);
     try {
       const params: VerifySignupOtpParams = { email, token: otp };
-      const res = await idpClientAuthCall<VerifySignupOtpResult>(
-        'verifySignupOtp',
-        params
-      );
+      const res = await idpClientAuthApi.verifySignupOtp(params);
       if (!res?.verified) {
         throw new Error('验证码无效或已过期');
       }
@@ -94,10 +88,7 @@ export function Signup() {
     setErrorMsg(null);
     try {
       const params: ResendSignupOtpParams = { email };
-      const res = await idpClientAuthCall<ResendSignupOtpResult>(
-        'resendSignupOtp',
-        params
-      );
+      const res = await idpClientAuthApi.resendSignupOtp(params);
       if (!res?.ok) {
         throw new Error('发送失败，请稍后重试');
       }

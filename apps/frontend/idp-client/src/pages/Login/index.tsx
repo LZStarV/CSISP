@@ -1,15 +1,10 @@
-import type {
-  GetAuthorizationRequestResult,
-  LoginResult,
-  SendOtpResult,
-  VerifyOtpResult,
-} from '@csisp/contracts';
+import type { GetAuthorizationRequestResult } from '@csisp/contracts';
 import { Form, Input, Button, Typography, Alert, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { commonOidcCall } from '@/api/common/oidc';
-import { idpClientAuthCall } from '@/api/idp-client/auth';
+import { commonOidcApi } from '@/api/common/oidc';
+import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
 
@@ -28,9 +23,10 @@ export function Login() {
 
   useEffect(() => {
     if (ticket) {
-      commonOidcCall<GetAuthorizationRequestResult>('getAuthorizationRequest', {
-        ticket,
-      })
+      commonOidcApi
+        .getAuthorizationRequest({
+          ticket,
+        })
         .then((res: GetAuthorizationRequestResult) => {
           setAuthInfo(res);
         })
@@ -44,7 +40,7 @@ export function Login() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await idpClientAuthCall<VerifyOtpResult>('verify-otp', {
+      const res = await idpClientAuthApi.verifyOtp({
         token: otpCode,
       });
       if (res?.verified) {
@@ -61,7 +57,7 @@ export function Login() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await idpClientAuthCall<LoginResult>('login', {
+      const res = await idpClientAuthApi.login({
         email: values.email,
         password: values.password,
       });
@@ -75,7 +71,7 @@ export function Login() {
       };
 
       if (stepUp === 'PENDING_PASSWORD') {
-        await idpClientAuthCall<SendOtpResult>('send-otp', {});
+        await idpClientAuthApi.sendOtp();
         message.success('验证邮件已发送，请前往邮箱查收并完成验证');
         setOtpSent(true);
         return;

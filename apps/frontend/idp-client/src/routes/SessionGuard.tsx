@@ -1,12 +1,10 @@
-import type { VerifyOtpResult } from '@csisp/contracts';
 import { message } from 'antd';
 import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { commonAuthCall } from '@/api/common/auth';
-import { idpClientAuthCall } from '@/api/idp-client/auth';
+import { commonAuthApi } from '@/api/common/auth';
+import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { ROUTE_LOGIN, ROUTE_FINISH } from '@/routes/router';
-import type { SessionResult } from '@/types/enum';
 
 export function SessionGuard({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
@@ -20,10 +18,9 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     if (tokenHash && type) {
       (async () => {
         try {
-          const res = await idpClientAuthCall<VerifyOtpResult>('verify-otp', {
-            token_hash: tokenHash,
-            type: type === 'magic_link' ? 'magic_link' : 'email',
-          });
+          const res = await idpClientAuthApi.verifyOtp({
+            token: tokenHash,
+          } as any);
           if (res?.verified) {
             navigate(ROUTE_FINISH, { replace: true });
             return;
@@ -35,7 +32,7 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     }
     (async () => {
       try {
-        const res = await commonAuthCall<SessionResult>('session', {});
+        const res = await commonAuthApi.session();
         const logged = !!res?.logged;
         if (logged) {
           if (location.pathname === ROUTE_LOGIN) {
