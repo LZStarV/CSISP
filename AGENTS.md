@@ -68,7 +68,10 @@ CSISP/
 
 - `src/main.ts` - 服务入口
 - `src/modules/auth/auth.controller.ts` - 认证接口
-- `src/modules/auth/auth.service.ts` - 认证逻辑
+- `src/modules/auth/service/session.service.ts` - 会话管理服务
+- `src/modules/auth/service/registration.service.ts` - 用户注册服务
+- `src/modules/auth/service/login.service.ts` - 登录验证服务
+- `src/modules/auth/service/otp.service.ts` - OTP 验证服务
 - `src/infra/supabase/gotrue.service.ts` - Supabase 集成
 
 **说明**: 使用外部 npm 包 `@csisp-api/idp-server` 作为 IDP 接口定义。

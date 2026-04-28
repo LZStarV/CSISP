@@ -12,7 +12,6 @@ import { UseGuards } from '@nestjs/common';
 import { Body, Post, Req, Res } from '@nestjs/common';
 import type { Request as ExpressRequest, Response } from 'express';
 
-import { AuthService } from './auth.service';
 import { CreateExchangeCodeDto } from './dto/create-exchange-code.dto';
 import { EnterDto } from './dto/enter.dto';
 import { LoginInternalDto } from './dto/login-internal.dto';
@@ -21,42 +20,61 @@ import { ResendSignupOtpDto } from './dto/resend-signup-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
+import {
+  SessionService,
+  RegistrationService,
+  LoginService,
+  OtpService,
+  PasswordResetService,
+  OidcAuthService,
+  MfaService,
+  ForgotPasswordService,
+} from './service';
 
 @ApiIdpController('auth')
 @UseGuards(IdpSessionGuard)
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly registrationService: RegistrationService,
+    private readonly loginService: LoginService,
+    private readonly otpService: OtpService,
+    private readonly passwordResetService: PasswordResetService,
+    private readonly oidcAuthService: OidcAuthService,
+    private readonly mfaService: MfaService,
+    private readonly forgotPasswordService: ForgotPasswordService,
+    private readonly sessionService: SessionService
+  ) {}
 
   @Post('login')
   async authLogin(
     @Body(RequestBodyPipe) loginInternalDto: LoginInternalDto,
     @Res({ passthrough: true }) response: Response
   ) {
-    return this.authService.loginEmailPassword(loginInternalDto, response);
+    return this.loginService.loginEmailPassword(loginInternalDto, response);
   }
 
   @Post('register')
   async authRegister(@Body(RequestBodyPipe) registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+    return this.registrationService.register(registerDto);
   }
 
   @Post('verifySignupOtp')
   async authVerifySignupOtp(
     @Body(RequestBodyPipe) verifySignupOtpDto: VerifySignupOtpDto
   ) {
-    return this.authService.verifySignupOtp(verifySignupOtpDto);
+    return this.registrationService.verifySignupOtp(verifySignupOtpDto);
   }
 
   @Post('resendSignupOtp')
   async authResendSignupOtp(
     @Body(RequestBodyPipe) resendSignupOtpDto: ResendSignupOtpDto
   ) {
-    return this.authService.resendSignupOtp(resendSignupOtpDto);
+    return this.registrationService.resendSignupOtp(resendSignupOtpDto);
   }
 
   @Post('send-otp')
   async authSendOtp(@Req() request: ExpressRequest) {
-    return this.authService.sendOtpStepUp(request);
+    return this.otpService.sendOtpStepUp(request);
   }
 
   @Post('verify-otp')
@@ -64,7 +82,7 @@ export class AuthController {
     @Body(RequestBodyPipe) verifyOtpDto: VerifyOtpDto,
     @Req() request: ExpressRequest
   ) {
-    return this.authService.verifyOtpStepUp(verifyOtpDto, request);
+    return this.otpService.verifyOtpStepUp(verifyOtpDto, request);
   }
 
   @Post('createExchangeCode')
@@ -72,7 +90,10 @@ export class AuthController {
     @Body(RequestBodyPipe) createExchangeCodeDto: CreateExchangeCodeDto,
     @Req() request: ExpressRequest
   ) {
-    return this.authService.createExchangeCode(createExchangeCodeDto, request);
+    return this.oidcAuthService.createExchangeCode(
+      createExchangeCodeDto,
+      request
+    );
   }
 
   @Post('multifactor')
@@ -80,14 +101,14 @@ export class AuthController {
     @Body(RequestBodyPipe) authMultifactorRequest: AuthMultifactorRequest,
     @Req() request: ExpressRequest
   ) {
-    return this.authService.multifactor(authMultifactorRequest, request.res);
+    return this.mfaService.multifactor(authMultifactorRequest, request.res);
   }
 
   @Post('reset_password')
   async authResetPassword(
     @Body(RequestBodyPipe) resetPasswordDto: ResetPasswordDto
   ) {
-    return this.authService.resetPassword(resetPasswordDto);
+    return this.passwordResetService.resetPassword(resetPasswordDto);
   }
 
   @Post('enter')
@@ -97,20 +118,20 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response
   ) {
     const uid = (request as any).idpUserId;
-    return this.authService.enter(enterDto, response, uid);
+    return this.oidcAuthService.enter(enterDto, response, uid);
   }
 
   @Post('mfa_methods')
   async authMfaMethods(@Req() request: ExpressRequest) {
     const sid = (request as any).idpSession;
-    return this.authService.mfaMethodsBySession(sid);
+    return this.mfaService.mfaMethodsBySession(sid);
   }
 
   @Post('forgot_init')
   async authForgotInit(
     @Body(RequestBodyPipe) authForgotInitRequest: AuthForgotInitRequest
   ) {
-    return this.authService.forgotInit(authForgotInitRequest);
+    return this.forgotPasswordService.forgotInit(authForgotInitRequest);
   }
 
   @Post('forgot_challenge')
@@ -118,14 +139,16 @@ export class AuthController {
     @Body(RequestBodyPipe)
     authForgotChallengeRequest: AuthForgotChallengeRequest
   ) {
-    return this.authService.forgotChallenge(authForgotChallengeRequest);
+    return this.forgotPasswordService.forgotChallenge(
+      authForgotChallengeRequest
+    );
   }
 
   @Post('forgot_verify')
   async authForgotVerify(
     @Body(RequestBodyPipe) authForgotVerifyRequest: AuthForgotVerifyRequest
   ) {
-    return this.authService.forgotVerify(authForgotVerifyRequest);
+    return this.forgotPasswordService.forgotVerify(authForgotVerifyRequest);
   }
 
   @Post('session')
@@ -134,6 +157,13 @@ export class AuthController {
     @Req() request: ExpressRequest
   ) {
     const uid = (request as any).idpUserId;
-    return this.authService.session(uid);
+    if (!uid) return { logged: false };
+    const userId = await this.sessionService.get(String(uid));
+    if (!userId) return { logged: false };
+    const user = await this.registrationService.findUserById(userId);
+    return {
+      logged: true,
+      student_id: user?.student_id ?? undefined,
+    };
   }
 }

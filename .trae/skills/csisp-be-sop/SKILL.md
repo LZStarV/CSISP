@@ -146,6 +146,8 @@ import { ForumServiceController } from '@csisp-api/{service}';
 
 ### 3.2 目录结构
 
+**标准结构（单一服务类）**：
+
 ```
 apps/backend/{service}/src/
 ├── modules/
@@ -159,6 +161,34 @@ apps/backend/{service}/src/
 │       └── index.ts
 └── app.module.ts
 ```
+
+**服务拆分结构（多服务类）**：
+
+当服务类职责过多（超过 500 行代码或 10 个以上方法）时，应拆分为多个职责单一的服务类：
+
+```
+apps/backend/{service}/src/
+├── modules/
+│   └── {domain}/
+│       ├── dto/
+│       │   ├── {action}.dto.ts
+│       │   └── index.ts
+│       ├── service/                    # 服务子目录
+│       │   ├── index.ts               # 聚合导出
+│       │   ├── {sub-domain}.service.ts
+│       │   └── ...                    # 多个服务类
+│       ├── {domain}.grpc.controller.ts
+│       ├── {domain}.module.ts
+│       └── index.ts
+└── app.module.ts
+```
+
+**服务拆分原则**：
+
+1. 每个服务类职责单一，遵循单一职责原则
+2. 服务类之间通过依赖注入协作
+3. 通过 `service/index.ts` 进行聚合导出
+4. 模块中使用 `import * as DomainServices from './service'` 统一导入
 
 ### 3.3 数据访问层 (DAL) 使用
 
