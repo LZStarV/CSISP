@@ -1,5 +1,5 @@
-import enCommon from '../locales/portal/en/common.json';
-import zhCommon from '../locales/portal/zh/common.json';
+import enCommon from './locales/portal/en/common.json';
+import zhCommon from './locales/portal/zh/common.json';
 
 export const portalLocales = {
   zh: {

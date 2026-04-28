@@ -8,15 +8,15 @@ const __dirname = path.dirname(__filename);
 const PROJECTS = {
   common: {
     apiKey: process.env.SIMPLELOCALIZE_COMMON_API_KEY || '',
-    localesPath: path.resolve(__dirname, '../locales/common'),
+    localesPath: path.resolve(__dirname, '../src/locales/common'),
   },
   portal: {
     apiKey: process.env.SIMPLELOCALIZE_PORTAL_API_KEY || '',
-    localesPath: path.resolve(__dirname, '../locales/portal'),
+    localesPath: path.resolve(__dirname, '../src/locales/portal'),
   },
   'idp-client': {
     apiKey: process.env.SIMPLELOCALIZE_IDP_CLIENT_API_KEY || '',
-    localesPath: path.resolve(__dirname, '../locales/idp-client'),
+    localesPath: path.resolve(__dirname, '../src/locales/idp-client'),
   },
 } as const;
 
