@@ -17,7 +17,7 @@ const baseResponseSchema = z.object({
 });
 
 // Post Schema
-const postSchema = z.object({
+export const postSchema = z.object({
   id: z.string(),
   title: z.string(),
   content: z.string(),
@@ -29,7 +29,7 @@ const postSchema = z.object({
 });
 
 // Reply Schema
-const replySchema = z.object({
+export const replySchema = z.object({
   id: z.string(),
   postId: z.string(),
   content: z.string(),
@@ -85,28 +85,28 @@ export const createReplyResponseSchema = baseResponseSchema.extend({
 const portalForumRoutes = {
   createPost: {
     method: HTTP_METHOD.POST,
-    path: PORTAL_FORUM_PATH_PREFIX + '/createPost',
+    path: '/createPost',
     body: createPostBodySchema,
     responses: { 200: createPostResponseSchema },
     summary: '创建帖子',
   },
   getPostFeed: {
     method: HTTP_METHOD.POST,
-    path: PORTAL_FORUM_PATH_PREFIX + '/getPostFeed',
+    path: '/getPostFeed',
     body: getPostFeedBodySchema,
     responses: { 200: getPostFeedResponseSchema },
     summary: '获取帖子广场',
   },
   getPostDetail: {
     method: HTTP_METHOD.POST,
-    path: PORTAL_FORUM_PATH_PREFIX + '/getPostDetail',
+    path: '/getPostDetail',
     body: getPostDetailBodySchema,
     responses: { 200: getPostDetailResponseSchema },
     summary: '获取帖子详情',
   },
   createReply: {
     method: HTTP_METHOD.POST,
-    path: PORTAL_FORUM_PATH_PREFIX + '/createReply',
+    path: '/createReply',
     body: createReplyBodySchema,
     responses: { 200: createReplyResponseSchema },
     summary: '创建回复',

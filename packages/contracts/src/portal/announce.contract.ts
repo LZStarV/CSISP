@@ -17,7 +17,7 @@ const baseResponseSchema = z.object({
 });
 
 // Announcement Schema
-const announcementSchema = z.object({
+export const announcementSchema = z.object({
   id: z.string(),
   title: z.string(),
   content: z.string(),
@@ -56,14 +56,14 @@ export const createAnnouncementResponseSchema = baseResponseSchema.extend({
 const portalAnnounceRoutes = {
   getAnnouncementList: {
     method: HTTP_METHOD.POST,
-    path: PORTAL_ANNOUNCE_PATH_PREFIX + '/getAnnouncementList',
+    path: '/getAnnouncementList',
     body: getAnnouncementListBodySchema,
     responses: { 200: getAnnouncementListResponseSchema },
     summary: '获取公告列表',
   },
   createAnnouncement: {
     method: HTTP_METHOD.POST,
-    path: PORTAL_ANNOUNCE_PATH_PREFIX + '/createAnnouncement',
+    path: '/createAnnouncement',
     body: createAnnouncementBodySchema,
     responses: { 200: createAnnouncementResponseSchema },
     summary: '创建公告',
