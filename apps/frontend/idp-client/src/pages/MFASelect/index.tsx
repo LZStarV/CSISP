@@ -8,7 +8,7 @@ import { Card, Button, Typography, Space, Alert } from 'antd';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import { idpClientAuthCall } from '@/api/idp-client/auth';
+import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   MFAMethod,
@@ -16,7 +16,7 @@ import {
   MFA_METHOD_DESCRIPTIONS,
 } from '@/types/auth';
 import { MFAType } from '@/types/enum';
-import type { MfaMethodsResult, AuthNextStep } from '@/types/enum';
+import type { AuthNextStep } from '@/types/enum';
 
 const MFA_ICONS: Record<MFAType, React.ComponentType<any>> = {
   [MFAType.Sms]: MobileOutlined,
@@ -34,7 +34,7 @@ export function MFASelect() {
 
   async function loadMfa() {
     try {
-      const res = await idpClientAuthCall<MfaMethodsResult>('mfa_methods', {});
+      const res = await idpClientAuthApi.mfaMethods();
       if (res && Array.isArray(res?.multifactor) && res.multifactor.length) {
         setMfaMethods(res.multifactor);
         setErrorMsg(null);

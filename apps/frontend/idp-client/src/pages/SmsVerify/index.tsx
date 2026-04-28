@@ -2,15 +2,14 @@ import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { idpClientAuthCall } from '@/api/idp-client/auth';
+import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import {
   ROUTE_LOGIN,
   ROUTE_PASSWORD_RESET,
   ROUTE_FINISH,
 } from '@/routes/router';
-import type { Next, RecoveryInitResult } from '@/types/enum';
-import { MFAType, VerifyResult } from '@/types/enum';
+import { MFAType } from '@/types/enum';
 
 export function SmsVerify() {
   const [loading, setLoading] = useState(false);
@@ -33,12 +32,9 @@ export function SmsVerify() {
     if (fromForgot && studentId) {
       (async () => {
         try {
-          const res = await idpClientAuthCall<RecoveryInitResult>(
-            'forgot_init',
-            {
-              studentId,
-            }
-          );
+          const res = await idpClientAuthApi.forgotInit({
+            email: studentId,
+          } as any);
           const methods = (res?.methods ?? []) as any[];
           const sms = methods.find(m => m?.type === MFAType.Sms);
           setPhone((sms?.extra as string | undefined) ?? undefined);
@@ -82,14 +78,13 @@ export function SmsVerify() {
     try {
       let res: any;
       if (fromForgot && studentId) {
-        res = await idpClientAuthCall<Next>('forgot_challenge', {
+        res = await idpClientAuthApi.forgotChallenge({
           type: 'sms',
           studentId,
-        });
+        } as any);
       } else {
-        res = await idpClientAuthCall<Next>('multifactor', {
+        res = await idpClientAuthApi.multifactor({
           type: MFAType.Sms,
-          phoneOrEmail: phone,
           codeOrAssertion: 'request',
         });
       }
@@ -115,11 +110,11 @@ export function SmsVerify() {
     setErrorMsg(null);
     try {
       if (fromForgot && studentId) {
-        const res = await idpClientAuthCall<VerifyResult>('forgot_verify', {
+        const res = await idpClientAuthApi.forgotVerify({
           type: 'sms',
           studentId,
           code: codeValue,
-        });
+        } as any);
         const token = res?.reset_token;
         if (!token) throw new Error('校验失败');
         if (studentId) {
@@ -130,9 +125,8 @@ export function SmsVerify() {
         }).toString();
         navigate(`${ROUTE_PASSWORD_RESET}?${qs}`);
       } else {
-        await idpClientAuthCall<Next>('multifactor', {
+        await idpClientAuthApi.multifactor({
           type: MFAType.Sms,
-          phoneOrEmail: phone,
           codeOrAssertion: codeValue,
         });
 

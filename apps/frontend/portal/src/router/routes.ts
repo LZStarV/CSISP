@@ -3,6 +3,8 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import { EXCLUDED_ROUTES } from './exclude';
 
+import MainLayout from '@/layouts/MainLayout/index.vue';
+
 interface PageModule {
   default: Component;
 }
@@ -30,11 +32,11 @@ const pageRoutes: RouteRecordRaw[] = Object.entries(pageModules)
   );
 
 export const routes: RouteRecordRaw[] = [
-  ...pageRoutes,
-  // 默认路由
   {
     path: '/',
-    redirect: '/Demo',
+    component: MainLayout,
+    redirect: '/Announcement',
+    children: [...pageRoutes],
   },
   // 404 路由
   {

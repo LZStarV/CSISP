@@ -7,4 +7,4 @@ import { PortalDemoController } from './demo.controller';
   imports: [GrpcClientModule],
   controllers: [PortalDemoController],
 })
-export class PortalModule {}
+export class PortalDemoModule {}

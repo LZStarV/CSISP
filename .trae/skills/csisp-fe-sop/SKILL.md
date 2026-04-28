@@ -91,47 +91,57 @@ export const PATH_PREFIX = {
 ```typescript
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
-import { PATH_PREFIX } from '../constants/path-prefix';
+import { buildActionMapFromRoutes } from '../constants/action';
+import { HTTP_METHOD } from '../constants/http';
+import {
+  PORTAL_PATH_PREFIX,
+  PORTAL_FORUM_PATH_PREFIX,
+} from '../constants/path-prefix';
 
 const c = initContract();
 
-// 请求/响应 Schema
-const createPostSchema = z.object({
+// 注意：所有需要在 BFF/前端 中使用的 schema 都需要 export
+export const createPostBodySchema = z.object({
   title: z.string().min(1).max(100),
   content: z.string().min(1),
-  type: z.string().optional(),
 });
 
-const postSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  content: z.string(),
-  authorId: z.string(),
-  type: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+export const createPostResponseSchema = z.object({
+  post: z
+    .object({
+      id: z.string(),
+      title: z.string(),
+      content: z.string(),
+      authorId: z.string(),
+      authorName: z.string(),
+      postType: z.string(),
+      createdAt: z.string(),
+      updatedAt: z.string(),
+    })
+    .optional(),
+  code: z.number(),
+  message: z.string(),
 });
 
-export const forumContract = c.router({
+const portalForumRoutes = {
   createPost: {
-    method: 'POST',
-    path: `${PATH_PREFIX.PORTAL_FORUM}/createPost`,
-    body: createPostSchema,
+    method: HTTP_METHOD.POST,
+    path: PORTAL_FORUM_PATH_PREFIX + '/createPost',
+    body: createPostBodySchema,
     responses: {
-      200: postSchema,
-      400: z.object({ error: z.string() }),
+      200: createPostResponseSchema,
     },
+    summary: '创建帖子',
   },
-  getPostDetail: {
-    method: 'POST',
-    path: `${PATH_PREFIX.PORTAL_FORUM}/getPostDetail`,
-    body: z.object({ postId: z.string() }),
-    responses: {
-      200: postSchema,
-      404: z.object({ error: z.string() }),
-    },
-  },
+  // ... 其他路由
+} as const satisfies Parameters<typeof c.router>[0];
+
+export const portalForumContract = c.router(portalForumRoutes, {
+  pathPrefix: PORTAL_PATH_PREFIX,
+  strictStatusCodes: true,
 });
+
+export const PORTAL_FORUM_ACTION = buildActionMapFromRoutes(portalForumRoutes);
 ```
 
 **导出**：`packages/contracts/src/index.ts`
@@ -141,6 +151,12 @@ export * from './forum/forum.contract';
 export * from './announce/announce.contract';
 export * from './constants/path-prefix';
 ```
+
+**重要**：类型文件会通过 `pnpm build` 自动生成到 `{domain}/types/` 目录下，不需要手动写类型。
+
+- Body Schema 会生成 `*Params` 类型
+- Response Schema 会生成 `*Result` 类型
+- ACTION 常量会生成对应的 `*Action` 类型
 
 ---
 
@@ -257,7 +273,24 @@ export class AppModule {}
 
 ## 4. 前端开发
 
-### 4.1 目录结构
+### 4.1 组件库确认
+
+在开始开发前，先确认当前项目使用的 UI 组件库：
+
+| 前端应用   | UI 组件库                       |
+| ---------- | ------------------------------- |
+| portal     | Ant Design Vue (ant-design-vue) |
+| idp-client | Ant Design (antd)               |
+
+开发时应尽量使用组件库提供的组件，避免重复造轮子。常用组件包括：
+
+- Layout（Header/Sider/Content）：用于页面布局
+- Card：用于内容展示
+- Button、Form、Input、Modal、Message：用于交互和提示
+- Menu：用于导航菜单
+- List、Pagination：用于列表展示和分页
+
+### 4.2 目录结构
 
 ```
 apps/frontend/{frontend-app}/src/
@@ -280,7 +313,7 @@ apps/frontend/{frontend-app}/src/
     └── index.ts
 ```
 
-### 4.2 Layout 组件
+### 4.3 Layout 组件
 
 **文件**：`apps/frontend/{frontend-app}/src/layouts/{App}Layout.vue`
 
@@ -328,7 +361,7 @@ const menuItems = [
 </style>
 ```
 
-### 4.3 公共组件
+### 4.4 公共组件
 
 **文件**：`apps/frontend/{frontend-app}/src/components/{Domain}/{Component}.vue`
 
@@ -382,7 +415,7 @@ const formatDate = (dateStr: string) => {
 </style>
 ```
 
-### 4.4 页面开发
+### 4.5 页面开发
 
 **文件**：`apps/frontend/{frontend-app}/src/pages/{Domain}/index.vue`
 
@@ -504,73 +537,126 @@ const formatDate = (dateStr: string) => {
 </style>
 ```
 
-### 4.5 API 调用封装
+### 4.6 API 调用封装
 
-**文件**：`apps/frontend/{frontend-app}/src/api/forum.ts`
+**API 封装方式**：推荐使用对象封装方式（如 announce.ts），而非简单的 call 方式。
+
+**注意**：不要手动拼接 action 字符串，请使用 contracts 包中提供的常量（如 `PORTAL_FORUM_ACTION.CREATE_POST`）
+
+**文件**：`apps/frontend/{frontend-app}/src/api/portal/forum.ts`
 
 ```typescript
-import { initClient } from '@ts-rest/core';
-import { forumContract } from '@csisp/contracts';
-import { caller } from './caller';
+import {
+  PORTAL_PATH_PREFIX,
+  type PortalForumAction,
+  type CreatePostParams,
+  type CreatePostResult,
+  type GetPostFeedParams,
+  type GetPostFeedResult,
+  type GetPostDetailParams,
+  type GetPostDetailResult,
+} from '@csisp/contracts';
 
-export const forumClient = initClient(forumContract, {
-  baseUrl: '',
-  baseHeaders: {},
-  api: caller,
-});
+import { createDomainCall } from '../caller';
+
+const forumCall = createDomainCall<PortalForumAction>(
+  PORTAL_PATH_PREFIX,
+  'forum'
+);
 
 export const forumApi = {
-  async createPost(body: { title: string; content: string; type?: string }) {
-    const result = await forumClient.createPost({ body });
-    if (result.status !== 200) {
-      throw new Error(result.body.error || '创建失败');
-    }
-    return result.body;
+  async createPost(params: CreatePostParams): Promise<CreatePostResult> {
+    return await forumCall<CreatePostResult>('createPost', params);
   },
 
-  async getPostFeed(params: { page: number; pageSize: number }) {
-    const result = await forumClient.getPostFeed({ body: params });
-    if (result.status !== 200) {
-      throw new Error('获取失败');
-    }
-    return result.body;
+  async getPostFeed(params: GetPostFeedParams): Promise<GetPostFeedResult> {
+    return await forumCall<GetPostFeedResult>('getPostFeed', params);
   },
 
-  async getPostDetail(postId: string) {
-    const result = await forumClient.getPostDetail({ body: { postId } });
-    if (result.status !== 200) {
-      throw new Error('获取失败');
-    }
-    return result.body;
+  async getPostDetail(
+    params: GetPostDetailParams
+  ): Promise<GetPostDetailResult> {
+    return await forumCall<GetPostDetailResult>('getPostDetail', params);
   },
 };
 ```
 
-**文件**：`apps/frontend/{frontend-app}/src/api/announce.ts`
+**文件**：`apps/frontend/{frontend-app}/src/api/portal/announce.ts`
 
 ```typescript
-import { initClient } from '@ts-rest/core';
-import { announceContract } from '@csisp/contracts';
-import { caller } from './caller';
+import {
+  PORTAL_PATH_PREFIX,
+  type PortalAnnounceAction,
+  type GetAnnouncementListParams,
+  type GetAnnouncementListResult,
+  type CreateAnnouncementParams,
+  type CreateAnnouncementResult,
+} from '@csisp/contracts';
 
-export const announceClient = initClient(announceContract, {
-  baseUrl: '',
-  baseHeaders: {},
-  api: caller,
-});
+import { createDomainCall } from '../caller';
+
+const announceCall = createDomainCall<PortalAnnounceAction>(
+  PORTAL_PATH_PREFIX,
+  'announce'
+);
 
 export const announceApi = {
-  async getAnnouncementList(params: { page: number; pageSize: number }) {
-    const result = await announceClient.getAnnouncementList({ body: params });
-    if (result.status !== 200) {
-      throw new Error('获取失败');
-    }
-    return result.body;
+  async getAnnouncementList(
+    params: GetAnnouncementListParams
+  ): Promise<GetAnnouncementListResult> {
+    return await announceCall<GetAnnouncementListResult>(
+      'getAnnouncementList',
+      params
+    );
+  },
+
+  async createAnnouncement(
+    params: CreateAnnouncementParams
+  ): Promise<CreateAnnouncementResult> {
+    return await announceCall<CreateAnnouncementResult>(
+      'createAnnouncement',
+      params
+    );
   },
 };
 ```
 
-### 4.6 菜单与路由
+**文件**：`apps/frontend/{frontend-app}/src/api/idp-client/auth.ts`（IDP 客户端示例）
+
+```typescript
+import {
+  IDP_CLIENT_PATH_PREFIX,
+  type IdpClientAuthAction,
+  type LoginParams,
+  type LoginResult,
+  type VerifyOtpParams,
+  type VerifyOtpResult,
+  type SendOtpResult,
+} from '@csisp/contracts';
+
+import { createDomainCall } from '../caller';
+
+const authCall = createDomainCall<IdpClientAuthAction>(
+  IDP_CLIENT_PATH_PREFIX,
+  'auth'
+);
+
+export const idpClientAuthApi = {
+  async login(params: LoginParams): Promise<LoginResult> {
+    return await authCall<LoginResult>('login', params);
+  },
+
+  async sendOtp(): Promise<SendOtpResult> {
+    return await authCall<SendOtpResult>('send-otp', {});
+  },
+
+  async verifyOtp(params: VerifyOtpParams): Promise<VerifyOtpResult> {
+    return await authCall<VerifyOtpResult>('verify-otp', params);
+  },
+};
+```
+
+### 4.7 菜单与路由
 
 **路由配置**：`apps/frontend/{frontend-app}/src/router/index.ts`
 

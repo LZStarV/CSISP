@@ -42,7 +42,24 @@ description: 'CSISP 后端微服务开发 SOP。Invoke when developing new micro
 
 > **DAL 现状：** Supabase 和 MongoDB 的数据访问层（DAL）在 `packages/dal` 中，采用 Repository 模式。
 
-**MongoDB 模型示例**（使用 Typegoose，在 `packages/dal/src/types/mongo.types.ts` 中定义）：
+**MongoDB 模型示例**（使用 Typegoose，在 `packages/dal/src/types/mongo/{name}.model.ts` 中定义）：
+
+每个模型单独管理，遵循以下目录结构：
+
+```
+packages/dal/src/types/
+├── mongo/
+│   ├── index.ts              # 聚合导出所有 mongo 模型
+│   ├── demo.model.ts
+│   ├── post.model.ts
+│   ├── reply.model.ts
+│   └── announcement.model.ts
+├── common.types.ts
+├── supabase.types.ts
+└── index.ts                  # 导出所有类型（保持公共 API 不变）
+```
+
+模型文件示例（`post.model.ts`）：
 
 ```typescript
 import { prop, modelOptions } from '@typegoose/typegoose';
@@ -65,22 +82,13 @@ export class Post {
   public authorId!: string;
 
   @prop({ type: String, default: 'default' })
-  public type?: string;
+  public postType?: string;
 
-  @prop({ type: Number, default: 0 })
-  public viewCount?: number;
-
-  @prop({ type: Number, default: 0 })
-  public replyCount?: number;
-
-  // 可以直接定义实例方法
-  public incrementViewCount(): void {
-    this.viewCount = (this.viewCount || 0) + 1;
-  }
-
-  // 可以直接定义静态方法
-  public static async findByAuthorId(authorId: string) {
-    return this.find({ authorId });
+  /**
+   * 获取文档类型
+   */
+  public static getDocumentType(): typeof Post {
+    return Post;
   }
 }
 
@@ -89,6 +97,23 @@ export type PostDocument = DocumentType<Post>;
 export type PostModel = ReturnModelType<typeof Post>;
 export type PostInsert = Omit<Post, keyof PostDocument>;
 export type PostUpdate = Partial<PostInsert>;
+```
+
+在 `mongo/index.ts` 中聚合导出所有模型：
+
+```typescript
+export * from './demo.model';
+export * from './post.model';
+export * from './reply.model';
+export * from './announcement.model';
+```
+
+在顶级 `types/index.ts` 中保持统一导出：
+
+```typescript
+export * from './supabase.types';
+export * from './common.types';
+export * from './mongo';
 ```
 
 ### 1.3 接口设计原则
@@ -145,26 +170,6 @@ import { ForumServiceController } from '@csisp-api/{service}';
 > **详细步骤**：完整的 Supabase 数据库开发流程请参考 `supabase-dev-workflow`
 
 ### 3.2 目录结构
-
-**标准结构（单一服务类）**：
-
-```
-apps/backend/{service}/src/
-├── modules/
-│   └── {domain}/
-│       ├── dto/
-│       │   ├── {action}.dto.ts
-│       │   └── index.ts
-│       ├── {domain}.service.ts
-│       ├── {domain}.grpc.controller.ts
-│       ├── {domain}.module.ts
-│       └── index.ts
-└── app.module.ts
-```
-
-**服务拆分结构（多服务类）**：
-
-当服务类职责过多（超过 500 行代码或 10 个以上方法）时，应拆分为多个职责单一的服务类：
 
 ```
 apps/backend/{service}/src/
@@ -231,7 +236,7 @@ MongoDB 的模型和 Repository 都在 `@csisp/dal` 包中统一管理，使用 
 
 **步骤 1：定义模型**（如果模型不存在）
 
-在 `packages/dal/src/types/mongo.types.ts` 中添加模型定义（参考 1.2 节示例）。
+在 `packages/dal/src/types/mongo/{name}.model.ts` 中添加模型定义（参考 1.2 节示例），并确保在 `mongo/index.ts` 中正确导出新模型。
 
 **步骤 2：创建 Repository**（如果需要）
 
@@ -306,12 +311,43 @@ export class MongoDalModule {}
 
 ```typescript
 import { CreatePostRequest } from '@csisp-api/{service}';
+import { IsString, IsOptional, IsInt, Min } from 'class-validator';
 
 export class CreatePostDto implements CreatePostRequest {
-  title: string;
-  content: string;
-  authorId: string;
-  type?: string;
+  @IsString()
+  title!: string;
+
+  @IsString()
+  content!: string;
+
+  @IsString()
+  authorId!: string;
+
+  @IsString()
+  authorName!: string;
+
+  @IsString()
+  @IsOptional()
+  postType?: string;
+}
+```
+
+**分页请求示例**：
+
+```typescript
+import { GetPostFeedRequest } from '@csisp-api/{service}';
+import { IsInt, IsOptional, Min } from 'class-validator';
+
+export class GetPostFeedDto implements GetPostFeedRequest {
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  page?: number;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  pageSize?: number;
 }
 ```
 
@@ -319,9 +355,24 @@ export class CreatePostDto implements CreatePostRequest {
 
 ```typescript
 export * from './create-post.dto';
+export * from './get-post-feed.dto';
 export * from './get-post-detail.dto';
+export * from './create-reply.dto';
 // ... 其他 DTO
 ```
+
+**class-validator 常用装饰器**：
+
+| 装饰器          | 说明           |
+| --------------- | -------------- |
+| `@IsString()`   | 验证是字符串   |
+| `@IsInt()`      | 验证是整数     |
+| `@IsOptional()` | 字段可选       |
+| `@Min()`        | 最小值验证     |
+| `@Max()`        | 最大值验证     |
+| `@IsBoolean()`  | 验证是布尔值   |
+| `@IsEmail()`    | 验证是邮箱格式 |
+| `@IsArray()`    | 验证是数组     |
 
 ### 3.5 Service 实现
 
