@@ -1,8 +1,6 @@
 ---
-
 name: 'csisp-fe-sop'
 description: 'CSISP 前端 + BFF 开发 SOP。Invoke when developing frontend features (Portal, Idp Client, etc.) or BFF interfaces.'
-
 ---
 
 # CSISP 前端 + BFF 开发 SOP
@@ -394,10 +392,10 @@ export class AppModule {}
 
 在开始开发前，先确认当前项目使用的 UI 组件库。
 
-| 前端应用   | UI 组件库                       |
-| ---------- | ------------------------------- |
-| portal     | Ant Design Vue (ant-design-vue) |
-| idp-client | Ant Design (antd)               |
+| 前端应用   | UI 组件库           |
+| ---------- | ------------------- |
+| portal     | Naive UI (naive-ui) |
+| idp-client | Ant Design (antd)   |
 
 **组件使用原则**：
 
@@ -599,6 +597,266 @@ t('demo.total', '共 {total} 条', { total: 100 });
 2. 运行 `pnpm -F @csisp/i18n pull:{project}` 拉取最新翻译
 3. 如果有新的 key 未翻译，使用代码中的默认值
 4. 在 SimpleLocalize 平台补充英文翻译
+
+---
+
+## 4.9 状态管理 (Pinia)
+
+### 技术栈
+
+- **状态管理**: Pinia (Composition API / Setup Store)
+- **持久化存储**: localforage (IndexedDB/WebSQL)
+- **响应式系统**: Vue 3 Composition API (`ref`, `computed`, `watch`)
+
+### Store 定义规范
+
+**文件位置**：
+
+| 类型         | 位置                          | 示例                                    |
+| ------------ | ----------------------------- | --------------------------------------- |
+| 全局 Store   | `src/stores/{storeName}.ts`   | `src/stores/locale.ts`                  |
+| 模块级 Store | `src/{module}/store/index.ts` | `src/layouts/MainLayout/store/index.ts` |
+
+**命名规范**：
+
+- **Store 名称常量**: `STORE_NAME = 'xxx'` (kebab-case)
+- **Store 函数名**: `use{PascalCase}Store()` (如 `useLocaleStore`)
+- **存储键常量**: `STORAGE_KEYS = { ... } as const`
+
+**代码模板** (Setup Store 风格)：
+
+```typescript
+import localforage from 'localforage';
+import { defineStore } from 'pinia';
+import { computed, ref, watch } from 'vue';
+
+import { APP_NAME } from '@/constants';
+
+const STORE_NAME = '{storeName}'; // kebab-case
+
+const STORAGE_KEYS = {
+  {STATE_NAME}: '{stateName}', // camelCase
+} as const;
+
+const storage = localforage.createInstance({
+  name: APP_NAME,
+  storeName: STORE_NAME,
+});
+
+export const use{StoreName}Store = defineStore(STORE_NAME, () => {
+  // 1. 响应式状态 (State)
+  const {stateName} = ref<{Type}>({defaultValue});
+
+  // 2. 计算属性 (Getters)
+  const {computedName} = computed(() => {
+    return /* 基于 stateName 的计算逻辑 */;
+  });
+
+  // 3. 操作方法 (Actions)
+  const set{StateName} = (value: {Type}) => {
+    {stateName}.value = value;
+    storage.setItem(STORAGE_KEYS.{STATE_NAME}, value); // 同步到持久化
+  };
+
+  // 4. 初始化方法 (从本地存储恢复)
+  const initFromStorage = async () => {
+    const value = await storage.getItem<{Type}>(STORAGE_KEYS.{STATE_NAME});
+    if (value !== null) {
+      {stateName}.value = value;
+    }
+  };
+
+  // 5. 响应式监听 (可选)
+  watch(
+    () => {stateName}.value,
+    newValue => {
+      // 执行副作用操作（如同步到 i18n、其他 Store 等）
+    }
+  );
+
+  return {
+    // State
+    {stateName},
+    // Getters
+    {computedName},
+    // Actions
+    set{StateName},
+    initFromStorage,
+  };
+});
+```
+
+### 关键实现要点
+
+#### 1. 使用 Setup Store 风格
+
+✅ **推荐**: 函数式定义 (Composition API)
+
+```typescript
+export const useLocaleStore = defineStore('locale', () => {
+  const currentLocale = ref('zh');
+  return { currentLocale };
+});
+```
+
+❌ **不推荐**: Options API 风格
+
+```typescript
+export const useLocaleStore = defineStore('locale', {
+  state: () => ({ currentLocale: 'zh' }),
+});
+```
+
+#### 2. 持久化存储模式
+
+- 使用 `localforage.createInstance()` 创建独立存储实例
+- 通过 `name` + `storeName` 隔离不同 Store 的数据
+- 在修改 state 时同步调用 `storage.setItem()`
+- 提供 `initFromStorage()` 方法用于应用启动时恢复状态
+
+**示例** (参考 [locale.ts](file:///Users/Admin/project/CSISP/apps/frontend/portal/src/stores/locale.ts)):
+
+```typescript
+const storage = localforage.createInstance({
+  name: APP_NAME, // 应用名称: 'csisp-portal'
+  storeName: STORE_NAME, // Store 名称: 'locale'
+});
+
+// 修改时持久化
+const setLocale = (locale: SupportedLocale) => {
+  currentLocale.value = locale;
+  storage.setItem(STORAGE_KEYS.CURRENT_LOCALE, locale);
+};
+
+// 启动时恢复
+const initFromStorage = async () => {
+  const value = await storage.getItem<SupportedLocale>(
+    STORAGE_KEYS.CURRENT_LOCALE
+  );
+  if (value !== null) {
+    currentLocale.value = value;
+  }
+};
+```
+
+#### 3. 初始化时机
+
+在 [App.vue](file:///Users/Admin/project/CSISP/apps/frontend/portal/src/App.vue) 的 `onMounted` 中统一初始化所有 Store：
+
+```typescript
+// App.vue
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import { useMainLayoutStore } from '@/layouts/MainLayout/store';
+import { useLocaleStore } from '@/stores/locale';
+
+const localeStore = useLocaleStore();
+const mainLayoutStore = useMainLayoutStore();
+
+onMounted(async () => {
+  await Promise.all([
+    mainLayoutStore.initFromStorage(),
+    localeStore.initFromStorage(),
+  ]);
+});
+</script>
+```
+
+**要点**：
+
+- 使用 `Promise.all()` 并行初始化多个 Store
+- 在根组件中统一管理，避免重复初始化
+
+#### 4. 组件中使用 Store
+
+```vue
+<template>
+  <n-layout-sider
+    :collapsed="mainLayoutStore.siderCollapsed"
+    @update:collapsed="mainLayoutStore.setSiderCollapsed"
+  >
+    <!-- 内容 -->
+  </n-layout-sider>
+</template>
+
+<script setup lang="ts">
+import { useMainLayoutStore } from './store';
+
+const mainLayoutStore = useMainLayoutStore();
+</script>
+```
+
+**使用方式**：
+
+1. 导入 Store：`import { useXxxStore } from '@/stores/xxx'` 或 `'./store'`
+2. 调用函数获取实例：`const store = useXxxStore()`
+3. 直接访问属性和方法：`store.stateName`、`store.setAction()`
+4. 在模板中可直接使用，无需解构
+
+#### 5. 与 Naive UI 集成
+
+当 Store 状态影响 UI 库配置时（如语言切换），通过计算属性提供：
+
+```typescript
+// locale Store
+import { dateEnUS, dateZhCN, enUS, zhCN } from 'naive-ui';
+
+const naiveLocale = computed(() => {
+  return currentLocale.value === DEFAULT_LOCALE ? zhCN : enUS;
+});
+
+const naiveDateLocale = computed(() => {
+  return currentLocale.value === DEFAULT_LOCALE ? dateZhCN : dateEnUS;
+});
+```
+
+在 [App.vue](file:///Users/Admin/project/CSISP/apps/frontend/portal/src/App.vue) 中使用：
+
+```vue
+<template>
+  <n-config-provider
+    :locale="localeStore.naiveLocale"
+    :date-locale="localeStore.naiveDateLocale"
+  >
+    <RouterView />
+  </n-config-provider>
+</template>
+```
+
+### Store 设计原则
+
+| 原则       | 说明                                               | 示例                          |
+| ---------- | -------------------------------------------------- | ----------------------------- |
+| 单一职责   | 每个 Store 只负责一个业务域                        | `localeStore`、`layoutStore`  |
+| 持久化透明 | 对使用者隐藏存储细节，提供 `initFromStorage()`     | 自动从 localforage 恢复       |
+| 响应式优先 | 使用 `ref`/`computed` 保持响应式                   | 避免 `.value` 丢失响应性      |
+| 类型安全   | 使用 TypeScript 泛型约束存储值的类型               | `storage.getItem<string>()`   |
+| 常量命名   | 存储键使用 `STORAGE_KEYS` 常量对象，避免魔法字符串 | `STORAGE_KEYS.CURRENT_LOCALE` |
+
+### 实际案例参考
+
+**案例 1**: 语言管理 Store ([locale.ts](file:///Users/Admin/project/CSISP/apps/frontend/portal/src/stores/locale.ts))
+
+- 功能：管理应用语言切换
+- 持久化：保存用户语言偏好
+- 集成：自动切换 Naive UI 语言包和 vue-i18n 语言
+
+**案例 2**: 布局状态 Store ([MainLayout/store/index.ts](file:///Users/Admin/project/CSISP/apps/frontend/portal/src/layouts/MainLayout/store/index.ts))
+
+- 功能：管理侧边栏折叠状态
+- 持久化：记住用户的界面布局偏好
+- 提供方法：`toggleSiderCollapsed()`、`setSiderCollapsed(boolean)`
+
+### 检查清单
+
+- [ ] 已使用 Setup Store (函数式) 定义
+- [ ] 已定义 `STORE_NAME` 和 `STORAGE_KEYS` 常量
+- [ ] 已创建 localforage 实例并隔离存储
+- [ ] 已提供 `initFromStorage()` 方法
+- [ ] 已在修改 state 时同步持久化
+- [ ] 已在 App.vue 中注册初始化调用
+- [ ] 已使用 TypeScript 类型标注
+- [ ] Store 文件位置符合规范（全局/模块级）
 
 ---
 

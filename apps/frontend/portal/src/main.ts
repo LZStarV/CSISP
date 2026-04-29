@@ -1,4 +1,4 @@
-import Antd from 'ant-design-vue';
+import naive from 'naive-ui';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 
@@ -10,7 +10,7 @@ const app = createApp(App);
 
 app.use(createPinia());
 app.use(router);
-app.use(Antd);
+app.use(naive);
 app.use(i18n);
 
 app.mount('#app');

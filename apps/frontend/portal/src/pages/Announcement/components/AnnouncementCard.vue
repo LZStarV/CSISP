@@ -1,27 +1,26 @@
 <template>
-  <a-card class="announcement-card" hoverable>
-    <a-card-meta :title="announcement.title">
-      <template #description>
-        <div class="announcement-description">
-          <div class="announcement-meta">
-            <span
-              >{{ t('announcement.author', '作者') }}：{{
-                announcement.authorName
-              }}</span
-            >
-            <span
-              >{{ t('announcement.publishTime', '发布时间') }}：{{
-                formatDate(announcement.createdAt)
-              }}</span
-            >
-          </div>
-          <div class="announcement-excerpt">
-            {{ announcement.content.substring(0, 150) }}...
-          </div>
-        </div>
-      </template>
-    </a-card-meta>
-  </a-card>
+  <n-card class="announcement-card" hoverable>
+    <template #header>
+      <div style="font-weight: 500; font-size: 16px">
+        {{ announcement.title }}
+      </div>
+      <div class="announcement-meta">
+        <span
+          >{{ t('announcement.author', '作者') }}：{{
+            announcement.authorName
+          }}</span
+        >
+        <span
+          >{{ t('announcement.publishTime', '发布时间') }}：{{
+            formatDate(announcement.createdAt)
+          }}</span
+        >
+      </div>
+    </template>
+    <div class="announcement-excerpt">
+      {{ announcement.content.substring(0, 150) }}...
+    </div>
+  </n-card>
 </template>
 
 <script setup lang="ts">
@@ -39,7 +38,7 @@ const formatDate = (dateStr: string) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .announcement-card {
   width: 100%;
 }

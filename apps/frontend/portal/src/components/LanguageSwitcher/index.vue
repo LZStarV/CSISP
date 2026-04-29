@@ -1,26 +1,20 @@
 <template>
-  <a-select
-    :value="locale"
-    :options="languages"
+  <n-select
+    :value="localeStore.currentLocale"
+    :options="LOCALE_OPTIONS"
     style="width: 90px"
-    variant="borderless"
-    @change="handleChange"
+    @update:value="handleChange"
   />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { LOCALE_OPTIONS } from '@/constants';
+import { useLocaleStore } from '@/stores/locale';
+import type { SupportedLocale } from '@/types';
 
-const languages = [
-  { value: 'zh', label: '中文' },
-  { value: 'en', label: 'English' },
-];
-
-const { locale } = useI18n();
+const localeStore = useLocaleStore();
 
 const handleChange = (value: string) => {
-  locale.value = value;
-  localStorage.setItem('i18nextLng', value);
+  localeStore.setLocale(value as SupportedLocale);
 };
 </script>

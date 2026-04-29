@@ -11,27 +11,28 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@csisp/http": "workspace:*",
     "@csisp/contracts": "workspace:*",
+    "@csisp/http": "workspace:*",
     "@csisp/i18n": "workspace:*",
-    "vue": "catalog:frontend",
-    "pinia": "catalog:frontend",
-    "vue-router": "catalog:frontend",
+    "@vicons/ionicons5": "^0.13.0",
+    "@vicons/utils": "^0.1.4",
     "axios": "catalog:frontend",
-    "ant-design-vue": "catalog:frontend",
-    "@ant-design/icons-vue": "catalog:frontend",
-    "localforage": "catalog:frontend",
     "echarts": "catalog:frontend",
-    "vue-echarts": "catalog:frontend",
     "i18next": "^26.0.8",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "localforage": "catalog:frontend",
+    "naive-ui": "^2.44.1",
+    "pinia": "catalog:frontend",
+    "vue": "catalog:frontend",
+    "vue-echarts": "catalog:frontend",
     "vue-i18n": "^9.0.0",
-    "i18next-browser-languagedetector": "^8.2.1"
+    "vue-router": "catalog:frontend"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "catalog:frontend",
     "@vue/tsconfig": "catalog:dev",
+    "sass": "catalog:frontend",
     "vite": "catalog:frontend",
-    "vue-tsc": "catalog:dev",
-    "sass": "catalog:frontend"
+    "vue-tsc": "catalog:dev"
   }
 }

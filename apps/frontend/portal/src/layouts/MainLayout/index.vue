@@ -1,58 +1,41 @@
 <template>
-  <a-layout class="main-layout">
-    <a-layout-header class="header">
-      <div class="logo">{{ t('layout.header.title', '论坛系统') }}</div>
-      <div class="user-info">
-        <span>{{ t('layout.header.user', '测试用户') }}</span>
-        <LanguageSwitcher />
-      </div>
-    </a-layout-header>
-    <a-layout>
-      <a-layout-sider width="200" theme="dark">
+  <n-layout style="height: 100vh">
+    <n-layout>
+      <n-layout-header style="height: 64px; overflow: hidden" bordered>
+        <Header />
+      </n-layout-header>
+    </n-layout>
+    <n-layout position="absolute" style="top: 64px" has-sider>
+      <n-layout-sider
+        bordered
+        :collapsed="mainLayoutStore.siderCollapsed"
+        :width="200"
+        :collapsed-width="64"
+        show-trigger="arrow-circle"
+        collapse-mode="width"
+        @update:collapsed="mainLayoutStore.setSiderCollapsed"
+      >
         <Sider />
-      </a-layout-sider>
-      <a-layout-content class="main-content">
+      </n-layout-sider>
+      <n-layout-content class="main-content">
         <router-view />
-      </a-layout-content>
-    </a-layout>
-  </a-layout>
+      </n-layout-content>
+    </n-layout>
+  </n-layout>
 </template>
 
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n';
-
+import Header from './Header.vue';
 import Sider from './Sider.vue';
+import { useMainLayoutStore } from './store';
 
-import LanguageSwitcher from '@/components/LanguageSwitcher/index.vue';
-
-const { t } = useI18n();
+const mainLayoutStore = useMainLayoutStore();
 </script>
 
-<style scoped>
-.main-layout {
-  min-height: 100vh;
-}
-
-.header {
-  background: #001529;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-}
-
-.logo {
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.user-info {
-  font-size: 14px;
-}
-
+<style lang="scss" scoped>
 .main-content {
-  background: #f0f2f5;
+  overflow: hidden;
   padding: 24px;
+  background: #f5f7f9;
 }
 </style>

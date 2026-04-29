@@ -1,41 +1,45 @@
 <template>
   <div class="announcement-page">
-    <a-page-header :title="t('announcement.title', '公告列表')" />
-    <a-spin :spinning="loading">
-      <a-list
-        class="announcement-list"
-        :data-source="announcements"
-        :pagination="{
-          current: page,
-          pageSize: pageSize,
-          total: total,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total: number) =>
-            t('common.total', { total }, '共 {total} 条'),
-          onChange: handlePageChange,
-        }"
-      >
-        <template #renderItem="{ item }">
-          <a-list-item>
+    <n-page-header :title="t('announcement.title', '公告列表')" />
+    <n-spin :show="loading">
+      <n-list class="announcement-list" hoverable clickable>
+        <template #default>
+          <n-list-item v-for="item in announcements" :key="item.id">
             <AnnouncementCard :announcement="item" />
-          </a-list-item>
+          </n-list-item>
         </template>
-      </a-list>
-    </a-spin>
+        <template #footer>
+          <n-pagination
+            v-model:page="page"
+            v-model:page-size="pageSize"
+            :item-count="total"
+            :page-sizes="[10, 20, 50]"
+            show-size-picker
+            show-quick-jumper
+          >
+            <template #prefix="{ itemCount }">
+              {{
+                t('common.total', { total: itemCount }, `共 ${itemCount} 条`)
+              }}
+            </template>
+          </n-pagination>
+        </template>
+      </n-list>
+    </n-spin>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Announcement } from '@csisp/contracts';
-import { message } from 'ant-design-vue';
-import { ref, onMounted } from 'vue';
+import { useMessage } from 'naive-ui';
+import { ref, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import AnnouncementCard from './components/AnnouncementCard.vue';
 
 import { announceApi } from '@/api/portal/announce';
 
+const message = useMessage();
 const { t } = useI18n();
 
 const loading = ref(false);
@@ -60,18 +64,21 @@ const fetchAnnouncements = async () => {
   }
 };
 
-const handlePageChange = (current: number, size: number) => {
-  page.value = current;
-  pageSize.value = size;
+watch(page, () => {
   fetchAnnouncements();
-};
+});
+
+watch(pageSize, () => {
+  page.value = 1;
+  fetchAnnouncements();
+});
 
 onMounted(() => {
   fetchAnnouncements();
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .announcement-page {
   background: white;
   padding: 24px;
