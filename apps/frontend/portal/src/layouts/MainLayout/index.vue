@@ -1,9 +1,10 @@
 <template>
   <a-layout class="main-layout">
     <a-layout-header class="header">
-      <div class="logo">论坛系统</div>
+      <div class="logo">{{ t('layout.header.title', '论坛系统') }}</div>
       <div class="user-info">
-        <span>测试用户</span>
+        <span>{{ t('layout.header.user', '测试用户') }}</span>
+        <LanguageSwitcher />
       </div>
     </a-layout-header>
     <a-layout>
@@ -18,7 +19,13 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
 import Sider from './Sider.vue';
+
+import LanguageSwitcher from '@/components/LanguageSwitcher/index.vue';
+
+const { t } = useI18n();
 </script>
 
 <style scoped>

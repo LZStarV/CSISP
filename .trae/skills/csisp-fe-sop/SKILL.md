@@ -755,20 +755,69 @@ const menuItems = [
 
 ---
 
-## 4.8 国际化(i18n)使用
+## 4.8 国际化 (i18n) 使用
 
-### 4.8.1 配置初始化
+### 4.8.1 消息插值
 
-项目入口文件 (`main.tsx`) 需要引入 i18n 配置：
+项目使用 SimpleLocalize 的 Multi-language JSON 格式，支持消息插值功能：
+
+**翻译文件**：
+
+```json
+{
+  "common.total": "共 {total} 条",
+  "user.welcome": "欢迎，{username}！"
+}
+```
+
+**代码使用**：
+
+```typescript
+// Vue 3: t('key', { vars }, '默认值')
+t('common.total', { total: 100 }, '共 {total} 条');
+
+// React: t('key', '默认值', { vars })
+t('common.total', '共 {total} 条', { total: 100 });
+```
+
+---
+
+### 4.8.2 React 项目 (idp-client)
+
+**配置初始化** (main.tsx):
 
 ```typescript
 import './i18n';
-import 'antd/dist/reset.css';
 ```
 
-### 4.8.2 使用翻译
+**i18n 配置** (i18n/index.tsx):
 
-在组件中使用 `useTranslation` hook：
+```typescript
+import { idpClientLocales } from '@csisp/i18n/idp-client';
+import i18n from 'i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+import { initReactI18next } from 'react-i18next';
+
+i18n
+  .use(LanguageDetector)
+  .use(initReactI18next)
+  .init({
+    resources: {
+      en: { common: idpClientLocales.en.common },
+      zh: { common: idpClientLocales.zh.common },
+    },
+    fallbackLng: 'zh',
+    supportedLngs: ['en', 'zh'],
+    defaultNS: 'common',
+    interpolation: { escapeValue: false },
+    detection: {
+      order: ['querystring', 'localStorage', 'navigator'],
+      lookupLocalStorage: 'i18nextLng',
+    },
+  });
+```
+
+**使用翻译**：
 
 ```typescript
 import { useTranslation } from 'react-i18next';
@@ -784,39 +833,103 @@ function MyComponent() {
 }
 ```
 
-**使用要点**：
-
-1. **命名空间**：统一使用 `common` 命名空间
-
-2. **默认值**：始终提供中文默认值作为第二参数
-
-   ```typescript
-   t('key', '中文默认值');
-   ```
-
-3. **插值变量**：如果翻译 key 包含变量，需要传入替换值
-   ```typescript
-   t('login.email.length', '邮箱长度为3-128个字符', {
-     minLength: 3,
-     maxLength: 128,
-   });
-   ```
-
-### 4.8.3 语言切换
-
-使用 `LanguageSwitcher` 组件或在组件中直接切换：
+**语言切换**：
 
 ```typescript
 const { i18n } = useTranslation();
-
-// 切换语言
 i18n.changeLanguage('en'); // 切换到英语
 i18n.changeLanguage('zh'); // 切换到中文
 ```
 
-### 4.8.4 新增翻译 key 流程
+---
 
-当开发新功能需要新增翻译时：
+### 4.8.3 Vue 3 项目 (portal)
+
+**配置初始化** (main.ts):
+
+```typescript
+import i18n from './i18n';
+app.use(i18n);
+```
+
+**i18n 配置** (i18n/index.ts):
+
+```typescript
+import { portalLocales } from '@csisp/i18n/portal';
+import { createI18n } from 'vue-i18n';
+
+const i18n = createI18n({
+  legacy: false, // Composition API 模式
+  locale: 'zh',
+  fallbackLocale: 'zh',
+  messages: {
+    en: portalLocales.en.common,
+    zh: portalLocales.zh.common,
+  },
+  flatJson: true,
+  fallbackFormat: true,
+});
+```
+
+**使用翻译**：
+
+```vue
+<template>
+  <a-page-header :title="t('forum.title', '帖子广场')" />
+</template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+</script>
+```
+
+**带插值的翻译**：
+
+```vue
+<script setup lang="ts">
+const { t } = useI18n();
+
+// 基础使用
+const title = t('forum.title', '帖子广场');
+
+// 带插值变量
+const totalText = t('common.total', { total: 100 }, '共 {total} 条');
+
+// 错误提示
+message.error(t('forum.fetchFailed', '获取帖子列表失败'));
+</script>
+```
+
+**语言切换**：
+
+```vue
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
+const { locale } = useI18n();
+
+const handleChange = (value: string) => {
+  locale.value = value;
+  localStorage.setItem('i18nextLng', value);
+};
+</script>
+```
+
+---
+
+### 4.8.4 翻译文件位置
+
+| 项目       | 路径                                                      |
+| ---------- | --------------------------------------------------------- |
+| idp-client | `packages/i18n/src/locales/idp-client/{en,zh}/index.json` |
+| portal     | `packages/i18n/src/locales/portal/{en,zh}/index.json`     |
+| common     | `packages/i18n/src/locales/common/{en,zh}/index.json`     |
+
+---
+
+### 4.8.5 新增翻译 key 流程
 
 1. 在对应页面的翻译 JSON 文件中添加 key（中文）
 2. 运行 `pnpm -F @csisp/i18n pull:{project}` 拉取最新翻译

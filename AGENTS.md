@@ -343,31 +343,64 @@ src/api/
 **实现**:
 
 - 翻译资源存储于 `src/locales/{app}/{lang}/index.json`
-- 支持多语言: `en` (英语), `zh` (中文)
+- 使用 SimpleLocalize Multi-language JSON 格式，支持消息插值
+- 支持多语言：`en` (英语), `zh` (中文)
 - 翻译管理通过 SimpleLocalize 平台
+
+**Message Interpolation (消息插值)**:
+
+翻译文件支持 `{variable}` 插值语法，允许在翻译文案中动态替换变量：
+
+翻译文件：
+
+```json
+{
+  "common.total": "共 {total} 条",
+  "user.welcome": "欢迎，{username}！"
+}
+```
+
+代码使用：
+
+```typescript
+// Vue 3
+t('common.total', { total: 100 }, '共 {total} 条');
+
+// React
+t('common.total', '共 {total} 条', { total: 100 });
+```
 
 **翻译管理流程**:
 
-1. 生成本地翻译文件 (SimpleLocalize 格式):
-
-   ```bash
-   pnpm -F @csisp/i18n generate idp-client
-   ```
-
-2. 拉取翻译 (从 SimpleLocalize):
+1. 拉取翻译 (从 SimpleLocalize):
 
    ```bash
    pnpm -F @csisp/i18n pull:idp-client
+   pnpm -F @csisp/i18n pull:portal
    ```
 
-3. 前端使用 (React):
+2. 前端使用:
+
+   **React (idp-client)**:
+
    ```typescript
    import { useTranslation } from 'react-i18next';
    const { t } = useTranslation('common');
-   // t('key', '默认值')
+   // t('key', '默认值', { vars })
    ```
 
-**依赖**: `i18next`, `react-i18next`, `i18next-browser-languagedetector`
+   **Vue 3 (portal)**:
+
+   ```typescript
+   import { useI18n } from 'vue-i18n';
+   const { t } = useI18n();
+   // t('key', { vars }, '默认值')
+   ```
+
+**依赖**:
+
+- React: `i18next`, `react-i18next`, `i18next-browser-languagedetector`
+- Vue 3: `vue-i18n`, `i18next`, `i18next-browser-languagedetector`
 
 ---
 

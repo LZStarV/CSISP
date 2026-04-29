@@ -1,6 +1,6 @@
 <template>
   <div class="forum-page">
-    <a-page-header title="帖子广场" />
+    <a-page-header :title="t('forum.title', '帖子广场')" />
     <a-spin :spinning="loading">
       <a-list
         class="post-list"
@@ -11,7 +11,8 @@
           total: total,
           showSizeChanger: true,
           showQuickJumper: true,
-          showTotal: (total: number) => `共 ${total} 条`,
+          showTotal: (total: number) =>
+            t('common.total', { total }, '共 {total} 条'),
           onChange: handlePageChange,
         }"
       >
@@ -29,6 +30,7 @@
 import type { Post } from '@csisp/contracts';
 import { message } from 'ant-design-vue';
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import PostCard from './components/PostCard.vue';
@@ -36,6 +38,8 @@ import PostCard from './components/PostCard.vue';
 import { forumApi } from '@/api/portal/forum';
 
 const router = useRouter();
+const { t } = useI18n();
+
 const loading = ref(false);
 const posts = ref<Post[]>([]);
 const page = ref(1);
@@ -52,7 +56,7 @@ const fetchPosts = async () => {
     posts.value = response.posts;
     total.value = response.total;
   } catch {
-    message.error('获取帖子列表失败');
+    message.error(t('forum.fetchFailed', '获取帖子列表失败'));
   } finally {
     loading.value = false;
   }

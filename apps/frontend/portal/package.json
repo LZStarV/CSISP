@@ -13,6 +13,7 @@
   "dependencies": {
     "@csisp/http": "workspace:*",
     "@csisp/contracts": "workspace:*",
+    "@csisp/i18n": "workspace:*",
     "vue": "catalog:frontend",
     "pinia": "catalog:frontend",
     "vue-router": "catalog:frontend",
@@ -21,7 +22,10 @@
     "@ant-design/icons-vue": "catalog:frontend",
     "localforage": "catalog:frontend",
     "echarts": "catalog:frontend",
-    "vue-echarts": "catalog:frontend"
+    "vue-echarts": "catalog:frontend",
+    "i18next": "^26.0.8",
+    "vue-i18n": "^9.0.0",
+    "i18next-browser-languagedetector": "^8.2.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "catalog:frontend",

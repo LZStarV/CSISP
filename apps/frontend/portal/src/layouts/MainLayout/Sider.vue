@@ -10,18 +10,20 @@
 
 <script setup lang="ts">
 import type { MenuProps } from 'ant-design-vue';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const selectedKeys = ref<string[]>([]);
 
-const menuItems: MenuProps['items'] = [
-  { key: '/Announcement', label: '公告' },
-  { key: '/Forum', label: '论坛' },
-];
+const menuItems = computed<MenuProps['items']>(() => [
+  { key: '/Announcement', label: t('layout.sider.announcement', '公告') },
+  { key: '/Forum', label: t('layout.sider.forum', '论坛') },
+]);
 
 watch(
   () => route.path,

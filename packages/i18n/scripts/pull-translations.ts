@@ -69,7 +69,8 @@ function saveTranslations(
     }
 
     const indexPath = path.join(langPath, 'index.json');
-    fs.writeFileSync(indexPath, JSON.stringify(langTranslations, null, 2));
+    const content = JSON.stringify(langTranslations, null, 2);
+    fs.writeFileSync(indexPath, content + '\n');
     process.stdout.write(`Saved ${lang} translations to ${indexPath}\n`);
   }
 }
