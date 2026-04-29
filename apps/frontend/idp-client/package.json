@@ -14,11 +14,15 @@
     "@csisp-api/bff-idp-server": "catalog:",
     "@csisp/contracts": "workspace:*",
     "@csisp/http": "workspace:*",
+    "@csisp/i18n": "workspace:*",
     "antd": "catalog:frontend",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "i18next": "^26.0.8",
+    "i18next-browser-languagedetector": "^8.2.1",
     "react": "catalog:frontend",
     "react-dom": "catalog:frontend",
+    "react-i18next": "^17.0.6",
     "react-router-dom": "catalog:frontend"
   },
   "devDependencies": {

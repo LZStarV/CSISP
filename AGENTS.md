@@ -35,6 +35,7 @@ CSISP/
 │   ├── redis-sdk/         # Upstash Redis 适配
 │   ├── supabase-sdk/      # Supabase 客户端
 │   ├── http/              # HTTP 客户端 (RPC 风格 REST)
+│   ├── i18n/              # 国际化支持
 │   └── contracts/         # API 契约定义
 ├── supabase/               # 数据库迁移 (PostgreSQL)
 └── docs/                   # VitePress 文档
@@ -330,6 +331,79 @@ src/api/
 
 ---
 
+### 3.7 @csisp/i18n (国际化支持)
+
+| 导出           | 用途                |
+| -------------- | ------------------- |
+| `.`            | 各应用的翻译资源    |
+| `./idp-client` | idp-client 翻译资源 |
+| `./portal`     | portal 翻译资源     |
+| `./common`     | 通用翻译资源        |
+
+**实现**:
+
+- 翻译资源存储于 `src/locales/{app}/{lang}/index.json`
+- 使用 SimpleLocalize Multi-language JSON 格式，支持消息插值
+- 支持多语言：`en` (英语), `zh` (中文)
+- 翻译管理通过 SimpleLocalize 平台
+
+**Message Interpolation (消息插值)**:
+
+翻译文件支持 `{variable}` 插值语法，允许在翻译文案中动态替换变量：
+
+翻译文件：
+
+```json
+{
+  "common.total": "共 {total} 条",
+  "user.welcome": "欢迎，{username}！"
+}
+```
+
+代码使用：
+
+```typescript
+// Vue 3
+t('common.total', { total: 100 }, '共 {total} 条');
+
+// React
+t('common.total', '共 {total} 条', { total: 100 });
+```
+
+**翻译管理流程**:
+
+1. 拉取翻译 (从 SimpleLocalize):
+
+   ```bash
+   pnpm -F @csisp/i18n pull:idp-client
+   pnpm -F @csisp/i18n pull:portal
+   ```
+
+2. 前端使用:
+
+   **React (idp-client)**:
+
+   ```typescript
+   import { useTranslation } from 'react-i18next';
+   const { t } = useTranslation('common');
+   // t('key', '默认值', { vars })
+   ```
+
+   **Vue 3 (portal)**:
+
+   ```typescript
+   import { useI18n } from 'vue-i18n';
+   const { t } = useI18n();
+   // t('key', { vars }, '默认值')
+   ```
+
+**依赖**:
+
+- React: `i18next`, `react-i18next`, `i18next-browser-languagedetector`
+- Vue 3: `vue-i18n`, `i18next`, `i18next-browser-languagedetector`
+
+---
+
 ## 4. 依赖关系图
 
 ```mermaid
@@ -357,6 +431,7 @@ flowchart TB
         L["http"]
         M["redis-sdk"]
         N["supabase-sdk"]
+        O["i18n"]
         P["contracts"]
         Q["@csisp-api/*<br/>(external npm)"]
     end
@@ -378,11 +453,13 @@ flowchart TB
     Packages --> L
     Packages --> M
     Packages --> N
+    Packages --> O
     Packages --> P
     J --> R
     M --> S
     N --> R
     Q --> R
+    O --> Frontend
     P --> Frontend
 ```
 

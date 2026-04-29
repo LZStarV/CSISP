@@ -1,0 +1,19 @@
+{
+  "backToLogin": "返回登录",
+  "cannotBeEmpty": "不能为空",
+  "csispIntroduce": "欢迎来到 CSISP 项目",
+  "email": "邮箱",
+  "emailInvalid": "请输入有效的邮箱地址",
+  "login": "登录",
+  "password": "密码",
+  "pleaseInputEmail": "请输入邮箱",
+  "pleaseInputPassword": "请输入密码",
+  "pleaseInputStudentId": "请输入学号",
+  "pleaseRetry": "请重试",
+  "register": "注册",
+  "requestBasicInfo": "该应用申请访问您的基本信息",
+  "select": "选择",
+  "studentId": "学号",
+  "submit": "提交",
+  "verifyByEmail": "本次将通过邮箱验证完成登录"
+}

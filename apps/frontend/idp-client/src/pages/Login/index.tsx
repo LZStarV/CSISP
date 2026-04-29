@@ -1,6 +1,7 @@
 import type { GetAuthorizationRequestResult } from '@csisp/contracts';
 import { Form, Input, Button, Typography, Alert, message } from 'antd';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { commonOidcApi } from '@/api/common/oidc';
@@ -9,6 +10,7 @@ import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
 
 export function Login() {
+  const { t } = useTranslation('common');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [authInfo, setAuthInfo] =
@@ -31,10 +33,12 @@ export function Login() {
           setAuthInfo(res);
         })
         .catch(error => {
-          setErrorMsg(error.message || '获取授权信息失败');
+          setErrorMsg(
+            error.message || t('oidc.getAuthInfoFailed', '获取授权信息失败')
+          );
         });
     }
-  }, [ticket]);
+  }, [ticket, t]);
 
   const handleVerifyOtp = async () => {
     setLoading(true);
@@ -47,7 +51,11 @@ export function Login() {
         navigate(ROUTE_FINISH, { replace: true });
       }
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : '验证失败或验证码已过期');
+      setErrorMsg(
+        e instanceof Error
+          ? e.message
+          : t('verify.otp.invalid', '验证失败或验证码已过期')
+      );
     } finally {
       setLoading(false);
     }
@@ -63,7 +71,6 @@ export function Login() {
       });
       const stepUp = (res?.stepUp ?? '') as 'PENDING_PASSWORD' | string;
 
-      // 登录成功后，如果存在授权请求，需要透传 ticket 或 state 供后续 enter 阶段使用
       const flowState = {
         ...res,
         ticket,
@@ -72,7 +79,9 @@ export function Login() {
 
       if (stepUp === 'PENDING_PASSWORD') {
         await idpClientAuthApi.sendOtp();
-        message.success('验证邮件已发送，请前往邮箱查收并完成验证');
+        message.success(
+          t('verify.email.sent', '验证邮件已发送，请前往邮箱查收并完成验证')
+        );
         setOtpSent(true);
         return;
       }
@@ -82,7 +91,9 @@ export function Login() {
       });
       return;
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : '登录失败，请重试');
+      setErrorMsg(
+        e instanceof Error ? e.message : t('login.failed', '登录失败，请重试')
+      );
     } finally {
       setLoading(false);
     }
@@ -91,14 +102,19 @@ export function Login() {
   return (
     <AuthLayout>
       <Typography.Title level={3} style={{ textAlign: 'center' }}>
-        {authInfo ? `登录到 ${authInfo.client_name}` : '统一身份认证登录'}
+        {authInfo
+          ? t('login.loginTo', '登录到 {clientName}', {
+              clientName: authInfo.client_name,
+            })
+          : t('oidc.unifiedLogin', '统一身份认证登录')}
       </Typography.Title>
       {authInfo && (
         <Typography.Paragraph
           type='secondary'
           style={{ textAlign: 'center', marginTop: -8 }}
         >
-          该应用申请访问您的基本信息（本次将通过邮箱验证完成登录）
+          {t('login.subtitle.appRequest', '该应用申请访问您的基本信息')}（
+          {t('login.subtitle.verifyByEmail', '本次将通过邮箱验证完成登录')}）
         </Typography.Paragraph>
       )}
       {errorMsg && (
@@ -111,9 +127,15 @@ export function Login() {
       )}
       {otpSent && (
         <Form layout='vertical' disabled={loading}>
-          <Form.Item label='邮箱验证码' required>
+          <Form.Item label={t('verify.otp.label', '邮箱验证码')} required>
             <Input
-              placeholder='请输入邮箱中的6位验证码'
+              placeholder={t(
+                'signup.otp.placeholder',
+                '请输入邮箱中的6位验证码',
+                {
+                  digitCount: 6,
+                }
+              )}
               value={otpCode}
               onChange={e => setOtpCode(e.target.value)}
               maxLength={6}
@@ -128,47 +150,65 @@ export function Login() {
               loading={loading}
               disabled={!/^\d{6}$/.test(otpCode)}
             >
-              完成验证
+              {t('verify.submit', '完成验证')}
             </Button>
           </Form.Item>
         </Form>
       )}
       <Form layout='vertical' onFinish={onFinish} disabled={loading}>
         <Form.Item
-          label='邮箱'
+          label={t('login.email.label', '邮箱')}
           name='email'
           rules={[
-            { required: true, message: '邮箱不能为空' },
-            { type: 'email', message: '请输入有效的邮箱地址' },
-            { min: 3, max: 128, message: '邮箱长度为3-128个字符' },
+            {
+              required: true,
+              message: t('login.email.required', '邮箱不能为空'),
+            },
+            {
+              type: 'email',
+              message: t('login.email.invalid', '请输入有效的邮箱地址'),
+            },
+            {
+              min: 3,
+              max: 128,
+              message: t('login.email.length', '邮箱长度为3-128个字符', {
+                minLength: 3,
+                maxLength: 128,
+              }),
+            },
           ]}
         >
-          <Input placeholder='请输入邮箱' autoComplete='username' />
+          <Input
+            placeholder={t('login.email.placeholder', '请输入邮箱')}
+            autoComplete='username'
+          />
         </Form.Item>
 
         <Form.Item
-          label='密码'
+          label={t('login.password.label', '密码')}
           name='password'
           rules={[
-            { required: true, message: '密码不能为空' },
-            { min: 1, max: 512, message: '密码长度为1-512个字符' },
+            {
+              required: true,
+              message: t('login.password.required', '密码不能为空'),
+            },
           ]}
         >
           <Input.Password
-            placeholder='请输入密码'
+            placeholder={t('login.password.placeholder', '请输入密码')}
             autoComplete='current-password'
           />
         </Form.Item>
 
         <Form.Item>
           <Button type='primary' htmlType='submit' block loading={loading}>
-            登录
+            {t('login.submit', '登录')}
           </Button>
         </Form.Item>
 
         <div style={{ textAlign: 'center', marginTop: 8 }}>
           <Button type='link' onClick={() => navigate(ROUTE_PASSWORD_FORGOT)}>
-            忘记密码？
+            {t('login.forgotPassword', '忘记密码？')}
           </Button>
         </div>
       </Form>

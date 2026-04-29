@@ -57,6 +57,52 @@ POST /api/portal/forum/getPostDetail
 POST /api/portal/announce/getAnnouncementList
 ```
 
+### 1.3 翻译文案规划
+
+如果需求涉及新增或修改用户可见文案，需要提前规划翻译工作：
+
+**判断标准**：页面中任何对用户展示的中英文文字都需要翻译，包括但不限于：
+
+- 表单标签 (label)、占位符 (placeholder)
+- 按钮文字 (button text)
+- 提示信息 (message, notification)
+- 错误信息 (error message)
+- 标题、副标题 (title, subtitle)
+
+**翻译规划步骤**：
+
+1. **识别翻译 key**：根据现有命名空间确定使用哪个翻译文件
+   - `@csisp/idp-client` 相关 → `idp-client.json`
+   - `@csisp/portal` 相关 → `portal.json`
+   - 通用文案 → `common.json`
+
+2. **命名规范**：遵循 `页面.功能.具体描述` 格式
+
+   ```
+   login.email.label        → 登录页-邮箱-标签
+   signup.submit            → 注册页-提交按钮
+   forgot.init.title        → 忘记密码-初始化-标题
+   ```
+
+3. **生成翻译模板**：运行以下命令生成本地翻译文件
+
+   ```bash
+   # 为 idp-client 生成翻译模板
+   pnpm -F @csisp/i18n generate idp-client
+
+   # 为 portal 生成翻译模板
+   pnpm -F @csisp/i18n generate portal
+   ```
+
+4. **上传翻译平台**：将生成的 JSON 文件上传到 SimpleLocalize
+   - 手动上传或使用 CLI 工具
+
+5. **拉取翻译**：翻译完成后执行
+   ```bash
+   pnpm -F @csisp/i18n pull:idp-client
+   pnpm -F @csisp/i18n pull:portal
+   ```
+
 ---
 
 ## 2. Contracts 定义
@@ -709,6 +755,197 @@ const menuItems = [
 
 ---
 
+## 4.8 国际化 (i18n) 使用
+
+### 4.8.1 消息插值
+
+项目使用 SimpleLocalize 的 Multi-language JSON 格式，支持消息插值功能：
+
+**翻译文件**：
+
+```json
+{
+  "common.total": "共 {total} 条",
+  "user.welcome": "欢迎，{username}！"
+}
+```
+
+**代码使用**：
+
+```typescript
+// Vue 3: t('key', { vars }, '默认值')
+t('common.total', { total: 100 }, '共 {total} 条');
+
+// React: t('key', '默认值', { vars })
+t('common.total', '共 {total} 条', { total: 100 });
+```
+
+---
+
+### 4.8.2 React 项目 (idp-client)
+
+**配置初始化** (main.tsx):
+
+```typescript
+import './i18n';
+```
+
+**i18n 配置** (i18n/index.tsx):
+
+```typescript
+import { idpClientLocales } from '@csisp/i18n/idp-client';
+import i18n from 'i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+import { initReactI18next } from 'react-i18next';
+
+i18n
+  .use(LanguageDetector)
+  .use(initReactI18next)
+  .init({
+    resources: {
+      en: { common: idpClientLocales.en.common },
+      zh: { common: idpClientLocales.zh.common },
+    },
+    fallbackLng: 'zh',
+    supportedLngs: ['en', 'zh'],
+    defaultNS: 'common',
+    interpolation: { escapeValue: false },
+    detection: {
+      order: ['querystring', 'localStorage', 'navigator'],
+      lookupLocalStorage: 'i18nextLng',
+    },
+  });
+```
+
+**使用翻译**：
+
+```typescript
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation('common');
+
+  return (
+    <Form.Item label={t('login.email.label', '邮箱')}>
+      <Input placeholder={t('login.email.placeholder', '请输入邮箱')} />
+    </Form.Item>
+  );
+}
+```
+
+**语言切换**：
+
+```typescript
+const { i18n } = useTranslation();
+i18n.changeLanguage('en'); // 切换到英语
+i18n.changeLanguage('zh'); // 切换到中文
+```
+
+---
+
+### 4.8.3 Vue 3 项目 (portal)
+
+**配置初始化** (main.ts):
+
+```typescript
+import i18n from './i18n';
+app.use(i18n);
+```
+
+**i18n 配置** (i18n/index.ts):
+
+```typescript
+import { portalLocales } from '@csisp/i18n/portal';
+import { createI18n } from 'vue-i18n';
+
+const i18n = createI18n({
+  legacy: false, // Composition API 模式
+  locale: 'zh',
+  fallbackLocale: 'zh',
+  messages: {
+    en: portalLocales.en.common,
+    zh: portalLocales.zh.common,
+  },
+  flatJson: true,
+  fallbackFormat: true,
+});
+```
+
+**使用翻译**：
+
+```vue
+<template>
+  <a-page-header :title="t('forum.title', '帖子广场')" />
+</template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+</script>
+```
+
+**带插值的翻译**：
+
+```vue
+<script setup lang="ts">
+const { t } = useI18n();
+
+// 基础使用
+const title = t('forum.title', '帖子广场');
+
+// 带插值变量
+const totalText = t('common.total', { total: 100 }, '共 {total} 条');
+
+// 错误提示
+message.error(t('forum.fetchFailed', '获取帖子列表失败'));
+</script>
+```
+
+**语言切换**：
+
+```vue
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
+const { locale } = useI18n();
+
+const handleChange = (value: string) => {
+  locale.value = value;
+  localStorage.setItem('i18nextLng', value);
+};
+</script>
+```
+
+---
+
+### 4.8.4 翻译文件位置
+
+| 项目       | 路径                                                      |
+| ---------- | --------------------------------------------------------- |
+| idp-client | `packages/i18n/src/locales/idp-client/{en,zh}/index.json` |
+| portal     | `packages/i18n/src/locales/portal/{en,zh}/index.json`     |
+| common     | `packages/i18n/src/locales/common/{en,zh}/index.json`     |
+
+---
+
+### 4.8.5 新增翻译 key 流程
+
+1. 在对应页面的翻译 JSON 文件中添加 key（中文）
+2. 运行 `pnpm -F @csisp/i18n pull:{project}` 拉取最新翻译
+3. 如果有新的 key 未翻译，使用代码中的默认值
+4. 在 SimpleLocalize 平台补充英文翻译
+
+**翻译文件位置**：
+
+| 项目       | 路径                                                       |
+| ---------- | ---------------------------------------------------------- |
+| idp-client | `packages/i18n/src/locales/idp-client/{en\|zh}/index.json` |
+| portal     | `packages/i18n/src/locales/portal/{en\|zh}/index.json`     |
+| common     | `packages/i18n/src/locales/common/{en\|zh}/index.json`     |
+
+---
+
 ## 5. 验证与检查
 
 ### 5.1 构建测试
@@ -757,10 +994,10 @@ pnpm -F {frontend-app} format
 
 ### 场景 1：完整新功能开发
 
-1. 规划阶段：前端页面规划 + BFF 接口设计
+1. 规划阶段：前端页面规划 + BFF 接口设计 + **翻译文案规划 (1.3)**
 2. Contracts 定义：完整执行 2.1-2.3
 3. BFF 开发：完整执行 3.1-3.3
-4. 前端开发：完整执行 4.1-4.6
+4. 前端开发：完整执行 4.1-4.8
 5. 验证与检查：执行所有检查
 
 ### 场景 2：新增一个 BFF 接口
@@ -772,11 +1009,13 @@ pnpm -F {frontend-app} format
 
 ### 场景 3：新增一个页面
 
-1. 前端开发：
+1. 翻译规划：确认是否需要翻译 (1.3)
+2. 前端开发：
    - 页面组件（4.4）
    - 路由配置（4.6）
    - 菜单更新（4.6）
-2. 验证与检查：前端构建 + 类型检查 + Lint + 格式化
+   - **国际化 (4.8)** 如需要翻译
+3. 验证与检查：前端构建 + 类型检查 + Lint + 格式化
 
 ### 场景 4：修复现有功能 Bug
 

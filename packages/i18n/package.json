@@ -1,0 +1,40 @@
+{
+  "name": "@csisp/i18n",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./portal": {
+      "types": "./dist/portal.d.ts",
+      "default": "./dist/portal.js"
+    },
+    "./idp-client": {
+      "types": "./dist/idp-client.d.ts",
+      "default": "./dist/idp-client.js"
+    },
+    "./common": {
+      "types": "./dist/common.d.ts",
+      "default": "./dist/common.js"
+    }
+  },
+  "files": [
+    "dist",
+    "locales"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "pull:common": "infisical run --path /SimpleLocalize -- tsx ./scripts/pull-translations.ts common",
+    "pull:portal": "infisical run --path /SimpleLocalize -- tsx ./scripts/pull-translations.ts portal",
+    "pull:idp-client": "infisical run --path /SimpleLocalize -- tsx ./scripts/pull-translations.ts idp-client",
+    "pull:all": "infisical run --path /SimpleLocalize -- tsx ./scripts/pull-translations.ts all"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "tsx": "^4.21.0"
+  }
+}

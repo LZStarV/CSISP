@@ -1,0 +1,19 @@
+{
+  "backToLogin": "Back to Login",
+  "cannotBeEmpty": "Cannot be empty",
+  "csispIntroduce": "Welcome to CSISP project",
+  "email": "Email",
+  "emailInvalid": "Please enter a valid email address",
+  "login": "Login",
+  "password": "Password",
+  "pleaseInputEmail": "Please input email",
+  "pleaseInputPassword": "Please input password",
+  "pleaseInputStudentId": "Please input student ID",
+  "pleaseRetry": "Please retry",
+  "register": "Register",
+  "requestBasicInfo": "This app requests access to your basic information",
+  "select": "Select",
+  "studentId": "Student ID",
+  "submit": "Submit",
+  "verifyByEmail": "This login will be verified via email"
+}

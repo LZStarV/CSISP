@@ -4,8 +4,16 @@
       <template #description>
         <div class="announcement-description">
           <div class="announcement-meta">
-            <span>作者：{{ announcement.authorName }}</span>
-            <span>发布时间：{{ formatDate(announcement.createdAt) }}</span>
+            <span
+              >{{ t('announcement.author', '作者') }}：{{
+                announcement.authorName
+              }}</span
+            >
+            <span
+              >{{ t('announcement.publishTime', '发布时间') }}：{{
+                formatDate(announcement.createdAt)
+              }}</span
+            >
           </div>
           <div class="announcement-excerpt">
             {{ announcement.content.substring(0, 150) }}...
@@ -18,10 +26,13 @@
 
 <script setup lang="ts">
 import type { Announcement } from '@csisp/contracts';
+import { useI18n } from 'vue-i18n';
 
 defineProps<{
   announcement: Announcement;
 }>();
+
+const { t } = useI18n();
 
 const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString('zh-CN');

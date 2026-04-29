@@ -1,5 +1,6 @@
 import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { idpClientAuthApi } from '@/api/idp-client/auth';
@@ -12,6 +13,7 @@ import {
 import { MFAType } from '@/types/enum';
 
 export function SmsVerify() {
+  const { t } = useTranslation('common');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [phone, setPhone] = useState<string | undefined>(undefined);
@@ -70,7 +72,6 @@ export function SmsVerify() {
     return () => clearInterval(timer);
   }, [expireAt]);
 
-  // 发送短信验证码
   const sendCode = async () => {
     if (!phone) return;
     setLoading(true);
@@ -90,20 +91,23 @@ export function SmsVerify() {
       }
       const sms = res?.sms;
       if (sms && sms.success === false) {
-        throw new Error(sms.message || '短信发送失败');
+        throw new Error(sms.message || t('sms.verify.failed', '短信发送失败'));
       }
       const exp = Date.now() + 60000;
       localStorage.setItem(`idp_otp_exp:${phone}`, String(exp));
       setExpireAt(exp);
       setCooldown(60);
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : '发送失败，请重试');
+      setErrorMsg(
+        e instanceof Error
+          ? e.message
+          : t('forgot.init.failed', '发送失败，请重试')
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // 校验短信验证码
   const onFinish = async (_values: { code: string }) => {
     if (!phone) return;
     setLoading(true);
@@ -116,7 +120,7 @@ export function SmsVerify() {
           code: codeValue,
         } as any);
         const token = res?.reset_token;
-        if (!token) throw new Error('校验失败');
+        if (!token) throw new Error(t('verify.failed', '校验失败'));
         if (studentId) {
           sessionStorage.setItem(`idp_reset_token:${studentId}`, token);
         }
@@ -130,7 +134,6 @@ export function SmsVerify() {
           codeOrAssertion: codeValue,
         });
 
-        // 校验成功，跳转到 Finish 页面完成授权流程
         const flowState = (location.state as any) || {};
         navigate(ROUTE_FINISH, {
           state: {
@@ -140,17 +143,22 @@ export function SmsVerify() {
         });
       }
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : '校验失败，请重试');
+      setErrorMsg(
+        e instanceof Error ? e.message : t('verify.failed', '校验失败，请重试')
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthLayout title='多重身份验证' subtitle='请输入短信验证码'>
+    <AuthLayout
+      title={t('mfa.title', '多重身份验证')}
+      subtitle={t('sms.verify.title', '请输入短信验证码')}
+    >
       <div style={{ maxWidth: 420, margin: '0 auto' }}>
         <Typography.Title level={3} style={{ textAlign: 'center' }}>
-          短信验证码校验
+          {t('sms.verify.title', '短信验证码校验')}
         </Typography.Title>
         {errorMsg && (
           <Alert
@@ -174,14 +182,21 @@ export function SmsVerify() {
             loading={loading}
             disabled={loading || cooldown > 0}
           >
-            {cooldown > 0 ? `重新发送(${cooldown}s)` : '发送验证码'}
+            {cooldown > 0
+              ? t('signup.otp.resend', '重新发送验证码') + `(${cooldown}s)`
+              : t('forgot.init.submit', '发送验证码')}
           </Button>
         </div>
         <Form layout='vertical' onFinish={onFinish} disabled={loading}>
           <Form.Item
-            label='验证码'
+            label={t('verify.otp.label', '验证码')}
             name='code'
-            rules={[{ required: true, message: '验证码不能为空' }]}
+            rules={[
+              {
+                required: true,
+                message: t('verify.otp.required', '验证码不能为空'),
+              },
+            ]}
           >
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <Input.OTP length={6} value={codeValue} onChange={setCodeValue} />
@@ -195,7 +210,7 @@ export function SmsVerify() {
               loading={loading}
               disabled={codeValue.length !== 6}
             >
-              提交验证
+              {t('verify.submit', '提交验证')}
             </Button>
           </Form.Item>
         </Form>

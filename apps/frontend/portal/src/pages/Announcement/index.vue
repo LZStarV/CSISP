@@ -1,6 +1,6 @@
 <template>
   <div class="announcement-page">
-    <a-page-header title="公告列表" />
+    <a-page-header :title="t('announcement.title', '公告列表')" />
     <a-spin :spinning="loading">
       <a-list
         class="announcement-list"
@@ -11,7 +11,8 @@
           total: total,
           showSizeChanger: true,
           showQuickJumper: true,
-          showTotal: (total: number) => `共 ${total} 条`,
+          showTotal: (total: number) =>
+            t('common.total', { total }, '共 {total} 条'),
           onChange: handlePageChange,
         }"
       >
@@ -29,10 +30,13 @@
 import type { Announcement } from '@csisp/contracts';
 import { message } from 'ant-design-vue';
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import AnnouncementCard from './components/AnnouncementCard.vue';
 
 import { announceApi } from '@/api/portal/announce';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const announcements = ref<Announcement[]>([]);
@@ -50,7 +54,7 @@ const fetchAnnouncements = async () => {
     announcements.value = response.announcements;
     total.value = response.total;
   } catch {
-    message.error('获取公告列表失败');
+    message.error(t('announcement.fetchFailed', '获取公告列表失败'));
   } finally {
     loading.value = false;
   }

@@ -1,5 +1,6 @@
 import { Alert, Button, Form, Input, Typography } from 'antd';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { idpClientAuthApi } from '@/api/idp-client/auth';
@@ -7,6 +8,7 @@ import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_LOGIN } from '@/routes/router';
 
 export function ResetPassword() {
+  const { t } = useTranslation('common');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -41,7 +43,7 @@ export function ResetPassword() {
   const onFinishReset = async () => {
     if (!studentId || !newPwd) return;
     if (confirmPwd !== newPwd) {
-      setErrorMsg('两次输入的密码不一致');
+      setErrorMsg(t('reset.confirmPassword.mismatch', '两次输入的密码不一致'));
       return;
     }
     setLoading(true);
@@ -52,7 +54,11 @@ export function ResetPassword() {
       );
       const resetToken =
         tokenFromQuery ?? tokenFromState ?? tokenFromStorage ?? '';
-      if (!resetToken) throw new Error('缺少重置令牌，请重新进行验证');
+      if (!resetToken) {
+        throw new Error(
+          t('reset.missingToken', '缺少重置令牌，请重新进行验证')
+        );
+      }
       await idpClientAuthApi.resetPassword({
         studentId,
         newPassword: newPwd,
@@ -61,17 +67,22 @@ export function ResetPassword() {
       });
       navigate(ROUTE_LOGIN);
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : '重置失败，请重试');
+      setErrorMsg(
+        e instanceof Error ? e.message : t('reset.failed', '重置失败，请重试')
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthLayout title='找回密码' subtitle='输入新密码完成重置'>
+    <AuthLayout
+      title={t('reset.title', '设置新密码')}
+      subtitle={t('reset.newPassword.label', '输入新密码完成重置')}
+    >
       <div style={{ maxWidth: 420, margin: '0 auto' }}>
         <Typography.Title level={3} style={{ textAlign: 'center' }}>
-          设置新密码
+          {t('reset.title', '设置新密码')}
         </Typography.Title>
 
         {errorMsg && (
@@ -83,40 +94,62 @@ export function ResetPassword() {
           />
         )}
         <Form layout='vertical' disabled={loading} onFinish={onFinishReset}>
-          <Form.Item label='学号'>
-            <Input placeholder='请输入学号' value={studentId} disabled />
+          <Form.Item label={t('validation.studentId.label', '学号')}>
+            <Input
+              placeholder={t('validation.studentId.placeholder', '请输入学号')}
+              value={studentId}
+              disabled
+            />
           </Form.Item>
 
           <Form.Item
-            label='新密码'
+            label={t('reset.newPassword.label', '新密码')}
             name='newPassword'
             rules={[
-              { required: true, message: '新密码不能为空' },
-              { min: 8, max: 64, message: '密码长度为8-64个字符' },
+              {
+                required: true,
+                message: t('reset.newPassword.required', '新密码不能为空'),
+              },
             ]}
           >
             <Input.Password
-              placeholder='请输入新密码'
+              placeholder={t('reset.newPassword.placeholder', '请输入新密码')}
               value={newPwd}
               onChange={e => setNewPwd(e.target.value)}
             />
           </Form.Item>
           <Form.Item
-            label='确认新密码'
+            label={t('reset.confirmPassword.label', '确认新密码')}
             name='confirmPassword'
             rules={[
-              { required: true, message: '确认密码不能为空' },
+              {
+                required: true,
+                message: t(
+                  'reset.confirmPassword.required',
+                  '确认密码不能为空'
+                ),
+              },
               {
                 validator: () => {
                   if (!confirmPwd || confirmPwd === newPwd)
                     return Promise.resolve();
-                  return Promise.reject(new Error('两次输入的密码不一致'));
+                  return Promise.reject(
+                    new Error(
+                      t(
+                        'reset.confirmPassword.mismatch',
+                        '两次输入的密码不一致'
+                      )
+                    )
+                  );
                 },
               },
             ]}
           >
             <Input.Password
-              placeholder='请再次输入新密码'
+              placeholder={t(
+                'reset.confirmPassword.placeholder',
+                '请再次输入新密码'
+              )}
               value={confirmPwd}
               onChange={e => setConfirmPwd(e.target.value)}
             />
@@ -131,7 +164,7 @@ export function ResetPassword() {
                 newPwd.length < 8 || !studentId || confirmPwd !== newPwd
               }
             >
-              提交重置
+              {t('reset.submit', '提交重置')}
             </Button>
           </Form.Item>
         </Form>
