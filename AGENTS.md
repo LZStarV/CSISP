@@ -26,7 +26,7 @@ CSISP/
 │   ├── bff/                  # Backend-for-Frontend (NestJS)
 │   └── frontend/
 │       ├── idp-client/      # IDP 登录页 (React + Ant Design)
-│       ├── portal/          # web 前台 (Vue 3 + Ant Design Vue)
+│       ├── portal/          # web 前台 (Vue 3 + Naive UI)
 │       ├── admin/           # 管理中台 (Vue 3) ⏸ 闲置
 │       └── backoffice/      # 开发后台 (Vue 3) ⏸ 闲置
 ├── packages/               # 共享包
@@ -184,7 +184,7 @@ const authCall = <T>(action: string, params?: unknown) =>
 | -------- | ---------------------- |
 | 路径     | `apps/frontend/portal` |
 | 框架     | Vue 3 + Vite           |
-| UI 库    | Ant Design Vue         |
+| UI 库    | Naive UI               |
 | 状态管理 | Pinia                  |
 | 路由     | Vue Router             |
 | 图表     | ECharts                |
@@ -410,7 +410,7 @@ t('common.total', '共 {total} 条', { total: 100 });
 flowchart TB
     subgraph Frontend["前端应用"]
         A["idp-client<br/>(React + Ant Design)"]
-        B["portal<br/>(Vue 3 + Ant Design Vue)"]
+        B["portal<br/>(Vue 3 + Naive UI)"]
         C["admin<br/>(Vue 3) ⏸ 闲置"]
         D["backoffice<br/>(Vue 3) ⏸ 闲置"]
     end

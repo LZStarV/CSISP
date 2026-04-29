@@ -3,7 +3,6 @@
     :value="localeStore.currentLocale"
     :options="LOCALE_OPTIONS"
     style="width: 90px"
-    :bordered="false"
     @update:value="handleChange"
   />
 </template>
