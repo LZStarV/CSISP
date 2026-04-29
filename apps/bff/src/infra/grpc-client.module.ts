@@ -1,7 +1,5 @@
 import { config } from '@config';
 import {
-  DEMO_SERVICE_NAME,
-  DemoService,
   FORUM_SERVICE_NAME,
   ForumService,
   ANNOUNCE_SERVICE_NAME,
@@ -14,7 +12,6 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 export const INTEGRATED_CLIENT = 'INTEGRATED_CLIENT';
 
 const GrpcPackageDefinition = {
-  [`${INTEGRATED_SERVER_PACKAGE_NAME}.${DEMO_SERVICE_NAME}`]: DemoService,
   [`${INTEGRATED_SERVER_PACKAGE_NAME}.${FORUM_SERVICE_NAME}`]: ForumService,
   [`${INTEGRATED_SERVER_PACKAGE_NAME}.${ANNOUNCE_SERVICE_NAME}`]:
     AnnounceService,
