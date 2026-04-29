@@ -35,6 +35,7 @@ CSISP/
 │   ├── redis-sdk/         # Upstash Redis 适配
 │   ├── supabase-sdk/      # Supabase 客户端
 │   ├── http/              # HTTP 客户端 (RPC 风格 REST)
+│   ├── i18n/              # 国际化支持
 │   └── contracts/         # API 契约定义
 ├── supabase/               # 数据库迁移 (PostgreSQL)
 └── docs/                   # VitePress 文档
@@ -330,6 +331,46 @@ src/api/
 
 ---
 
+### 3.7 @csisp/i18n (国际化支持)
+
+| 导出           | 用途                |
+| -------------- | ------------------- |
+| `.`            | 各应用的翻译资源    |
+| `./idp-client` | idp-client 翻译资源 |
+| `./portal`     | portal 翻译资源     |
+| `./common`     | 通用翻译资源        |
+
+**实现**:
+
+- 翻译资源存储于 `src/locales/{app}/{lang}/index.json`
+- 支持多语言: `en` (英语), `zh` (中文)
+- 翻译管理通过 SimpleLocalize 平台
+
+**翻译管理流程**:
+
+1. 生成本地翻译文件 (SimpleLocalize 格式):
+
+   ```bash
+   pnpm -F @csisp/i18n generate idp-client
+   ```
+
+2. 拉取翻译 (从 SimpleLocalize):
+
+   ```bash
+   pnpm -F @csisp/i18n pull:idp-client
+   ```
+
+3. 前端使用 (React):
+   ```typescript
+   import { useTranslation } from 'react-i18next';
+   const { t } = useTranslation('common');
+   // t('key', '默认值')
+   ```
+
+**依赖**: `i18next`, `react-i18next`, `i18next-browser-languagedetector`
+
+---
+
 ## 4. 依赖关系图
 
 ```mermaid
@@ -357,6 +398,7 @@ flowchart TB
         L["http"]
         M["redis-sdk"]
         N["supabase-sdk"]
+        O["i18n"]
         P["contracts"]
         Q["@csisp-api/*<br/>(external npm)"]
     end
@@ -378,11 +420,13 @@ flowchart TB
     Packages --> L
     Packages --> M
     Packages --> N
+    Packages --> O
     Packages --> P
     J --> R
     M --> S
     N --> R
     Q --> R
+    O --> Frontend
     P --> Frontend
 ```
 

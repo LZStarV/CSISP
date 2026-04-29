@@ -3,10 +3,7 @@ import { z } from 'zod';
 
 import { buildActionMapFromRoutes } from '../constants/action';
 import { HTTP_METHOD } from '../constants/http';
-import {
-  PORTAL_PATH_PREFIX,
-  PORTAL_ANNOUNCE_PATH_PREFIX,
-} from '../constants/path-prefix';
+import { PORTAL_PATH_PREFIX } from '../constants/path-prefix';
 
 const c = initContract();
 

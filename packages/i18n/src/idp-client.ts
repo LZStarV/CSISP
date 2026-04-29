@@ -1,5 +1,5 @@
-import enCommon from './locales/idp-client/en/common.json';
-import zhCommon from './locales/idp-client/zh/common.json';
+import enCommon from './locales/idp-client/en/index.json';
+import zhCommon from './locales/idp-client/zh/index.json';
 
 export const idpClientLocales = {
   zh: {

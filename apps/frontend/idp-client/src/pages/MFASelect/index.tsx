@@ -6,6 +6,7 @@ import {
 } from '@ant-design/icons';
 import { Card, Button, Typography, Space, Alert } from 'antd';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 import { idpClientAuthApi } from '@/api/idp-client/auth';
@@ -26,6 +27,7 @@ const MFA_ICONS: Record<MFAType, React.ComponentType<any>> = {
 };
 
 export function MFASelect() {
+  const { t } = useTranslation('common');
   const [loading, setLoading] = useState(false);
   const [mfaMethods, setMfaMethods] = useState<MFAMethod[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -39,18 +41,22 @@ export function MFASelect() {
         setMfaMethods(res.multifactor);
         setErrorMsg(null);
       } else {
-        setErrorMsg('未获取到验证方式列表，请返回登录重试');
+        setErrorMsg(
+          t('oidc.noVerifyMethods', '未获取到验证方式列表，请返回登录重试')
+        );
         setMfaMethods([]);
       }
     } catch {
-      setErrorMsg('获取验证方式失败，请返回登录重试');
+      setErrorMsg(
+        t('oidc.getMethodsFailed', '获取验证方式失败，请返回登录重试')
+      );
       setMfaMethods([]);
     }
   }
 
   useEffect(() => {
     loadMfa();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const state = location.state as {
@@ -71,9 +77,11 @@ export function MFASelect() {
     setErrorMsg(null);
 
     try {
-      setErrorMsg('当前仅支持邮箱验证，请按邮箱指引完成登录');
+      setErrorMsg(
+        t('mfa.currentlyOnlyEmail', '当前仅支持邮箱验证，请按邮箱指引完成登录')
+      );
     } catch {
-      setErrorMsg('选择验证方式失败，请重试');
+      setErrorMsg(t('mfa.selectFailed', '选择验证方式失败，请重试'));
     } finally {
       setLoading(false);
     }
@@ -85,15 +93,14 @@ export function MFASelect() {
 
   return (
     <AuthLayout
-      title='多重身份验证'
-      subtitle='请选择您的验证方式'
-      imagePrompt='Secure%20authentication%20illustration%20with%20multiple%20verification%20methods%2C%20modern%20design%2C%20blue%20and%20white%20colors'
+      title={t('mfa.title', '多重身份验证')}
+      subtitle={t('mfa.select', '请选择您的验证方式')}
     >
       <Typography.Title
         level={3}
         style={{ textAlign: 'center', marginBottom: 24 }}
       >
-        选择验证方式
+        {t('mfa.selectMethod', '选择验证方式')}
       </Typography.Title>
 
       {errorMsg && (
@@ -108,8 +115,11 @@ export function MFASelect() {
       {enabledMethods.length === 0 ? (
         <Alert
           type='warning'
-          message='当前仅支持邮箱验证'
-          description='我们已向您邮箱发送验证邮件，请前往邮箱完成验证'
+          message={t('mfa.currentlyEmailOnly', '当前仅支持邮箱验证')}
+          description={t(
+            'mfa.emailSent',
+            '我们已向您邮箱发送验证邮件，请前往邮箱完成验证'
+          )}
           showIcon
         />
       ) : (
@@ -146,10 +156,10 @@ export function MFASelect() {
                   </div>
                   {method.enabled ? (
                     <Button type='primary' loading={loading}>
-                      选择
+                      {t('mfa.select', '选择')}
                     </Button>
                   ) : (
-                    <Button disabled>未启用</Button>
+                    <Button disabled>{t('mfa.disabled', '未启用')}</Button>
                   )}
                 </div>
               </Card>
@@ -160,7 +170,7 @@ export function MFASelect() {
 
       <div style={{ marginTop: 24, textAlign: 'center' }}>
         <Button type='link' onClick={() => navigate('/login')}>
-          返回登录
+          {t('mfa.returnToLogin', '返回登录')}
         </Button>
       </div>
     </AuthLayout>

@@ -1,5 +1,5 @@
-import enCommon from './locales/common/en/common.json';
-import zhCommon from './locales/common/zh/common.json';
+import enCommon from './locales/common/en/index.json';
+import zhCommon from './locales/common/zh/index.json';
 
 export const commonLocales = {
   zh: {

@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { idpClientAuthApi } from '@/api/idp-client/auth';
@@ -18,6 +19,7 @@ import { MFA_METHOD_LABELS, MFA_METHOD_DESCRIPTIONS } from '@/types/auth';
 import { MFAType, RecoveryUnavailableReason } from '@/types/enum';
 
 export function ForgotInit() {
+  const { t } = useTranslation('common');
   const [studentId, setStudentId] = useState('');
   const [email, setEmail] = useState('');
   const [methods, setMethods] = useState<
@@ -36,17 +38,17 @@ export function ForgotInit() {
     if (reason == null) return '';
     switch (reason) {
       case RecoveryUnavailableReason.NotBoundPhone:
-        return '未绑定手机号';
+        return t('mfa.sms.label', '未绑定手机号');
       case RecoveryUnavailableReason.NotBoundEmail:
-        return '未绑定邮箱';
+        return t('mfa.email.label', '未绑定邮箱');
       case RecoveryUnavailableReason.MethodDisabled:
-        return '该方式未启用';
+        return t('mfa.disabled', '该方式未启用');
       case RecoveryUnavailableReason.NotImplemented:
-        return '该方式暂未实现';
+        return t('mfa.notImpl', '该方式暂未实现');
       case RecoveryUnavailableReason.PolicyDenied:
-        return '策略不允许使用该方式';
+        return t('mfa.policyDenied', '策略不允许使用该方式');
       default:
-        return '暂不可用';
+        return t('common.unavailable', '暂不可用');
     }
   };
 
@@ -62,7 +64,11 @@ export function ForgotInit() {
       const list = (res?.methods ?? []) as any[];
       setMethods(Array.isArray(list) ? list : []);
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : '获取可用方式失败');
+      setErrorMsg(
+        e instanceof Error
+          ? e.message
+          : t('oidc.getMethodsFailed', '获取可用方式失败')
+      );
     } finally {
       setLoading(false);
     }
@@ -77,10 +83,13 @@ export function ForgotInit() {
   };
 
   return (
-    <AuthLayout title='找回密码' subtitle='输入学号并选择一种验证方式'>
+    <AuthLayout
+      title={t('forgot.init.title', '找回密码')}
+      subtitle={t('validation.studentId.select', '输入学号并选择一种验证方式')}
+    >
       <div style={{ maxWidth: 720, margin: '32px auto' }}>
         <Typography.Title level={3} style={{ textAlign: 'center' }}>
-          忘记密码
+          {t('forgot.init.title', '忘记密码')}
         </Typography.Title>
         {errorMsg && (
           <Alert
@@ -92,33 +101,46 @@ export function ForgotInit() {
         )}
         <Form layout='vertical' disabled={loading} onFinish={onSubmit}>
           <Form.Item
-            label='学号'
+            label={t('validation.studentId.label', '学号')}
             name='studentId'
-            rules={[{ required: true, message: '学号不能为空' }]}
+            rules={[
+              {
+                required: true,
+                message:
+                  t('validation.studentId.label', '学号') +
+                  t('common.disabled', '不能为空'),
+              },
+            ]}
           >
             <Input
-              placeholder='请输入学号'
+              placeholder={t('validation.studentId.placeholder', '请输入学号')}
               value={studentId}
               onChange={e => setStudentId(e.target.value)}
             />
           </Form.Item>
           <Form.Item
-            label='邮箱'
+            label={t('forgot.init.email.label', '邮箱')}
             name='email'
             rules={[
-              { required: true, message: '邮箱不能为空' },
-              { type: 'email' as any, message: '邮箱格式不正确' },
+              {
+                required: true,
+                message: t('forgot.init.email.required', '邮箱不能为空'),
+              },
+              {
+                type: 'email' as any,
+                message: t('login.email.invalid', '邮箱格式不正确'),
+              },
             ]}
           >
             <Input
-              placeholder='请输入邮箱'
+              placeholder={t('forgot.init.email.placeholder', '请输入邮箱')}
               value={email}
               onChange={e => setEmail(e.target.value)}
             />
           </Form.Item>
           <Form.Item>
             <Button type='primary' htmlType='submit' loading={loading} block>
-              查询可用验证方式
+              {t('common.queryMethods', '查询可用验证方式')}
             </Button>
           </Form.Item>
         </Form>
@@ -157,10 +179,14 @@ export function ForgotInit() {
                     </div>
                     {disabled ? (
                       <Tooltip title={reason}>
-                        <Button disabled>不可用</Button>
+                        <Button disabled>
+                          {t('common.unavailable', '不可用')}
+                        </Button>
                       </Tooltip>
                     ) : (
-                      <Button type='primary'>选择</Button>
+                      <Button type='primary'>
+                        {t('common.select', '选择')}
+                      </Button>
                     )}
                   </div>
                 </Card>
@@ -170,7 +196,7 @@ export function ForgotInit() {
         )}
         <div style={{ marginTop: 24, textAlign: 'center' }}>
           <Button type='link' onClick={() => navigate(ROUTE_LOGIN)}>
-            返回登录
+            {t('forgot.init.backToLogin', '返回登录')}
           </Button>
         </div>
       </div>

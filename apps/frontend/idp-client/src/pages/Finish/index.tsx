@@ -1,5 +1,6 @@
 import { Card, Space, Typography, Alert, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { commonAuthApi } from '@/api/common/auth';
@@ -10,12 +11,15 @@ import type { ClientInfo } from '@/types/enum';
 import { generateRandomString } from '@/utils/pkce';
 
 export function Finish() {
+  const { t } = useTranslation('common');
   const [items, setItems] = useState<ClientInfo[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const [userLabel, setUserLabel] = useState<string>('已登录');
+  const [userLabel, setUserLabel] = useState<string>(
+    t('session.loggedIn', '已登录')
+  );
   const fromNormalFlow =
     !!(location.state as any)?.fromNormalFlow ||
     new URLSearchParams(window.location.search).get('flow') === 'normal';
@@ -42,7 +46,9 @@ export function Finish() {
             }
           } catch (error) {
             setErrorMsg(
-              error instanceof Error ? error.message : '进入系统请求失败'
+              error instanceof Error
+                ? error.message
+                : t('enter.systemFailed', '进入系统请求失败')
             );
           } finally {
             setLoading(false);
@@ -50,7 +56,7 @@ export function Finish() {
         })();
       }
     }
-  }, [fromNormalFlow, location.state]);
+  }, [fromNormalFlow, location.state, t]);
 
   useEffect(() => {
     (async () => {
@@ -59,11 +65,13 @@ export function Finish() {
         setItems(Array.isArray(data) ? data : []);
       } catch (error) {
         setErrorMsg(
-          error instanceof Error ? error.message : '获取系统列表失败'
+          error instanceof Error
+            ? error.message
+            : t('enter.getSystemListFailed', '获取系统列表失败')
         );
       }
     })();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     (async () => {
@@ -81,7 +89,6 @@ export function Finish() {
   const handleEnter = async (item: ClientInfo) => {
     if (!item.default_redirect_uri) return;
 
-    // 如果配置了专门的登录入口，则跳转到该入口以保证 PKCE 流程完整
     const clientId = item.client_id;
     if (clientId && CLIENT_LOGIN_ENDPOINTS[clientId]) {
       const endpoint = CLIENT_LOGIN_ENDPOINTS[clientId];
@@ -105,7 +112,8 @@ export function Finish() {
       const code = res?.code;
       const uri = res?.redirect_uri;
       const st = res?.state;
-      if (!code || !uri) throw new Error('创建会话失败');
+      if (!code || !uri)
+        throw new Error(t('session.createFailed', '创建会话失败'));
       const url =
         uri +
         `?code=${encodeURIComponent(code)}` +
@@ -113,7 +121,11 @@ export function Finish() {
       window.location.replace(url);
       return;
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : '进入系统失败，请重试');
+      setErrorMsg(
+        e instanceof Error
+          ? e.message
+          : t('enter.failed', '进入系统失败，请重试')
+      );
     } finally {
       setLoading(false);
     }
@@ -121,7 +133,7 @@ export function Finish() {
 
   const handleLogout = async () => {
     Modal.confirm({
-      title: '确认退出登录？',
+      title: t('logout.title', '确认退出登录？'),
       onOk: async () => {
         try {
           await commonAuthApi.logout();
@@ -129,7 +141,9 @@ export function Finish() {
           navigate('/login');
         } catch (error) {
           setErrorMsg(
-            error instanceof Error ? error.message : '退出失败，请重试'
+            error instanceof Error
+              ? error.message
+              : t('logout.failed', '退出失败，请重试')
           );
         }
       },
@@ -143,12 +157,12 @@ export function Finish() {
         <Space>
           <Typography.Text>{userLabel}</Typography.Text>
           <Button type='link' onClick={handleLogout}>
-            退出登录
+            {t('logout.submit', '退出登录')}
           </Button>
         </Space>
       </div>
       <Typography.Title level={3} style={{ textAlign: 'center' }}>
-        已登录到统一身份认证
+        {t('session.loggedInUnified', '已登录到统一身份认证')}
       </Typography.Title>
       {errorMsg && (
         <Alert
@@ -161,13 +175,13 @@ export function Finish() {
       {!fromNormalFlow && fromGuard && (
         <Alert
           type='info'
-          message='您已登录，可直接选择系统进入'
+          message={t('login.alreadyLoggedIn', '您已登录，可直接选择系统进入')}
           showIcon
           style={{ marginBottom: 16 }}
         />
       )}
       <Typography.Paragraph style={{ textAlign: 'center' }}>
-        选择要进入的系统
+        {t('enter.title', '选择要进入的系统')}
       </Typography.Paragraph>
       <Space direction='vertical' style={{ width: '100%' }} size='middle'>
         {items.map(item => (
@@ -188,7 +202,7 @@ export function Finish() {
                 loading={loading}
                 onClick={() => handleEnter(item)}
               >
-                进入
+                {t('enter.submit', '进入')}
               </Button>
             </div>
           </Card>
