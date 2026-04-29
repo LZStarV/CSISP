@@ -1,6 +1,6 @@
 <template>
-  <a-card class="announcement-content">
-    <template #title>
+  <n-card class="announcement-content">
+    <template #header>
       <h2>{{ announcement.title }}</h2>
     </template>
     <div class="announcement-meta">
@@ -8,7 +8,7 @@
       <span>发布时间：{{ formatDate(announcement.createdAt) }}</span>
     </div>
     <div class="announcement-body">{{ announcement.content }}</div>
-  </a-card>
+  </n-card>
 </template>
 
 <script setup lang="ts">

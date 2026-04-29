@@ -1,8 +1,6 @@
 ---
-
 name: 'csisp-fe-sop'
 description: 'CSISP 前端 + BFF 开发 SOP。Invoke when developing frontend features (Portal, Idp Client, etc.) or BFF interfaces.'
-
 ---
 
 # CSISP 前端 + BFF 开发 SOP

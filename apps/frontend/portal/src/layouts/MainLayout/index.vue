@@ -1,31 +1,41 @@
 <template>
-  <a-layout class="main-layout">
-    <a-layout-header>
-      <Header />
-    </a-layout-header>
-    <a-layout>
-      <a-layout-sider width="200" theme="light">
+  <n-layout style="height: 100vh">
+    <n-layout>
+      <n-layout-header style="height: 64px; overflow: hidden" bordered>
+        <Header />
+      </n-layout-header>
+    </n-layout>
+    <n-layout position="absolute" style="top: 64px" has-sider>
+      <n-layout-sider
+        bordered
+        :collapsed="mainLayoutStore.siderCollapsed"
+        :width="200"
+        :collapsed-width="64"
+        show-trigger="arrow-circle"
+        collapse-mode="width"
+        @update:collapsed="mainLayoutStore.setSiderCollapsed"
+      >
         <Sider />
-      </a-layout-sider>
-      <a-layout-content class="main-content">
+      </n-layout-sider>
+      <n-layout-content class="main-content">
         <router-view />
-      </a-layout-content>
-    </a-layout>
-  </a-layout>
+      </n-layout-content>
+    </n-layout>
+  </n-layout>
 </template>
 
 <script setup lang="ts">
 import Header from './Header.vue';
 import Sider from './Sider.vue';
+import { useMainLayoutStore } from './store';
+
+const mainLayoutStore = useMainLayoutStore();
 </script>
 
 <style lang="scss" scoped>
-.main-layout {
-  min-height: 100vh;
-}
-
 .main-content {
-  background: #f0f2f5;
+  overflow: hidden;
   padding: 24px;
+  background: #f5f7f9;
 }
 </style>

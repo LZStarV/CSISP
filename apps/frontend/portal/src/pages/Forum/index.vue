@@ -1,35 +1,38 @@
 <template>
   <div class="forum-page">
-    <a-page-header :title="t('forum.title', '帖子广场')" />
-    <a-spin :spinning="loading">
-      <a-list
-        class="post-list"
-        :data-source="posts"
-        :pagination="{
-          current: page,
-          pageSize: pageSize,
-          total: total,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total: number) =>
-            t('common.total', { total }, '共 {total} 条'),
-          onChange: handlePageChange,
-        }"
-      >
-        <template #renderItem="{ item }">
-          <a-list-item>
+    <n-page-header :title="t('forum.title', '帖子广场')" />
+    <n-spin :show="loading">
+      <n-list class="post-list" hoverable clickable>
+        <template #default>
+          <n-list-item v-for="item in posts" :key="item.id">
             <PostCard :post="item" @click="navigateToDetail(item.id)" />
-          </a-list-item>
+          </n-list-item>
         </template>
-      </a-list>
-    </a-spin>
+        <template #footer>
+          <n-pagination
+            v-model:page="page"
+            v-model:page-size="pageSize"
+            :item-count="total"
+            :page-sizes="[10, 20, 50]"
+            show-size-picker
+            show-quick-jumper
+          >
+            <template #prefix="{ itemCount }">
+              {{
+                t('common.total', { total: itemCount }, `共 ${itemCount} 条`)
+              }}
+            </template>
+          </n-pagination>
+        </template>
+      </n-list>
+    </n-spin>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Post } from '@csisp/contracts';
-import { message } from 'ant-design-vue';
-import { ref, onMounted } from 'vue';
+import { useMessage } from 'naive-ui';
+import { ref, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -38,6 +41,7 @@ import PostCard from './components/PostCard.vue';
 import { forumApi } from '@/api/portal/forum';
 
 const router = useRouter();
+const message = useMessage();
 const { t } = useI18n();
 
 const loading = ref(false);
@@ -62,11 +66,14 @@ const fetchPosts = async () => {
   }
 };
 
-const handlePageChange = (current: number, size: number) => {
-  page.value = current;
-  pageSize.value = size;
+watch(page, () => {
   fetchPosts();
-};
+});
+
+watch(pageSize, () => {
+  page.value = 1;
+  fetchPosts();
+});
 
 const navigateToDetail = (postId: string) => {
   router.push(`/Forum/${postId}`);

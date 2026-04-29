@@ -1,19 +1,14 @@
 <template>
-  <a-card class="post-card" hoverable @click="$emit('click')">
-    <a-card-meta :title="post.title">
-      <template #description>
-        <div class="post-description">
-          <div class="post-meta">
-            <span>作者：{{ post.authorName }}</span>
-            <span>发布时间：{{ formatDate(post.createdAt) }}</span>
-          </div>
-          <div class="post-excerpt">
-            {{ post.content.substring(0, 150) }}...
-          </div>
-        </div>
-      </template>
-    </a-card-meta>
-  </a-card>
+  <n-card class="post-card" hoverable @click="$emit('click')">
+    <template #header>
+      <div style="font-weight: 500">{{ post.title }}</div>
+      <div class="post-meta">
+        <span>作者：{{ post.authorName }}</span>
+        <span>发布时间：{{ formatDate(post.createdAt) }}</span>
+      </div>
+    </template>
+    <div class="post-excerpt">{{ post.content.substring(0, 150) }}...</div>
+  </n-card>
 </template>
 
 <script setup lang="ts">

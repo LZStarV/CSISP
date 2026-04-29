@@ -1,6 +1,6 @@
 <template>
-  <a-card class="post-content">
-    <template #title>
+  <n-card class="post-content">
+    <template #header>
       <h2>{{ post.title }}</h2>
     </template>
     <div class="post-meta">
@@ -8,7 +8,7 @@
       <span>发布时间：{{ formatDate(post.createdAt) }}</span>
     </div>
     <div class="post-body">{{ post.content }}</div>
-  </a-card>
+  </n-card>
 </template>
 
 <script setup lang="ts">

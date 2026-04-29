@@ -1,66 +1,70 @@
 <template>
   <div class="forum-detail-page">
-    <a-page-header :title="post?.title" @back="navigateBack">
-      <template #breadcrumb>
-        <a-breadcrumb>
-          <a-breadcrumb-item>
+    <n-page-header :title="post?.title" @back="navigateBack">
+      <template #extra>
+        <n-breadcrumb>
+          <n-breadcrumb-item>
             <router-link to="/Forum">{{
               t('forum.title', '帖子广场')
             }}</router-link>
-          </a-breadcrumb-item>
-          <a-breadcrumb-item>{{
+          </n-breadcrumb-item>
+          <n-breadcrumb-item>{{
             t('forum.detail.title', '帖子详情')
-          }}</a-breadcrumb-item>
-        </a-breadcrumb>
+          }}</n-breadcrumb-item>
+        </n-breadcrumb>
       </template>
-    </a-page-header>
-    <a-spin :spinning="loading">
+    </n-page-header>
+
+    <n-spin :show="loading">
       <div v-if="post" class="post-detail">
         <PostContent :post="post" />
+
         <div class="reply-section">
-          <a-divider orientation="left">{{
+          <n-divider title-placement="left">{{
             t('forum.detail.replyList', '回复列表')
-          }}</a-divider>
+          }}</n-divider>
           <ReplyList :replies="replies" />
-          <a-card
+
+          <n-card
             class="reply-input-section"
             :title="t('forum.detail.postReply', '发表回复')"
           >
-            <a-form :model="replyForm" layout="vertical">
-              <a-form-item
+            <n-form
+              ref="formRef"
+              :model="replyForm"
+              :rules="formRules"
+              label-placement="top"
+            >
+              <n-form-item
                 :label="t('forum.detail.replyContent', '回复内容')"
-                name="content"
-                :rules="[
-                  {
-                    required: true,
-                    message: t('forum.detail.fillContent', '请填写回复内容'),
-                  },
-                ]"
+                path="content"
               >
-                <a-textarea
+                <n-input
                   v-model:value="replyForm.content"
+                  type="textarea"
                   :placeholder="
                     t('forum.detail.replyContentPlaceholder', '请输入回复内容')
                   "
                   :rows="4"
                 />
-              </a-form-item>
-              <a-form-item>
-                <a-button type="primary" @click="handleCreateReply">{{
+              </n-form-item>
+              <n-form-item>
+                <n-button type="primary" @click="handleCreateReply">{{
                   t('forum.detail.postReply', '发表回复')
-                }}</a-button>
-              </a-form-item>
-            </a-form>
-          </a-card>
+                }}</n-button>
+              </n-form-item>
+            </n-form>
+          </n-card>
         </div>
       </div>
-    </a-spin>
+    </n-spin>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Post, Reply } from '@csisp/contracts';
-import { message } from 'ant-design-vue';
+import { useMessage } from 'naive-ui';
+import type { FormInst, FormRules } from 'naive-ui';
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -72,7 +76,10 @@ import PostContent from '@/components/Forum/PostContent.vue';
 
 const route = useRoute();
 const router = useRouter();
+const message = useMessage();
 const { t } = useI18n();
+
+const formRef = ref<FormInst | null>(null);
 
 const loading = ref(false);
 const post = ref<Post | null>(null);
@@ -81,6 +88,16 @@ const replies = ref<Reply[]>([]);
 const replyForm = ref({
   content: '',
 });
+
+const formRules: FormRules = {
+  content: [
+    {
+      required: true,
+      message: t('forum.detail.fillContent', '请填写回复内容'),
+      trigger: ['input', 'blur'],
+    },
+  ],
+};
 
 const fetchPostDetail = async () => {
   const postId = route.params.postId as string;
@@ -102,10 +119,13 @@ const navigateBack = () => {
 
 const handleCreateReply = async () => {
   const postId = route.params.postId as string;
-  if (!replyForm.value.content) {
-    message.error(t('forum.detail.fillContent', '请填写回复内容'));
+
+  try {
+    await formRef.value?.validate();
+  } catch {
     return;
   }
+
   try {
     await forumApi.createReply({
       postId,

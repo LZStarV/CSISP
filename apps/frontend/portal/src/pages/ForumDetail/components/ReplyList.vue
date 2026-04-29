@@ -1,21 +1,24 @@
 <template>
-  <a-list class="reply-list" :data-source="replies">
-    <template #renderItem="{ item }">
-      <a-list-item class="reply-item">
-        <a-comment
-          :author="item.authorName"
-          :datetime="formatDate(item.createdAt)"
-        >
-          <template #content>
-            <p>{{ item.content }}</p>
-          </template>
-        </a-comment>
-      </a-list-item>
+  <n-list class="reply-list">
+    <template #default>
+      <n-list-item
+        v-for="(item, index) in replies"
+        :key="index"
+        class="reply-item"
+      >
+        <div class="comment-wrapper">
+          <div class="comment-header">
+            <span class="comment-author">{{ item.authorName }}</span>
+            <span class="comment-time">{{ formatDate(item.createdAt) }}</span>
+          </div>
+          <div class="comment-content">{{ item.content }}</div>
+        </div>
+      </n-list-item>
     </template>
     <template #footer v-if="!replies || replies.length === 0">
-      <a-empty :description="t('forum.reply.empty', '暂无回复')" />
+      <n-empty :description="t('forum.reply.empty', '暂无回复')" />
     </template>
-  </a-list>
+  </n-list>
 </template>
 
 <script setup lang="ts">
@@ -33,17 +36,35 @@ const formatDate = (dateStr: string) => {
 };
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .reply-list {
   margin-top: 16px;
 }
 
 .reply-item {
-  border-bottom: 1px solid #f0f0f0;
-  padding: 16px 0;
+  padding: 12px 0;
 }
 
-.reply-item:last-child {
-  border-bottom: none;
+.comment-wrapper {
+  width: 100%;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.comment-author {
+  font-weight: 500;
+}
+
+.comment-time {
+  color: #999;
+  font-size: 12px;
+}
+
+.comment-content {
+  line-height: 1.6;
 }
 </style>
