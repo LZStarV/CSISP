@@ -124,7 +124,7 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .forum-detail-page {
   background: white;
   padding: 24px;

@@ -23,7 +23,7 @@ const formatDate = (dateStr: string) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .post-meta {
   color: #8c8c8c;
   font-size: 14px;

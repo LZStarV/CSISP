@@ -12,7 +12,7 @@
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total: number) =>
-            t('common.total', { total }, '共 {total} 条'),
+            t('common.total', { total }, `共 ${total} 条`),
           onChange: handlePageChange,
         }"
       >
@@ -71,7 +71,7 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .announcement-page {
   background: white;
   padding: 24px;

@@ -16,7 +16,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher/index.vue';
 const { t } = useI18n();
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .header-content {
   display: flex;
   align-items: center;

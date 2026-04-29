@@ -1,6 +1,6 @@
 <template>
   <a-layout class="main-layout">
-    <a-layout-header style="background: #fff; color: #333">
+    <a-layout-header>
       <Header />
     </a-layout-header>
     <a-layout>
@@ -19,7 +19,7 @@ import Header from './Header.vue';
 import Sider from './Sider.vue';
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .main-layout {
   min-height: 100vh;
 }

@@ -33,7 +33,7 @@ const formatDate = (dateStr: string) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .reply-list {
   margin-top: 16px;
 }

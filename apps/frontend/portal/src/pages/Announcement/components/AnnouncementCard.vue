@@ -39,7 +39,7 @@ const formatDate = (dateStr: string) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .announcement-card {
   width: 100%;
 }

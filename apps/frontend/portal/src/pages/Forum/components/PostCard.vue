@@ -32,7 +32,7 @@ const formatDate = (dateStr: string) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .post-card {
   cursor: pointer;
   width: 100%;
