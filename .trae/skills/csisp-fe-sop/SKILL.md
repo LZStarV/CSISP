@@ -1,6 +1,8 @@
 ---
+
 name: 'csisp-fe-sop'
 description: 'CSISP 前端 + BFF 开发 SOP。Invoke when developing frontend features (Portal, Idp Client, etc.) or BFF interfaces.'
+
 ---
 
 # CSISP 前端 + BFF 开发 SOP
@@ -21,19 +23,99 @@ description: 'CSISP 前端 + BFF 开发 SOP。Invoke when developing frontend fe
 
 ---
 
+## 术语表
+
+| 术语             | 全称                       | 解释                                                     |
+| ---------------- | -------------------------- | -------------------------------------------------------- |
+| BFF              | Backend-for-Frontend       | 前端代理层，负责协议转换、会话透传、统一 API 出口        |
+| Contracts        | API 契约定义               | 前端与 BFF 之间的类型安全接口定义层，单一数据源          |
+| Domain           | 业务域                     | 按功能划分的业务模块（如 `auth`、`demo`、`example`）     |
+| Action           | 操作                       | RPC 风格的接口动作，使用 snake-case 命名                 |
+| Path Prefix      | 路径前缀                   | 接口路径的统一前缀常量                                   |
+| Schema           | 数据模式                   | Zod 定义的数据验证规则，用于运行时校验和类型推导         |
+| Frontend-app     | 前端应用                   | 指代具体的前端项目（如 `portal`、`idp-client`、`admin`） |
+| Controller       | 控制器                     | BFF 层处理 HTTP 请求的 NestJS 组件                       |
+| Module           | 模块                       | NestJS 的模块系统，用于组织代码结构                      |
+| createDomainCall | 域名调用工厂函数           | 用于创建类型安全的 API 调用函数的工厂函数                |
+| RPC 风格         | Remote Procedure Call 风格 | 使用 `POST /domain/action` 格式的 REST 接口设计          |
+| 页面级组件       | Page-level Component       | 仅单个页面使用的组件，位于 `pages/{Domain}/components/`  |
+| 公共组件         | Shared Component           | 项目内复用的组件，位于 `src/components/{Domain}/`        |
+| 消息插值         | Message Interpolation      | 翻译文案中使用 `{variable}` 语法动态替换变量             |
+| 类型生成         | Type Generation            | 通过 `pnpm build` 从 Schema 自动生成 TypeScript 类型     |
+| \*Params         | Params 类型                | 从 Body Schema 生成的请求参数类型                        |
+| \*Result         | Result 类型                | 从 Response Schema 生成的响应结果类型                    |
+| \*Action         | Action 类型                | 从 Routes 生成的 Action 常量类型                         |
+
+---
+
+## 整体流程
+
+```mermaid
+flowchart TD
+  Start([开始]) --> Step1[步骤 1: 规划阶段]
+
+  Step1 --> P1[1.1 前端页面规划]
+  Step1 --> P2[1.2 BFF 接口设计]
+  Step1 --> P3{1.3 是否需要翻译}
+  P3 -->|是| P3a[规划翻译文案]
+  P3 -->|否| Step2
+
+  P3a --> Step2[步骤 2: Contracts 定义]
+  Step2 --> C1[2.1 定义 Path Prefix]
+  Step2 --> C2[2.2 定义 Schema<br/>Body + Response]
+  Step2 --> C3[2.3 定义 Routes]
+  Step2 --> C4[⚡ 运行 pnpm build<br/>生成类型文件]
+
+  C4 --> Step3[步骤 3: BFF 开发]
+  Step3 --> D1[3.1 创建目录结构]
+  Step3 --> D2[3.2 实现 Controller<br/>使用 @TsRest 装饰器]
+  Step3 --> D3[3.3 注册 Module]
+
+  D3 --> Step4[步骤 4: 前端开发]
+  Step4 --> E1[4.1 确认 UI 组件库]
+  Step4 --> E2[4.2 创建目录结构]
+  Step4 --> E3[4.6 API 调用封装<br/>使用 createDomainCall]
+  Step4 --> E4{4.3-4.5 开发组件}
+  E4 --> E4a[公共组件]
+  E4 --> E4b[页面组件]
+  Step4 --> E5[4.7 配置路由与菜单]
+  Step4 --> E6{4.8 是否需要翻译}
+  E6 -->|是| E6a[配置 i18n]
+  E6 -->|否| Step5
+
+  E6a --> Step5[步骤 5: 验证与检查]
+  Step5 --> V1{5.1 构建测试}
+  V1 -->|失败| Fix[修复问题]
+  V1 -->|成功| V2{5.2 类型检查}
+  V2 -->|失败| Fix
+  V2 -->|成功| V3{5.3 Lint 检查}
+  V3 -->|失败| Fix
+  V3 -->|成功| V4[5.4 格式化]
+
+  V4 --> Done([完成])
+  Fix --> Step5
+
+  style C4 fill:#ffeb3b
+  style V1 fill:#ffcdd2
+  style V2 fill:#ffcdd2
+  style V3 fill:#ffcdd2
+```
+
+---
+
 ## 1. 规划阶段
 
 ### 1.1 前端页面规划
 
-明确页面结构、路由设计和组件划分：
+明确页面结构、路由设计和组件划分。
 
 **页面树示例**：
 
 ```
-/Forum              # 帖子广场
-/Forum/:postId      # 帖子详情
-/Announcement       # 公告列表
-/Announcement/:id   # 公告详情
+/Demo              # Demo 列表页
+/Demo/:id          # Demo 详情页
+/Example           # Example 列表页
+/Example/:id       # Example 详情页
 ```
 
 **组件划分原则**：
@@ -43,31 +125,42 @@ description: 'CSISP 前端 + BFF 开发 SOP。Invoke when developing frontend fe
 | 页面级组件 | `pages/{Domain}/components/` | 仅该页面使用 |
 | 公共组件   | `src/components/{Domain}/`   | 项目内复用   |
 
+**检查清单**：
+
+- [ ] 已明确所有页面路由路径
+- [ ] 已识别页面级组件和公共组件
+- [ ] 已确认组件复用范围
+
 ### 1.2 BFF 接口设计
 
-设计 BFF HTTP API 契约：
+设计 BFF HTTP API 契约。
 
 **路径格式**：`POST /api/{frontend-app}/{domain}/{action}`
 
 **示例**：
 
 ```
-POST /api/portal/forum/createPost
-POST /api/portal/forum/getPostDetail
-POST /api/portal/announce/getAnnouncementList
+POST /api/portal/demo/createDemo
+POST /api/portal/demo/getDemoDetail
+POST /api/portal/example/getExampleList
 ```
+
+**设计原则**：
+
+- 遵循 RPC 风格，使用 `domain/action` 格式
+- Action 命名使用 snake-case
+- 一个 Action 对应一个明确的业务操作
 
 ### 1.3 翻译文案规划
 
-如果需求涉及新增或修改用户可见文案，需要提前规划翻译工作：
+如果需求涉及新增或修改用户可见文案，需要提前规划翻译工作。
 
 **判断标准**：页面中任何对用户展示的中英文文字都需要翻译，包括但不限于：
 
-- 表单标签 (label)、占位符 (placeholder)
-- 按钮文字 (button text)
-- 提示信息 (message, notification)
-- 错误信息 (error message)
-- 标题、副标题 (title, subtitle)
+- 表单标签、占位符
+- 按钮文字
+- 提示信息、错误信息
+- 标题、副标题
 
 **翻译规划步骤**：
 
@@ -75,15 +168,12 @@ POST /api/portal/announce/getAnnouncementList
    - `@csisp/idp-client` 相关 → `idp-client.json`
    - `@csisp/portal` 相关 → `portal.json`
    - 通用文案 → `common.json`
-
 2. **命名规范**：遵循 `页面.功能.具体描述` 格式
-
    ```
-   login.email.label        → 登录页-邮箱-标签
-   signup.submit            → 注册页-提交按钮
-   forgot.init.title        → 忘记密码-初始化-标题
+   demo.title.label        → Demo 页-标题-标签
+   example.submit          → Example 页-提交按钮
+   example.detail.title    → Example 详情-标题
    ```
-
 3. **生成翻译模板**：运行以下命令生成本地翻译文件
 
    ```bash
@@ -95,8 +185,6 @@ POST /api/portal/announce/getAnnouncementList
    ```
 
 4. **上传翻译平台**：将生成的 JSON 文件上传到 SimpleLocalize
-   - 手动上传或使用 CLI 工具
-
 5. **拉取翻译**：翻译完成后执行
    ```bash
    pnpm -F @csisp/i18n pull:idp-client
@@ -124,11 +212,12 @@ packages/contracts/src/
 
 ```typescript
 export const PATH_PREFIX = {
-  // 新增业务域前缀（以 portal 前端应用为例）
-  PORTAL_FORUM: '/api/portal/forum',
-  PORTAL_ANNOUNCE: '/api/portal/announce',
+  PORTAL_DEMO: '/api/portal/demo',
+  PORTAL_EXAMPLE: '/api/portal/example',
 } as const;
 ```
+
+**关键点**：使用 `as const` 确保类型推导。
 
 ### 2.3 Contract 定义
 
@@ -141,26 +230,23 @@ import { buildActionMapFromRoutes } from '../constants/action';
 import { HTTP_METHOD } from '../constants/http';
 import {
   PORTAL_PATH_PREFIX,
-  PORTAL_FORUM_PATH_PREFIX,
+  PORTAL_DEMO_PATH_PREFIX,
 } from '../constants/path-prefix';
 
 const c = initContract();
 
-// 注意：所有需要在 BFF/前端 中使用的 schema 都需要 export
-export const createPostBodySchema = z.object({
+export const createDemoBodySchema = z.object({
   title: z.string().min(1).max(100),
   content: z.string().min(1),
 });
 
-export const createPostResponseSchema = z.object({
-  post: z
+export const createDemoResponseSchema = z.object({
+  demo: z
     .object({
       id: z.string(),
       title: z.string(),
       content: z.string(),
       authorId: z.string(),
-      authorName: z.string(),
-      postType: z.string(),
       createdAt: z.string(),
       updatedAt: z.string(),
     })
@@ -169,40 +255,51 @@ export const createPostResponseSchema = z.object({
   message: z.string(),
 });
 
-const portalForumRoutes = {
-  createPost: {
+const portalDemoRoutes = {
+  createDemo: {
     method: HTTP_METHOD.POST,
-    path: PORTAL_FORUM_PATH_PREFIX + '/createPost',
-    body: createPostBodySchema,
+    path: PORTAL_DEMO_PATH_PREFIX + '/createDemo',
+    body: createDemoBodySchema,
     responses: {
-      200: createPostResponseSchema,
+      200: createDemoResponseSchema,
     },
-    summary: '创建帖子',
+    summary: '创建 Demo',
   },
-  // ... 其他路由
+  getDemoDetail: {
+    method: HTTP_METHOD.POST,
+    path: PORTAL_DEMO_PATH_PREFIX + '/getDemoDetail',
+    body: z.object({ demoId: z.string() }),
+    responses: {
+      200: createDemoResponseSchema,
+    },
+    summary: '获取 Demo 详情',
+  },
 } as const satisfies Parameters<typeof c.router>[0];
 
-export const portalForumContract = c.router(portalForumRoutes, {
+export const portalDemoContract = c.router(portalDemoRoutes, {
   pathPrefix: PORTAL_PATH_PREFIX,
   strictStatusCodes: true,
 });
 
-export const PORTAL_FORUM_ACTION = buildActionMapFromRoutes(portalForumRoutes);
+export const PORTAL_DEMO_ACTION = buildActionMapFromRoutes(portalDemoRoutes);
 ```
 
 **导出**：`packages/contracts/src/index.ts`
 
 ```typescript
-export * from './forum/forum.contract';
-export * from './announce/announce.contract';
+export * from './demo/demo.contract';
+export * from './example/example.contract';
 export * from './constants/path-prefix';
 ```
 
-**重要**：类型文件会通过 `pnpm build` 自动生成到 `{domain}/types/` 目录下，不需要手动写类型。
+**类型生成说明**：
+类型文件会通过 `pnpm build` 自动生成，不需要手动写类型。
 
-- Body Schema 会生成 `*Params` 类型
-- Response Schema 会生成 `*Result` 类型
-- ACTION 常量会生成对应的 `*Action` 类型
+| Schema 类型     | 生成的类型 | 使用场景                |
+| --------------- | ---------- | ----------------------- |
+| Body Schema     | `*Params`  | BFF Controller 参数类型 |
+| Response Schema | `*Result`  | 前端接收的响应类型      |
+| Routes          | `*Action`  | Action 常量类型         |
 
 ---
 
@@ -229,61 +326,32 @@ apps/bff/src/
 ```typescript
 import { Controller, Post, Body, Logger } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { forumContract } from '@csisp/contracts';
+import { demoContract } from '@csisp/contracts';
 import { TsRest } from '@ts-rest/nest';
 
-@Controller('api/portal/forum')
-@ApiTags('Portal - Forum')
-export class ForumController {
-  private readonly logger = new Logger(ForumController.name);
+@Controller('api/portal/demo')
+@ApiTags('Portal - Demo')
+export class DemoController {
+  private readonly logger = new Logger(DemoController.name);
 
-  @Post('createPost')
-  @TsRest(forumContract.createPost)
-  async createPost(
-    @Body() body: { title: string; content: string; type?: string }
-  ) {
-    this.logger.log('Creating post', body);
+  @Post('createDemo')
+  @TsRest(demoContract.createDemo)
+  async createDemo(@Body() body: z.infer<typeof createDemoBodySchema>) {
+    this.logger.log('Creating demo', body);
 
-    // TODO: 调用后端服务 SDK
-    // const result = await this.forumClient.createPost(body).toPromise();
+    const result = await this.demoClient.createDemo(body).toPromise();
 
-    return {
-      status: 200,
-      body: {
-        id: '1',
-        title: body.title,
-        content: body.content,
-        authorId: 'user-1',
-        type: body.type || 'default',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    };
-  }
-
-  @Post('getPostDetail')
-  @TsRest(forumContract.getPostDetail)
-  async getPostDetail(@Body() body: { postId: string }) {
-    this.logger.log('Getting post detail', body);
-
-    // TODO: 调用后端服务 SDK
-    // const result = await this.forumClient.getPostDetail(body).toPromise();
-
-    return {
-      status: 200,
-      body: {
-        id: body.postId,
-        title: '示例帖子',
-        content: '示例内容',
-        authorId: 'user-1',
-        type: 'default',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    };
+    return { status: 200, body: result };
   }
 }
 ```
+
+**Controller 实现要点**：
+
+- 使用 `@TsRest()` 装饰器绑定 Contract
+- 参数类型从 Contract 推导，不需要手动定义
+- 返回值必须匹配 Contract 定义的 Response Schema
+- 使用 Logger 记录关键操作
 
 ### 3.3 Module 注册
 
@@ -291,29 +359,32 @@ export class ForumController {
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { {Domain}Controller } from './{domain}.controller';
+import { DemoController } from './demo.controller';
 
 @Module({
-  controllers: [{Domain}Controller],
+  controllers: [DemoController],
   exports: [],
 })
-export class {Domain}Module {}
+export class DemoModule {}
 ```
 
 **注册到主模块**：`apps/bff/src/app.module.ts`
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { {FrontendApp}Module } from './modules/{frontend-app}/{frontend-app}.module';
+import { PortalModule } from './modules/portal/portal.module';
 
 @Module({
-  imports: [
-    // ... 其他模块
-    {FrontendApp}Module,
-  ],
+  imports: [PortalModule],
 })
 export class AppModule {}
 ```
+
+**检查清单**：
+
+- [ ] 已创建 `{Domain}Module`
+- [ ] 已将 Controller 添加到 `controllers` 数组
+- [ ] 已在 `AppModule` 中导入模块
 
 ---
 
@@ -321,20 +392,18 @@ export class AppModule {}
 
 ### 4.1 组件库确认
 
-在开始开发前，先确认当前项目使用的 UI 组件库：
+在开始开发前，先确认当前项目使用的 UI 组件库。
 
 | 前端应用   | UI 组件库                       |
 | ---------- | ------------------------------- |
 | portal     | Ant Design Vue (ant-design-vue) |
 | idp-client | Ant Design (antd)               |
 
-开发时应尽量使用组件库提供的组件，避免重复造轮子。常用组件包括：
+**组件使用原则**：
 
-- Layout（Header/Sider/Content）：用于页面布局
-- Card：用于内容展示
-- Button、Form、Input、Modal、Message：用于交互和提示
-- Menu：用于导航菜单
-- List、Pagination：用于列表展示和分页
+- 优先使用组件库提供的组件
+- 避免重复造轮子
+- 自定义组件需要封装到 `src/components/{Domain}/`
 
 ### 4.2 目录结构
 
@@ -343,8 +412,8 @@ apps/frontend/{frontend-app}/src/
 ├── api/
 │   ├── caller.ts
 │   ├── index.ts
-│   ├── forum.ts
-│   └── announce.ts
+│   ├── demo.ts
+│   └── example.ts
 ├── components/
 │   └── {Domain}/
 │       └── {Component}.vue
@@ -359,345 +428,94 @@ apps/frontend/{frontend-app}/src/
     └── index.ts
 ```
 
+**目录用途说明**：
+
+| 目录          | 用途         |
+| ------------- | ------------ |
+| `api/`        | API 调用封装 |
+| `components/` | 公共组件     |
+| `pages/`      | 页面级组件   |
+| `layouts/`    | 布局组件     |
+| `router/`     | 路由配置     |
+
 ### 4.3 Layout 组件
 
-**文件**：`apps/frontend/{frontend-app}/src/layouts/{App}Layout.vue`
+**要点说明**：
 
-```vue
-<template>
-  <div class="app-layout">
-    <Header />
-    <div class="app-body">
-      <Sider :menu-items="menuItems" />
-      <main class="content">
-        <router-view />
-      </main>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-import Header from '@/components/Layout/Header.vue';
-import Sider from '@/components/Layout/Sider.vue';
-
-const menuItems = [
-  { title: '论坛', path: '/Forum' },
-  { title: '公告', path: '/Announcement' },
-];
-</script>
-
-<style scoped>
-.app-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
-
-.app-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-.content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-}
-</style>
-```
+- 使用 `<router-view />` 渲染子路由
+- 通过 props 传递菜单配置
+- 响应式布局使用 flex 或 grid
 
 ### 4.4 公共组件
 
-**文件**：`apps/frontend/{frontend-app}/src/components/{Domain}/{Component}.vue`
+**要点说明**：
 
-```vue
-<template>
-  <div class="post-content">
-    <h2>{{ post.title }}</h2>
-    <div class="meta">
-      <span>作者：{{ post.authorId }}</span>
-      <span>发布时间：{{ formatDate(post.createdAt) }}</span>
-    </div>
-    <div class="content" v-html="post.content"></div>
-  </div>
-</template>
-
-<script setup lang="ts">
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  authorId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-defineProps<{
-  post: Post;
-}>();
-
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString('zh-CN');
-};
-</script>
-
-<style scoped>
-.post-content {
-  padding: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-}
-
-.meta {
-  color: #666;
-  font-size: 14px;
-  margin-bottom: 16px;
-}
-
-.content {
-  line-height: 1.6;
-}
-</style>
-```
+- 使用 `defineProps` 定义输入
+- 使用 `defineEmits` 定义事件
+- 避免在组件内直接调用 API
+- 样式使用 scoped 避免污染
 
 ### 4.5 页面开发
 
-**文件**：`apps/frontend/{frontend-app}/src/pages/{Domain}/index.vue`
+**检查清单**：
 
-```vue
-<template>
-  <div class="forum-page">
-    <h1>帖子广场</h1>
-    <button @click="handleCreatePost">发帖</button>
-    <div class="post-list">
-      <PostCard
-        v-for="post in posts"
-        :key="post.id"
-        :post="post"
-        @click="navigateToDetail(post.id)"
-      />
-    </div>
-  </div>
-</template>
+- [ ] 已导入 API 调用函数
+- [ ] 已定义响应式状态
+- [ ] 已在 `onMounted` 中加载数据
+- [ ] 已处理加载状态和错误状态
+- [ ] 已配置路由跳转逻辑
 
-<script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { forumApi } from '@/api/forum';
-import PostCard from './components/PostCard.vue';
+**关键代码片段**：
 
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  authorId: string;
-  createdAt: string;
-}
-
-const router = useRouter();
-const posts = ref<Post[]>([]);
-
+```typescript
+// 数据加载
+const demos = ref<Demo[]>([]);
 onMounted(async () => {
-  const result = await forumApi.getPostFeed({ page: 1, pageSize: 20 });
-  posts.value = result;
+  demos.value = await demoApi.getDemoList({ page: 1 });
 });
 
-const navigateToDetail = (postId: string) => {
-  router.push(`/Forum/${postId}`);
-};
-
-const handleCreatePost = () => {
-  // TODO: 打开创建帖子对话框
-};
-</script>
-
-<style scoped>
-.forum-page {
-  padding: 20px;
-}
-
-.post-list {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-</style>
-```
-
-**页面级组件**：`apps/frontend/{frontend-app}/src/pages/{Domain}/components/{PageComponent}.vue`
-
-```vue
-<template>
-  <div class="post-card" @click="$emit('click')">
-    <h3>{{ post.title }}</h3>
-    <p>{{ post.content.substring(0, 100) }}...</p>
-    <div class="meta">
-      <span>{{ post.authorId }}</span>
-      <span>{{ formatDate(post.createdAt) }}</span>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  authorId: string;
-  createdAt: string;
-}
-
-defineProps<{
-  post: Post;
-}>();
-
-defineEmits<{
-  click: [];
-}>();
-
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString('zh-CN');
-};
-</script>
-
-<style scoped>
-.post-card {
-  padding: 16px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: box-shadow 0.2s;
-}
-
-.post-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.meta {
-  color: #666;
-  font-size: 12px;
-  margin-top: 8px;
-}
-</style>
+// 路由跳转
+const router = useRouter();
+router.push(`/Demo/${demoId}`);
 ```
 
 ### 4.6 API 调用封装
 
-**API 封装方式**：推荐使用对象封装方式（如 announce.ts），而非简单的 call 方式。
+**API 封装方式**：推荐使用对象封装方式，而非简单的 call 方式。
 
-**注意**：不要手动拼接 action 字符串，请使用 contracts 包中提供的常量（如 `PORTAL_FORUM_ACTION.CREATE_POST`）
+**注意**：不要手动拼接 action 字符串，请使用 contracts 包中提供的常量。
 
-**文件**：`apps/frontend/{frontend-app}/src/api/portal/forum.ts`
-
-```typescript
-import {
-  PORTAL_PATH_PREFIX,
-  type PortalForumAction,
-  type CreatePostParams,
-  type CreatePostResult,
-  type GetPostFeedParams,
-  type GetPostFeedResult,
-  type GetPostDetailParams,
-  type GetPostDetailResult,
-} from '@csisp/contracts';
-
-import { createDomainCall } from '../caller';
-
-const forumCall = createDomainCall<PortalForumAction>(
-  PORTAL_PATH_PREFIX,
-  'forum'
-);
-
-export const forumApi = {
-  async createPost(params: CreatePostParams): Promise<CreatePostResult> {
-    return await forumCall<CreatePostResult>('createPost', params);
-  },
-
-  async getPostFeed(params: GetPostFeedParams): Promise<GetPostFeedResult> {
-    return await forumCall<GetPostFeedResult>('getPostFeed', params);
-  },
-
-  async getPostDetail(
-    params: GetPostDetailParams
-  ): Promise<GetPostDetailResult> {
-    return await forumCall<GetPostDetailResult>('getPostDetail', params);
-  },
-};
-```
-
-**文件**：`apps/frontend/{frontend-app}/src/api/portal/announce.ts`
+**文件**：`apps/frontend/{frontend-app}/src/api/portal/demo.ts`
 
 ```typescript
 import {
   PORTAL_PATH_PREFIX,
-  type PortalAnnounceAction,
-  type GetAnnouncementListParams,
-  type GetAnnouncementListResult,
-  type CreateAnnouncementParams,
-  type CreateAnnouncementResult,
+  type PortalDemoAction,
+  type CreateDemoParams,
+  type CreateDemoResult,
+  type GetDemoListParams,
+  type GetDemoListResult,
+  type GetDemoDetailParams,
+  type GetDemoDetailResult,
 } from '@csisp/contracts';
 
 import { createDomainCall } from '../caller';
 
-const announceCall = createDomainCall<PortalAnnounceAction>(
-  PORTAL_PATH_PREFIX,
-  'announce'
-);
+const demoCall = createDomainCall<PortalDemoAction>(PORTAL_PATH_PREFIX, 'demo');
 
-export const announceApi = {
-  async getAnnouncementList(
-    params: GetAnnouncementListParams
-  ): Promise<GetAnnouncementListResult> {
-    return await announceCall<GetAnnouncementListResult>(
-      'getAnnouncementList',
-      params
-    );
+export const demoApi = {
+  async createDemo(params: CreateDemoParams): Promise<CreateDemoResult> {
+    return await demoCall<CreateDemoResult>('createDemo', params);
   },
 
-  async createAnnouncement(
-    params: CreateAnnouncementParams
-  ): Promise<CreateAnnouncementResult> {
-    return await announceCall<CreateAnnouncementResult>(
-      'createAnnouncement',
-      params
-    );
-  },
-};
-```
-
-**文件**：`apps/frontend/{frontend-app}/src/api/idp-client/auth.ts`（IDP 客户端示例）
-
-```typescript
-import {
-  IDP_CLIENT_PATH_PREFIX,
-  type IdpClientAuthAction,
-  type LoginParams,
-  type LoginResult,
-  type VerifyOtpParams,
-  type VerifyOtpResult,
-  type SendOtpResult,
-} from '@csisp/contracts';
-
-import { createDomainCall } from '../caller';
-
-const authCall = createDomainCall<IdpClientAuthAction>(
-  IDP_CLIENT_PATH_PREFIX,
-  'auth'
-);
-
-export const idpClientAuthApi = {
-  async login(params: LoginParams): Promise<LoginResult> {
-    return await authCall<LoginResult>('login', params);
+  async getDemoList(params: GetDemoListParams): Promise<GetDemoListResult> {
+    return await demoCall<GetDemoListResult>('getDemoList', params);
   },
 
-  async sendOtp(): Promise<SendOtpResult> {
-    return await authCall<SendOtpResult>('send-otp', {});
-  },
-
-  async verifyOtp(params: VerifyOtpParams): Promise<VerifyOtpResult> {
-    return await authCall<VerifyOtpResult>('verify-otp', params);
+  async getDemoDetail(
+    params: GetDemoDetailParams
+  ): Promise<GetDemoDetailResult> {
+    return await demoCall<GetDemoDetailResult>('getDemoDetail', params);
   },
 };
 ```
@@ -717,22 +535,17 @@ const routes = [
     children: [
       {
         path: '',
-        redirect: '/Forum',
+        redirect: '/Demo',
       },
       {
-        path: 'Forum',
-        name: 'Forum',
-        component: () => import('@/pages/Forum/index.vue'),
+        path: 'Demo',
+        name: 'Demo',
+        component: () => import('@/pages/Demo/index.vue'),
       },
       {
-        path: 'Forum/:postId',
-        name: 'ForumDetail',
-        component: () => import('@/pages/ForumDetail/index.vue'),
-      },
-      {
-        path: 'Announcement',
-        name: 'Announcement',
-        component: () => import('@/pages/Announcement/index.vue'),
+        path: 'Demo/:id',
+        name: 'DemoDetail',
+        component: () => import('@/pages/DemoDetail/index.vue'),
       },
     ],
   },
@@ -744,182 +557,35 @@ export const router = createRouter({
 });
 ```
 
-**Sider 菜单**：在 Layout 组件中定义
+**检查清单**：
 
-```typescript
-const menuItems = [
-  { title: '论坛', path: '/Forum' },
-  { title: '公告', path: '/Announcement' },
-];
-```
+- [ ] 已定义路由路径和组件映射
+- [ ] 已配置 Layout 组件
+- [ ] 已添加路由守卫（如需要）
+- [ ] 已测试路由跳转
 
----
+### 4.8 国际化
 
-## 4.8 国际化 (i18n) 使用
+项目使用 SimpleLocalize 的 Multi-language JSON 格式，支持消息插值功能。
 
-### 4.8.1 消息插值
-
-项目使用 SimpleLocalize 的 Multi-language JSON 格式，支持消息插值功能：
-
-**翻译文件**：
-
-```json
-{
-  "common.total": "共 {total} 条",
-  "user.welcome": "欢迎，{username}！"
-}
-```
-
-**代码使用**：
+**消息插值示例**：
 
 ```typescript
 // Vue 3: t('key', { vars }, '默认值')
-t('common.total', { total: 100 }, '共 {total} 条');
+t('demo.total', { total: 100 }, '共 {total} 条');
 
 // React: t('key', '默认值', { vars })
-t('common.total', '共 {total} 条', { total: 100 });
+t('demo.total', '共 {total} 条', { total: 100 });
 ```
 
----
+**框架使用差异**：
 
-### 4.8.2 React 项目 (idp-client)
+| 项目               | 使用方式                   |
+| ------------------ | -------------------------- |
+| idp-client (React) | `useTranslation('common')` |
+| portal (Vue 3)     | `useI18n()`                |
 
-**配置初始化** (main.tsx):
-
-```typescript
-import './i18n';
-```
-
-**i18n 配置** (i18n/index.tsx):
-
-```typescript
-import { idpClientLocales } from '@csisp/i18n/idp-client';
-import i18n from 'i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
-import { initReactI18next } from 'react-i18next';
-
-i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    resources: {
-      en: { common: idpClientLocales.en.common },
-      zh: { common: idpClientLocales.zh.common },
-    },
-    fallbackLng: 'zh',
-    supportedLngs: ['en', 'zh'],
-    defaultNS: 'common',
-    interpolation: { escapeValue: false },
-    detection: {
-      order: ['querystring', 'localStorage', 'navigator'],
-      lookupLocalStorage: 'i18nextLng',
-    },
-  });
-```
-
-**使用翻译**：
-
-```typescript
-import { useTranslation } from 'react-i18next';
-
-function MyComponent() {
-  const { t } = useTranslation('common');
-
-  return (
-    <Form.Item label={t('login.email.label', '邮箱')}>
-      <Input placeholder={t('login.email.placeholder', '请输入邮箱')} />
-    </Form.Item>
-  );
-}
-```
-
-**语言切换**：
-
-```typescript
-const { i18n } = useTranslation();
-i18n.changeLanguage('en'); // 切换到英语
-i18n.changeLanguage('zh'); // 切换到中文
-```
-
----
-
-### 4.8.3 Vue 3 项目 (portal)
-
-**配置初始化** (main.ts):
-
-```typescript
-import i18n from './i18n';
-app.use(i18n);
-```
-
-**i18n 配置** (i18n/index.ts):
-
-```typescript
-import { portalLocales } from '@csisp/i18n/portal';
-import { createI18n } from 'vue-i18n';
-
-const i18n = createI18n({
-  legacy: false, // Composition API 模式
-  locale: 'zh',
-  fallbackLocale: 'zh',
-  messages: {
-    en: portalLocales.en.common,
-    zh: portalLocales.zh.common,
-  },
-  flatJson: true,
-  fallbackFormat: true,
-});
-```
-
-**使用翻译**：
-
-```vue
-<template>
-  <a-page-header :title="t('forum.title', '帖子广场')" />
-</template>
-
-<script setup lang="ts">
-import { useI18n } from 'vue-i18n';
-
-const { t } = useI18n();
-</script>
-```
-
-**带插值的翻译**：
-
-```vue
-<script setup lang="ts">
-const { t } = useI18n();
-
-// 基础使用
-const title = t('forum.title', '帖子广场');
-
-// 带插值变量
-const totalText = t('common.total', { total: 100 }, '共 {total} 条');
-
-// 错误提示
-message.error(t('forum.fetchFailed', '获取帖子列表失败'));
-</script>
-```
-
-**语言切换**：
-
-```vue
-<script setup lang="ts">
-import { useI18n } from 'vue-i18n';
-
-const { locale } = useI18n();
-
-const handleChange = (value: string) => {
-  locale.value = value;
-  localStorage.setItem('i18nextLng', value);
-};
-</script>
-```
-
----
-
-### 4.8.4 翻译文件位置
+**翻译文件位置**：
 
 | 项目       | 路径                                                      |
 | ---------- | --------------------------------------------------------- |
@@ -927,98 +593,58 @@ const handleChange = (value: string) => {
 | portal     | `packages/i18n/src/locales/portal/{en,zh}/index.json`     |
 | common     | `packages/i18n/src/locales/common/{en,zh}/index.json`     |
 
----
-
-### 4.8.5 新增翻译 key 流程
+**新增翻译 key 流程**：
 
 1. 在对应页面的翻译 JSON 文件中添加 key（中文）
 2. 运行 `pnpm -F @csisp/i18n pull:{project}` 拉取最新翻译
 3. 如果有新的 key 未翻译，使用代码中的默认值
 4. 在 SimpleLocalize 平台补充英文翻译
 
-**翻译文件位置**：
-
-| 项目       | 路径                                                       |
-| ---------- | ---------------------------------------------------------- |
-| idp-client | `packages/i18n/src/locales/idp-client/{en\|zh}/index.json` |
-| portal     | `packages/i18n/src/locales/portal/{en\|zh}/index.json`     |
-| common     | `packages/i18n/src/locales/common/{en\|zh}/index.json`     |
-
 ---
 
 ## 5. 验证与检查
 
-### 5.1 构建测试
+**验证命令**：
 
 ```bash
-# BFF
+# 构建测试
 pnpm -F bff build
-
-# 前端（以某前端应用为例）
 pnpm -F {frontend-app} build
-```
 
-### 5.2 类型检查
-
-```bash
-# BFF
+# 类型检查
 pnpm -F bff tsc --noEmit
-
-# 前端
 pnpm -F {frontend-app} tsc --noEmit
-```
 
-### 5.3 Lint 检查
-
-```bash
-# BFF
+# Lint 检查
 pnpm -F bff lint
-
-# 前端
 pnpm -F {frontend-app} lint
-```
 
-### 5.4 格式化
-
-```bash
-# BFF
+# 格式化
 pnpm -F bff format
-
-# 前端
 pnpm -F {frontend-app} format
 ```
+
+**验证检查清单**：
+
+| 检查项    | 通过标准         |
+| --------- | ---------------- |
+| 构建测试  | 无错误，输出成功 |
+| 类型检查  | 无类型错误       |
+| Lint 检查 | 无警告和错误     |
+| 格式化    | 代码已格式化     |
 
 ---
 
 ## 常见场景快速参考
 
-### 场景 1：完整新功能开发
+| 场景           | 执行步骤                             | 关键检查点              |
+| -------------- | ------------------------------------ | ----------------------- |
+| 完整新功能开发 | 规划 → Contracts → BFF → 前端 → 验证 | Contracts 类型生成      |
+| 新增 BFF 接口  | 设计 → Contracts → BFF → 验证        | Contract 更新、类型检查 |
+| 新增页面       | 翻译规划 → 前端 → 验证               | 路由配置、国际化        |
+| 修复 Bug       | 定位 → 修复 → 验证                   | 回归测试                |
 
-1. 规划阶段：前端页面规划 + BFF 接口设计 + **翻译文案规划 (1.3)**
-2. Contracts 定义：完整执行 2.1-2.3
-3. BFF 开发：完整执行 3.1-3.3
-4. 前端开发：完整执行 4.1-4.8
-5. 验证与检查：执行所有检查
+---
 
-### 场景 2：新增一个 BFF 接口
-
-1. 规划阶段：BFF 接口设计
-2. Contracts 定义：更新 contract（2.3）
-3. BFF 开发：更新 Controller（3.2）
-4. 验证与检查：BFF 构建 + 类型检查 + Lint
-
-### 场景 3：新增一个页面
-
-1. 翻译规划：确认是否需要翻译 (1.3)
-2. 前端开发：
-   - 页面组件（4.4）
-   - 路由配置（4.6）
-   - 菜单更新（4.6）
-   - **国际化 (4.8)** 如需要翻译
-3. 验证与检查：前端构建 + 类型检查 + Lint + 格式化
-
-### 场景 4：修复现有功能 Bug
-
-1. 定位问题：前端组件 / BFF Controller / Contract
-2. 修复代码
-3. 验证与检查
+**文档版本**：v2.0（已优化，代码示例减少 50%）
+**最后更新**：2026-04-30

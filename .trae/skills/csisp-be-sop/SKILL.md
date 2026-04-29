@@ -21,57 +21,126 @@ description: 'CSISP 后端微服务开发 SOP。Invoke when developing new micro
 
 ---
 
+## 术语表
+
+| 术语            | 全称                       | 解释                                          |
+| --------------- | -------------------------- | --------------------------------------------- |
+| DAL             | Data Access Layer          | 数据访问层，统一管理数据库访问                |
+| Repository      | Repository                 | 仓储模式，封装数据操作                        |
+| Typegoose       | Typegoose                  | TypeScript 版 Mongoose，用于 MongoDB 模型定义 |
+| gRPC            | gRPC Remote Procedure Call | 高性能 RPC 框架，用于微服务通信               |
+| Module          | Module                     | NestJS 模块系统，组织代码结构                 |
+| Service         | Service                    | 业务逻辑层                                    |
+| Controller      | Controller                 | 请求处理层（gRPC 版本）                       |
+| DTO             | Data Transfer Object       | 数据传输对象，用于参数验证                    |
+| Supabase        | Supabase                   | PostgreSQL 数据库服务                         |
+| MongoDB         | MongoDB                    | NoSQL 文档型数据库                            |
+| class-validator | class-validator            | TypeScript 装饰器参数验证库                   |
+| 单一职责原则    | SRP                        | 每个类只有一个职责                            |
+| 依赖注入        | DI                         | NestJS 依赖注入机制                           |
+| 聚合导出        | Barrel Export              | 通过 index.ts 统一导出                        |
+| 类型生成        | Type Generation            | 从数据库结构自动生成 TypeScript 类型          |
+| 迁移            | Migration                  | 数据库结构变更记录                            |
+
+---
+
+## 整体流程图
+
+```mermaid
+flowchart TD
+  Start([开始]) --> Step1[步骤 1: 规划阶段]
+
+  Step1 --> P1[1.1 需求分析]
+  Step1 --> P2[1.2 数据模型设计]
+  Step1 --> P3{1.3 是否需要数据库变更}
+  P3 -->|是| P3a[Supabase/MongoDB 变更]
+  P3 -->|否| Step2
+
+  P3a --> Step2[步骤 2: 微服务接口设计]
+  Step2 --> C1[2.1 gRPC/OpenAPI 定义]
+  Step2 --> C2[2.2 SDK 更新]
+
+  C2 --> Step3[步骤 3: 服务端开发]
+  Step3 --> D1[3.2 目录结构]
+  Step3 --> D2[3.3 DAL 使用]
+  Step3 --> D3[3.4 DTO 定义]
+  Step3 --> D4[3.5 Service 实现]
+  Step3 --> D5[3.6 Controller 实现]
+  Step3 --> D6[3.7 Module 注册]
+
+  D6 --> Step4[步骤 4: 测试与验证]
+  Step4 --> V1{4.1 构建测试}
+  V1 -->|失败| Fix[修复问题]
+  V1 -->|成功| V2{4.2 类型检查}
+  V2 -->|失败| Fix
+  V2 -->|成功| V3{4.3 Lint 检查}
+  V3 -->|失败| Fix
+  V3 -->|成功| Done([完成])
+
+  Fix --> Step4
+
+  style P3a fill:#ffeb3b
+  style V1 fill:#ffcdd2
+  style V2 fill:#ffcdd2
+  style V3 fill:#ffcdd2
+```
+
+---
+
 ## 1. 规划阶段
 
 ### 1.1 需求分析
 
 明确功能需求和业务域划分：
 
-1. **业务域识别**：确定功能属于哪个业务域（如 forum、announce、user 等）
+1. **业务域识别**：确定功能属于哪个业务域（如 demo、example、user 等）
 2. **功能列表**：列出需要实现的具体功能点
 3. **数据流向**：明确数据的输入、处理、输出流程
+
+**检查清单**：
+
+- [ ] 已明确业务域
+- [ ] 已列出功能点
+- [ ] 已确认数据流向
 
 ### 1.2 数据模型设计
 
 根据数据类型选择合适的存储方案：
 
-| 数据类型                     | 存储方案 | 说明                     |
-| ---------------------------- | -------- | ------------------------ |
-| 用户相关、权限、配置         | Supabase | 关系型数据，需要事务支持 |
-| 内容相关（帖子、公告、评论） | MongoDB  | 文档型数据，灵活扩展     |
+| 数据类型                    | 存储方案 | 说明                     |
+| --------------------------- | -------- | ------------------------ |
+| 用户相关、权限、配置        | Supabase | 关系型数据，需要事务支持 |
+| 内容相关（Demo、Example等） | MongoDB  | 文档型数据，灵活扩展     |
 
 > **DAL 现状：** Supabase 和 MongoDB 的数据访问层（DAL）在 `packages/dal` 中，采用 Repository 模式。
 
-**MongoDB 模型示例**（使用 Typegoose，在 `packages/dal/src/types/mongo/{name}.model.ts` 中定义）：
+**数据模型选择原则**：
 
-每个模型单独管理，遵循以下目录结构：
+- 用户相关、权限、配置 → Supabase（关系型，事务支持）
+- 内容相关（帖子、公告、评论） → MongoDB（文档型，灵活扩展）
+
+**MongoDB 模型示例**：
 
 ```
 packages/dal/src/types/
 ├── mongo/
-│   ├── index.ts              # 聚合导出所有 mongo 模型
+│   ├── index.ts
 │   ├── demo.model.ts
-│   ├── post.model.ts
-│   ├── reply.model.ts
-│   └── announcement.model.ts
-├── common.types.ts
-├── supabase.types.ts
-└── index.ts                  # 导出所有类型（保持公共 API 不变）
+│   └── ...
 ```
 
-模型文件示例（`post.model.ts`）：
+模型文件示例（`demo.model.ts`）：
 
 ```typescript
 import { prop, modelOptions } from '@typegoose/typegoose';
-import { DocumentType, ReturnModelType } from '@typegoose/typegoose';
 
 @modelOptions({
   schemaOptions: {
-    collection: 'posts',
-    timestamps: true, // 自动添加 createdAt 和 updatedAt
+    collection: 'demos',
+    timestamps: true,
   },
 })
-export class Post {
+export class Demo {
   @prop({ required: true, type: String })
   public title!: string;
 
@@ -80,47 +149,33 @@ export class Post {
 
   @prop({ required: true, type: String })
   public authorId!: string;
-
-  @prop({ type: String, default: 'default' })
-  public postType?: string;
-
-  /**
-   * 获取文档类型
-   */
-  public static getDocumentType(): typeof Post {
-    return Post;
-  }
 }
-
-// 导出类型
-export type PostDocument = DocumentType<Post>;
-export type PostModel = ReturnModelType<typeof Post>;
-export type PostInsert = Omit<Post, keyof PostDocument>;
-export type PostUpdate = Partial<PostInsert>;
 ```
 
 在 `mongo/index.ts` 中聚合导出所有模型：
 
 ```typescript
 export * from './demo.model';
-export * from './post.model';
-export * from './reply.model';
-export * from './announcement.model';
 ```
 
-在顶级 `types/index.ts` 中保持统一导出：
+**检查清单**：
 
-```typescript
-export * from './supabase.types';
-export * from './common.types';
-export * from './mongo';
-```
+- [ ] 已选择合适的存储方案
+- [ ] 已定义模型字段
+- [ ] 已在 index.ts 中正确导出
+- [ ] 已考虑 Repository 是否需要新增
 
 ### 1.3 接口设计原则
 
 - **微服务接口**：通过外部 SDK 工厂仓库定义 gRPC / OpenAPI 接口
-- **接口命名**：使用大驼峰命名法（PascalCase），如 `CreatePost`、`GetPostDetail`
+- **接口命名**：使用大驼峰命名法（PascalCase），如 `CreateDemo`、`GetDemoDetail`
 - **参数验证**：使用 zod 进行参数校验
+
+**检查清单**：
+
+- [ ] 已确认接口类型（gRPC / OpenAPI）
+- [ ] 已使用大驼峰命名法
+- [ ] 已确认参数验证方式
 
 ---
 
@@ -134,8 +189,14 @@ export * from './mongo';
 
 ```typescript
 // 在服务端项目中使用 SDK
-import { ForumServiceController } from '@csisp-api/{service}';
+import { DemoServiceController } from '@csisp-api/{service}';
 ```
+
+**检查清单**：
+
+- [ ] 已在 SDK 工厂仓库更新接口定义
+- [ ] 已运行 SDK 生成
+- [ ] 已确认版本号
 
 ### 2.2 SDK 管理
 
@@ -143,16 +204,6 @@ import { ForumServiceController } from '@csisp-api/{service}';
 | -------------------------- | --------------- | ------------ |
 | `@csisp-api/{service}`     | gRPC 服务端接口 | SDK 工厂仓库 |
 | `@csisp-api/bff-{service}` | gRPC 客户端接口 | SDK 工厂仓库 |
-
-**依赖示例**（`package.json`）：
-
-```json
-{
-  "dependencies": {
-    "@csisp-api/{service}": "^1.0.0"
-  }
-}
-```
 
 ---
 
@@ -169,24 +220,32 @@ import { ForumServiceController } from '@csisp-api/{service}';
 
 > **详细步骤**：完整的 Supabase 数据库开发流程请参考 `supabase-dev-workflow`
 
+**检查清单**：
+
+- [ ] 已同步预发布环境数据库到本地
+- [ ] 已生成迁移文件
+- [ ] 已更新类型文件
+- [ ] 已测试数据库操作
+
 ### 3.2 目录结构
 
 ```
 apps/backend/{service}/src/
 ├── modules/
-│   └── {domain}/
+│   └── demo/
 │       ├── dto/
-│       │   ├── {action}.dto.ts
-│       │   └── index.ts
-│       ├── service/                    # 服务子目录
-│       │   ├── index.ts               # 聚合导出
-│       │   ├── {sub-domain}.service.ts
-│       │   └── ...                    # 多个服务类
-│       ├── {domain}.grpc.controller.ts
-│       ├── {domain}.module.ts
-│       └── index.ts
+│       ├── service/
+│       ├── demo.grpc.controller.ts
+│       └── demo.module.ts
 └── app.module.ts
 ```
+
+**目录说明**：
+
+- `dto/`：数据传输对象
+- `service/`：业务逻辑（支持服务拆分）
+- `*.grpc.controller.ts`：gRPC 控制器
+- `*.module.ts`：NestJS 模块
 
 **服务拆分原则**：
 
@@ -199,33 +258,28 @@ apps/backend/{service}/src/
 
 #### 3.3.1 Supabase DAL
 
-对于 Supabase 存储的数据，使用 `@csisp/dal` 包中的 Repository：
+对于 Supabase 存储的数据，使用 `@csisp/dal` 包中的 Repository。
 
-1. **在 app.module.ts 中全局导入**（一次配置，所有模块可用）：
+**示例**：
 
 ```typescript
+// 1. 在 app.module.ts 中全局导入
 import { SupabaseDalModule } from '@csisp/dal';
 
 @Module({
-  imports: [
-    SupabaseDalModule,
-    // ...
-  ],
+  imports: [SupabaseDalModule],
 })
 export class AppModule {}
-```
 
-2. **在 Service 中注入并使用 Repository**：
-
-```typescript
+// 2. 在 Service 中注入使用
 import { SupabaseUserRepository } from '@csisp/dal';
 
 @Injectable()
-export class AuthService {
+export class DemoService {
   constructor(private readonly userRepository: SupabaseUserRepository) {}
 
-  async getStudent(studentId: string) {
-    return this.userRepository.findByStudentId(studentId);
+  async getDemo(id: string) {
+    return this.userRepository.findById(id);
   }
 }
 ```
@@ -234,86 +288,54 @@ export class AuthService {
 
 MongoDB 的模型和 Repository 都在 `@csisp/dal` 包中统一管理，使用 Typegoose 实现。
 
-**步骤 1：定义模型**（如果模型不存在）
+**MongoDB DAL 使用流程**：
 
-在 `packages/dal/src/types/mongo/{name}.model.ts` 中添加模型定义（参考 1.2 节示例），并确保在 `mongo/index.ts` 中正确导出新模型。
+1. **定义模型**：在 `packages/dal/src/types/mongo/{name}.model.ts` 中添加模型
+2. **创建 Repository**（如需要）：在 `packages/dal/src/repositories/mongo/` 中
+3. **注册到 Module**：在 `mongo-dal.module.ts` 中注册
+4. **在服务中使用**：导入 `MongoDalModule` 和 Repository
 
-**步骤 2：创建 Repository**（如果需要）
-
-在 `packages/dal/src/repositories/mongo/` 中创建 Repository：
+**核心示例**：
 
 ```typescript
-import { InjectModel } from '@m8a/nestjs-typegoose';
-import { ReturnModelType } from '@typegoose/typegoose';
+// 模型定义示例
+@modelOptions({
+  schemaOptions: { collection: 'demos', timestamps: true },
+})
+export class Demo {
+  @prop({ required: true, type: String })
+  public title!: string;
+}
 
-import {
-  Post,
-  type PostDocument,
-  type PostInsert,
-  type PostUpdate,
-} from '../../types';
+// 服务中使用
+import { MongoDemoRepository } from '@csisp/dal';
 
-export class MongoPostRepository {
-  constructor(
-    @InjectModel(Post)
-    private readonly postModel: ReturnModelType<typeof Post>
-  ) {}
+@Injectable()
+export class DemoService {
+  constructor(private readonly demoRepository: MongoDemoRepository) {}
 
-  async findById(id: string): Promise<PostDocument | null> {
-    return this.postModel.findById(id).exec();
-  }
-
-  async findAll(): Promise<PostDocument[]> {
-    return this.postModel.find().exec();
-  }
-
-  async create(data: PostInsert): Promise<PostDocument> {
-    const post = new this.postModel(data);
-    return post.save();
-  }
-
-  async update(id: string, data: PostUpdate): Promise<PostDocument | null> {
-    return this.postModel.findByIdAndUpdate(id, data, { new: true }).exec();
-  }
-
-  async delete(id: string): Promise<void> {
-    await this.postModel.findByIdAndDelete(id).exec();
+  async create(data: DemoInsert) {
+    return this.demoRepository.create(data);
   }
 }
 ```
 
-**步骤 3：注册到 MongoDalModule**
+**检查清单**：
 
-在 `packages/dal/src/repositories/mongo/mongo-dal.module.ts` 中注册：
-
-```typescript
-import { Module } from '@nestjs/common';
-import { TypegooseModule } from '@m8a/nestjs-typegoose';
-
-import { Post } from '../../types';
-import { MongoPostRepository } from './post.repository';
-
-@Module({
-  imports: [TypegooseModule.forFeature([Post])],
-  providers: [MongoPostRepository],
-  exports: [MongoPostRepository],
-})
-export class MongoDalModule {}
-```
-
-**步骤 4：在服务中使用**
-
-在应用服务中导入并使用 `MongoDalModule` 和 Repository（参考下面的 3.5 和 3.7 节）。
+- [ ] 模型已正确定义
+- [ ] 模型已在 mongo/index.ts 中导出
+- [ ] Repository 已创建（如需要）
+- [ ] Repository 已注册到 MongoDalModule
 
 ### 3.4 DTO 定义
 
 **文件**：`apps/backend/{service}/src/modules/{domain}/dto/{action}.dto.ts`
 
 ```typescript
-import { CreatePostRequest } from '@csisp-api/{service}';
-import { IsString, IsOptional, IsInt, Min } from 'class-validator';
+import { CreateDemoRequest } from '@csisp-api/{service}';
+import { IsString, IsOptional } from 'class-validator';
 
-export class CreatePostDto implements CreatePostRequest {
+export class CreateDemoDto implements CreateDemoRequest {
   @IsString()
   title!: string;
 
@@ -324,55 +346,31 @@ export class CreatePostDto implements CreatePostRequest {
   authorId!: string;
 
   @IsString()
-  authorName!: string;
-
-  @IsString()
   @IsOptional()
-  postType?: string;
+  demoType?: string;
 }
 ```
 
-**分页请求示例**：
+**class-validator 常用装饰器参考**（表格）：
 
-```typescript
-import { GetPostFeedRequest } from '@csisp-api/{service}';
-import { IsInt, IsOptional, Min } from 'class-validator';
-
-export class GetPostFeedDto implements GetPostFeedRequest {
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  page?: number;
-
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  pageSize?: number;
-}
-```
+| 装饰器          | 说明         |
+| --------------- | ------------ |
+| `@IsString()`   | 验证是字符串 |
+| `@IsInt()`      | 验证是整数   |
+| `@IsOptional()` | 字段可选     |
+| `@Min()`        | 最小值验证   |
 
 **文件**：`apps/backend/{service}/src/modules/{domain}/dto/index.ts`
 
 ```typescript
-export * from './create-post.dto';
-export * from './get-post-feed.dto';
-export * from './get-post-detail.dto';
-export * from './create-reply.dto';
-// ... 其他 DTO
+export * from './create-demo.dto';
 ```
 
-**class-validator 常用装饰器**：
+**检查清单**：
 
-| 装饰器          | 说明           |
-| --------------- | -------------- |
-| `@IsString()`   | 验证是字符串   |
-| `@IsInt()`      | 验证是整数     |
-| `@IsOptional()` | 字段可选       |
-| `@Min()`        | 最小值验证     |
-| `@Max()`        | 最大值验证     |
-| `@IsBoolean()`  | 验证是布尔值   |
-| `@IsEmail()`    | 验证是邮箱格式 |
-| `@IsArray()`    | 验证是数组     |
+- [ ] 已实现 Request 接口
+- [ ] 已添加合适的验证装饰器
+- [ ] 已在 index.ts 中正确导出
 
 ### 3.5 Service 实现
 
@@ -382,40 +380,38 @@ export * from './create-reply.dto';
 
 ```typescript
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  MongoPostRepository,
-  type PostInsert,
-  type PostDocument,
-} from '@csisp/dal';
-import { CreatePostDto } from './dto/create-post.dto';
+import { MongoDemoRepository } from '@csisp/dal';
+import { CreateDemoDto } from './dto/create-demo.dto';
 
 @Injectable()
-export class ForumService {
-  private readonly logger = new Logger(ForumService.name);
+export class DemoService {
+  private readonly logger = new Logger(DemoService.name);
 
-  constructor(
-    private readonly postRepository: MongoPostRepository // 注入 Repository
-  ) {}
+  constructor(private readonly demoRepository: MongoDemoRepository) {}
 
-  async create(createDto: CreatePostDto): Promise<PostDocument> {
-    const insertData: PostInsert = {
-      title: createDto.title,
-      content: createDto.content,
-      authorId: createDto.authorId,
-      type: createDto.type,
-    };
-    return this.postRepository.create(insertData);
+  async create(createDto: CreateDemoDto) {
+    return this.demoRepository.create(createDto);
   }
 
-  async findAll(): Promise<PostDocument[]> {
-    return this.postRepository.findAll();
-  }
-
-  async findOne(id: string): Promise<PostDocument | null> {
-    return this.postRepository.findById(id);
+  async findAll() {
+    return this.demoRepository.findAll();
   }
 }
 ```
+
+**Service 实现要点**：
+
+- 使用 `@Injectable()` 装饰器
+- 注入 Repository 而非直接操作数据库
+- 使用 Logger 记录关键操作
+- 遵循单一职责原则
+
+**检查清单**：
+
+- [ ] 已注入必要的 Repository
+- [ ] 已使用 Logger
+- [ ] 已实现主要业务逻辑
+- [ ] 已在 service/index.ts 中正确导出
 
 ### 3.6 Controller 实现
 
@@ -424,26 +420,27 @@ export class ForumService {
 ```typescript
 import { Controller, Logger } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
-import { {Domain}Service } from './{domain}.service';
+import { DemoService } from './demo.service';
 
 @Controller()
-export class {Domain}GrpcController {
-  private readonly logger = new Logger({Domain}GrpcController.name);
+export class DemoGrpcController {
+  private readonly logger = new Logger(DemoGrpcController.name);
 
-  constructor(private readonly {domain}Service: {Domain}Service) {}
+  constructor(private readonly demoService: DemoService) {}
 
-  @GrpcMethod('ForumService', 'CreatePost')
-  async createPost(data: CreatePostDto) {
-    this.logger.log('Creating post', data);
-    return this.{domain}Service.create(data);
-  }
-
-  @GrpcMethod('ForumService', 'GetPostDetail')
-  async getPostDetail(data: { postId: string }) {
-    return this.{domain}Service.findOne(data.postId);
+  @GrpcMethod('DemoService', 'CreateDemo')
+  async createDemo(data: CreateDemoDto) {
+    this.logger.log('Creating demo', data);
+    return this.demoService.create(data);
   }
 }
 ```
+
+**检查清单**：
+
+- [ ] 已使用 `@GrpcMethod()` 装饰器
+- [ ] 已正确绑定 Service
+- [ ] 已使用 Logger 记录请求
 
 ### 3.7 Module 注册
 
@@ -451,83 +448,57 @@ export class {Domain}GrpcController {
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { MongoDalModule } from '@csisp/dal';  // 导入 MongoDB DAL 模块
-import { ForumService } from './forum.service';
-import { ForumGrpcController } from './forum.grpc.controller';
+import { MongoDalModule } from '@csisp/dal';
+import { DemoService } from './demo.service';
+import { DemoGrpcController } from './demo.grpc.controller';
 
 @Module({
-  imports: [
-    MongoDalModule,  // 导入 DAL 模块
-  ],
-  controllers: [{Domain}GrpcController],
-  providers: [{Domain}Service],
-  exports: [{Domain}Service],
+  imports: [MongoDalModule],
+  controllers: [DemoGrpcController],
+  providers: [DemoService],
+  exports: [DemoService],
 })
-export class {Domain}Module {}
+export class DemoModule {}
 ```
 
-**注册到主模块**：`apps/backend/{service}/src/app.module.ts`
+**检查清单**：
 
-```typescript
-import { Module } from '@nestjs/common';
-import { TypegooseModule } from '@m8a/nestjs-typegoose';
-import { config } from '@config';
-import { ForumModule } from './modules/forum/forum.module';
-
-@Module({
-  imports: [
-    TypegooseModule.forRoot(config.mongo.uri),
-    // ... 其他模块
-    {Domain}Module,
-  ],
-})
-export class AppModule {}
-```
+- [ ] 已导入必要的 DAL 模块
+- [ ] 已注册 Controller
+- [ ] 已注册 Provider
+- [ ] 已在 AppModule 中正确导入
 
 ---
 
 ## 4. 测试与验证
 
-### 4.1 构建测试
+**验证命令**：
 
 ```bash
+# 构建测试
 pnpm -F {service} build
-```
 
-### 4.2 类型检查
-
-```bash
+# 类型检查
 pnpm -F {service} tsc --noEmit
-```
 
-### 4.3 Lint 检查
-
-```bash
+# Lint 检查
 pnpm -F {service} lint
 ```
+
+**验证检查清单**：
+
+| 检查项    | 通过标准         |
+| --------- | ---------------- |
+| 构建测试  | 无错误，输出成功 |
+| 类型检查  | 无类型错误       |
+| Lint 检查 | 无警告和错误     |
 
 ---
 
 ## 常见场景快速参考
 
-### 场景 1：新增一个微服务
-
-1. 规划阶段：需求分析、数据模型设计
-2. 微服务接口设计：与 SDK 工厂仓库协调定义接口
-3. 服务端开发：完整执行 3.1-3.6
-4. 测试与验证：执行所有检查
-
-### 场景 2：在现有服务中新增接口
-
-1. 微服务接口设计：更新 SDK 定义（外部仓库）
-2. 服务端开发：
-   - 新增 DTO（3.3）
-   - 更新 Service（3.4）
-   - 更新 Controller（3.5）
-3. 测试与验证
-
-### 场景 3：修复现有功能 Bug
-
-1. 定位问题：Service / Controller / Schema
-2. 修复代码
-3. 测试与验证
+| 场景             | 执行步骤                                             | 关键检查点           |
+| ---------------- | ---------------------------------------------------- | -------------------- |
+| 新增微服务       | 规划 → 接口设计 → 服务端开发 → 验证                  | 数据库变更（如需要） |
+| 现有服务新增接口 | SDK 更新 → 新增 DTO → 更新 Service → 更新 Controller | SDK 版本更新         |
+| 修复 Bug         | 定位问题 → 修复代码 → 验证                           | 回归测试             |
