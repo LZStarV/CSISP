@@ -68,9 +68,9 @@ function saveTranslations(
       fs.mkdirSync(langPath, { recursive: true });
     }
 
-    const commonPath = path.join(langPath, 'common.json');
-    fs.writeFileSync(commonPath, JSON.stringify(langTranslations, null, 2));
-    process.stdout.write(`Saved ${lang} translations to ${commonPath}\n`);
+    const indexPath = path.join(langPath, 'index.json');
+    fs.writeFileSync(indexPath, JSON.stringify(langTranslations, null, 2));
+    process.stdout.write(`Saved ${lang} translations to ${indexPath}\n`);
   }
 }
 
