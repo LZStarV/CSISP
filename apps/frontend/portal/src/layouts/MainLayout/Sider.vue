@@ -1,7 +1,6 @@
 <template>
   <a-menu
     v-model:selectedKeys="selectedKeys"
-    theme="dark"
     mode="inline"
     :items="menuItems"
     @click="handleMenuClick"
