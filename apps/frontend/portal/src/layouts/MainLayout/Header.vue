@@ -2,8 +2,8 @@
   <div class="header-content">
     <div class="logo">{{ t('layout.header.title', '论坛系统') }}</div>
     <div class="user-info">
-      <span>{{ t('layout.header.user', '测试用户') }}</span>
       <LanguageSwitcher />
+      <span>{{ t('layout.header.user', '测试用户') }}</span>
     </div>
   </div>
 </template>
@@ -30,6 +30,8 @@ const { t } = useI18n();
 }
 
 .user-info {
+  display: flex;
+  align-items: center;
   font-size: 14px;
 }
 </style>
