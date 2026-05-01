@@ -26,7 +26,7 @@ export function AuthLayout({
   title = 'CSISP SSO 登录系统',
   subtitle,
 }: AuthLayoutProps) {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation();
   const location = useLocation();
   const isSignup = location.pathname === '/signup';
   return (

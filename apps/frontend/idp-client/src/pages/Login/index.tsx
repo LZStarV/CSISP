@@ -11,7 +11,7 @@ import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
 import { useAuthStore } from '@/stores/auth';
 
 export function Login() {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const {

@@ -13,7 +13,7 @@ import {
 import { MFAType } from '@/types/enum';
 
 export function SmsVerify() {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [phone, setPhone] = useState<string | undefined>(undefined);

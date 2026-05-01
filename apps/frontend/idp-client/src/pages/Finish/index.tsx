@@ -13,7 +13,7 @@ import type { ClientInfo } from '@/types/enum';
 import { generateRandomString } from '@/utils/pkce';
 
 export function Finish() {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation();
   const [items, setItems] = useState<ClientInfo[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
