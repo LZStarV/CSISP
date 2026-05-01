@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import { Finish } from '@/pages/Finish';
@@ -13,8 +14,26 @@ import {
   ROUTE_FINISH,
 } from '@/routes/router';
 import { SessionGuard } from '@/routes/SessionGuard';
+import { useAuthStore } from '@/stores/auth';
+import { useLocaleStore } from '@/stores/locale';
+import { useSessionStore } from '@/stores/session';
 
 function App() {
+  const localeStore = useLocaleStore();
+  const authStore = useAuthStore();
+  const sessionStore = useSessionStore();
+
+  useEffect(() => {
+    const initStores = async () => {
+      await Promise.all([
+        localeStore.initFromStorage(),
+        authStore.initFromStorage(),
+        sessionStore.initFromStorage(),
+      ]);
+    };
+    initStores();
+  }, [localeStore, authStore, sessionStore]);
+
   return (
     <BrowserRouter>
       <Routes>

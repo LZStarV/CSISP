@@ -8,26 +8,47 @@ import { commonOidcApi } from '@/api/common/oidc';
 import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
+import { useAuthStore } from '@/stores/auth';
 
 export function Login() {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [authInfo, setAuthInfo] =
-    useState<GetAuthorizationRequestResult | null>(null);
+  const {
+    ticket: storedTicket,
+    state: storedState,
+    authInfo: storedAuthInfo,
+    otpSent,
+    otpCode,
+    setTicket,
+    setStateParam,
+    setAuthInfo,
+    setOtpSent,
+    setOtpCode,
+    clearFlowState,
+  } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const ticket = searchParams.get('ticket');
   const state = searchParams.get('state');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
 
   useEffect(() => {
+    // 优先使用 URL 参数，其次使用 store
     if (ticket) {
+      setTicket(ticket);
+    }
+    if (state) {
+      setStateParam(state);
+    }
+  }, [ticket, state, setTicket, setStateParam]);
+
+  useEffect(() => {
+    const currentTicket = ticket || storedTicket;
+    if (currentTicket && !storedAuthInfo) {
       commonOidcApi
         .getAuthorizationRequest({
-          ticket,
+          ticket: currentTicket,
         })
         .then((res: GetAuthorizationRequestResult) => {
           setAuthInfo(res);
@@ -38,7 +59,7 @@ export function Login() {
           );
         });
     }
-  }, [ticket, t]);
+  }, [ticket, storedTicket, storedAuthInfo, t, setAuthInfo]);
 
   const handleVerifyOtp = async () => {
     setLoading(true);
@@ -48,6 +69,7 @@ export function Login() {
         token: otpCode,
       });
       if (res?.verified) {
+        clearFlowState();
         navigate(ROUTE_FINISH, { replace: true });
       }
     } catch (e) {
@@ -71,10 +93,14 @@ export function Login() {
       });
       const stepUp = (res?.stepUp ?? '') as 'PENDING_PASSWORD' | string;
 
+      const currentTicket = ticket || storedTicket;
+      const currentState = state || storedState;
+      const currentAuthInfo = storedAuthInfo;
+
       const flowState = {
         ...res,
-        ticket,
-        state: authInfo?.state || state,
+        ticket: currentTicket,
+        state: currentAuthInfo?.state || currentState,
       };
 
       if (stepUp === 'PENDING_PASSWORD') {
@@ -86,6 +112,7 @@ export function Login() {
         return;
       }
 
+      clearFlowState();
       navigate(ROUTE_FINISH, {
         state: { ...flowState, fromNormalFlow: true },
       });
@@ -102,13 +129,13 @@ export function Login() {
   return (
     <AuthLayout>
       <Typography.Title level={3} style={{ textAlign: 'center' }}>
-        {authInfo
+        {storedAuthInfo
           ? t('login.loginTo', '登录到 {clientName}', {
-              clientName: authInfo.client_name,
+              clientName: storedAuthInfo.client_name,
             })
           : t('oidc.unifiedLogin', '统一身份认证登录')}
       </Typography.Title>
-      {authInfo && (
+      {storedAuthInfo && (
         <Typography.Paragraph
           type='secondary'
           style={{ textAlign: 'center', marginTop: -8 }}

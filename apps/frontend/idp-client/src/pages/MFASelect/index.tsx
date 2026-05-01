@@ -27,7 +27,7 @@ const MFA_ICONS: Record<MFAType, React.ComponentType<any>> = {
 };
 
 export function MFASelect() {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [mfaMethods, setMfaMethods] = useState<MFAMethod[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

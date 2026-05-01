@@ -6,17 +6,26 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { commonAuthApi } from '@/api/common/auth';
 import { commonOidcApi } from '@/api/common/oidc';
 import { idpClientAuthApi } from '@/api/idp-client/auth';
-import { CLIENT_LOGIN_ENDPOINTS } from '@/config';
+import { CLIENT_LOGIN_ENDPOINTS } from '@/constants';
+import { useAuthStore } from '@/stores/auth';
+import { useSessionStore } from '@/stores/session';
 import type { ClientInfo } from '@/types/enum';
 import { generateRandomString } from '@/utils/pkce';
 
 export function Finish() {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation();
   const [items, setItems] = useState<ClientInfo[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { userInfo, setSession, clearSession } = useSessionStore();
+  const {
+    ticket: storedTicket,
+    state: storedState,
+    clearFlowState,
+  } = useAuthStore();
+
   const [userLabel, setUserLabel] = useState<string>(
     t('session.loggedIn', '已登录')
   );
@@ -27,11 +36,41 @@ export function Finish() {
     !!(location.state as any)?.fromGuard ||
     new URLSearchParams(window.location.search).get('fromGuard') === '1';
 
+  // 优先使用 store 中的用户信息
+  useEffect(() => {
+    if (userInfo) {
+      const n = userInfo.name;
+      const sid = userInfo.student_id;
+      if (n && sid) setUserLabel(`${n}（${sid}）`);
+      else if (sid) setUserLabel(`（${sid}）`);
+      else if (n) setUserLabel(n);
+    }
+  }, [userInfo]);
+
+  // 如果 store 中没有用户信息，才去请求
+  useEffect(() => {
+    if (!userInfo) {
+      (async () => {
+        try {
+          const res = await commonAuthApi.session();
+          const n = (res as any)?.name as string | undefined;
+          const sid = (res as any)?.student_id as string | undefined;
+          if (res?.logged) {
+            setSession(true, { name: n, student_id: sid });
+          }
+          if (n && sid) setUserLabel(`${n}（${sid}）`);
+          else if (sid) setUserLabel(`（${sid}）`);
+          else if (n) setUserLabel(n);
+        } catch {}
+      })();
+    }
+  }, [userInfo, setSession]);
+
   useEffect(() => {
     if (fromNormalFlow) {
       const flowState = location.state as any;
-      const ticket = flowState?.ticket;
-      const state = flowState?.state;
+      const ticket = flowState?.ticket || storedTicket;
+      const state = flowState?.state || storedState;
       if (ticket || state) {
         setLoading(true);
         (async () => {
@@ -42,6 +81,7 @@ export function Finish() {
             });
             const redirectTo = res?.redirectTo;
             if (redirectTo) {
+              clearFlowState();
               window.location.href = redirectTo;
             }
           } catch (error) {
@@ -56,7 +96,14 @@ export function Finish() {
         })();
       }
     }
-  }, [fromNormalFlow, location.state, t]);
+  }, [
+    fromNormalFlow,
+    location.state,
+    t,
+    storedTicket,
+    storedState,
+    clearFlowState,
+  ]);
 
   useEffect(() => {
     (async () => {
@@ -72,19 +119,6 @@ export function Finish() {
       }
     })();
   }, [t]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await commonAuthApi.session();
-        const n = (res as any)?.name as string | undefined;
-        const sid = (res as any)?.student_id as string | undefined;
-        if (n && sid) setUserLabel(`${n}（${sid}）`);
-        else if (sid) setUserLabel(`（${sid}）`);
-        else if (n) setUserLabel(n);
-      } catch {}
-    })();
-  }, []);
 
   const handleEnter = async (item: ClientInfo) => {
     if (!item.default_redirect_uri) return;
@@ -138,6 +172,7 @@ export function Finish() {
         try {
           await commonAuthApi.logout();
           sessionStorage.removeItem('idp_studentId');
+          clearSession();
           navigate('/login');
         } catch (error) {
           setErrorMsg(

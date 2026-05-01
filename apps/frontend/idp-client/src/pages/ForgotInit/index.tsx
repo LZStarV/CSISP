@@ -19,7 +19,7 @@ import { MFA_METHOD_LABELS, MFA_METHOD_DESCRIPTIONS } from '@/types/auth';
 import { MFAType, RecoveryUnavailableReason } from '@/types/enum';
 
 export function ForgotInit() {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation();
   const [studentId, setStudentId] = useState('');
   const [email, setEmail] = useState('');
   const [methods, setMethods] = useState<
