@@ -1,19 +1,16 @@
 import { Select } from 'antd';
-import { useTranslation } from 'react-i18next';
 
-const languages = [
-  { value: 'zh', label: '中文' },
-  { value: 'en', label: 'English' },
-];
+import { LOCALE_OPTIONS } from '@/constants';
+import { useLocaleStore } from '@/stores/locale';
 
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { currentLocale, setLocale } = useLocaleStore();
 
   return (
     <Select
-      value={i18n.language}
-      onChange={value => i18n.changeLanguage(value)}
-      options={languages}
+      value={currentLocale}
+      onChange={setLocale}
+      options={LOCALE_OPTIONS}
       style={{ width: 90 }}
       variant='borderless'
     />
