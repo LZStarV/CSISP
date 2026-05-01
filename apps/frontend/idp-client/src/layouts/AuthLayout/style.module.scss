@@ -8,7 +8,7 @@ $auth-left-width: 70%;
 .auth-left {
   display: none;
 
-  @media (width >= 1024px) {
+  @media (width >= $breakpoint-lg) {
     display: flex;
     width: $auth-left-width;
     background: linear-gradient(135deg, #bcd1ff 0%, #955ff1 100%);
@@ -34,7 +34,7 @@ $auth-left-width: 70%;
   width: 100%;
   position: relative;
 
-  @media (width >= 1024px) {
+  @media (width >= $breakpoint-lg) {
     width: calc(100% - $auth-left-width);
   }
 
