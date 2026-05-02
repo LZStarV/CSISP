@@ -14,6 +14,8 @@ export function Login() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const {
     ticket: storedTicket,
     state: storedState,
@@ -83,12 +85,40 @@ export function Login() {
     }
   };
 
-  const onFinish = async (values: { email: string; password: string }) => {
+  const handleResendOtp = async () => {
+    if (countdown > 0) return;
+    setResendLoading(true);
+    setErrorMsg(null);
+    try {
+      await idpClientAuthApi.resendLoginOtp();
+      message.success(t('verify.email.resent', '验证码已重新发送，请查收邮箱'));
+      setCountdown(60);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (e) {
+      setErrorMsg(
+        e instanceof Error
+          ? e.message
+          : t('verify.email.resendFailed', '重发验证码失败，请稍后重试')
+      );
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const onFinish = async (values: { student_id: string; password: string }) => {
     setLoading(true);
     setErrorMsg(null);
     try {
       const res = await idpClientAuthApi.login({
-        email: values.email,
+        student_id: values.student_id,
         password: values.password,
       });
       const stepUp = (res?.stepUp ?? '') as 'PENDING_PASSWORD' | string;
@@ -158,14 +188,14 @@ export function Login() {
             <Input
               placeholder={t(
                 'signup.otp.placeholder',
-                '请输入邮箱中的6位验证码',
+                '请输入邮箱中的 8 位验证码',
                 {
-                  digitCount: 6,
+                  digitCount: 8,
                 }
               )}
               value={otpCode}
               onChange={e => setOtpCode(e.target.value)}
-              maxLength={6}
+              maxLength={8}
               inputMode='numeric'
             />
           </Form.Item>
@@ -175,39 +205,47 @@ export function Login() {
               onClick={handleVerifyOtp}
               block
               loading={loading}
-              disabled={!/^\d{6}$/.test(otpCode)}
+              disabled={!/^\d{8}$/.test(otpCode)}
             >
               {t('verify.submit', '完成验证')}
+            </Button>
+          </Form.Item>
+          <Form.Item>
+            <Button
+              type='link'
+              onClick={handleResendOtp}
+              loading={resendLoading}
+              disabled={countdown > 0 || resendLoading}
+              block
+            >
+              {countdown > 0
+                ? t('verify.email.resendCountdown', '{seconds}秒后重发', {
+                    seconds: countdown,
+                  })
+                : t('verify.email.resend', '没有收到验证码？重发')}
             </Button>
           </Form.Item>
         </Form>
       )}
       <Form layout='vertical' onFinish={onFinish} disabled={loading}>
         <Form.Item
-          label={t('login.email.label', '邮箱')}
-          name='email'
+          label={t('login.studentId.label', '学号')}
+          name='student_id'
           rules={[
             {
               required: true,
-              message: t('login.email.required', '邮箱不能为空'),
+              message: t('login.studentId.required', '学号不能为空'),
             },
             {
-              type: 'email',
-              message: t('login.email.invalid', '请输入有效的邮箱地址'),
-            },
-            {
-              min: 3,
-              max: 128,
-              message: t('login.email.length', '邮箱长度为3-128个字符', {
-                minLength: 3,
-                maxLength: 128,
-              }),
+              pattern: /^\d{10,14}$/,
+              message: t('login.studentId.invalid', '请输入10-14位数字的学号'),
             },
           ]}
         >
           <Input
-            placeholder={t('login.email.placeholder', '请输入邮箱')}
+            placeholder={t('login.studentId.placeholder', '请输入学号')}
             autoComplete='username'
+            maxLength={14}
           />
         </Form.Item>
 

@@ -105,6 +105,14 @@ export class IdpAuthController {
     );
   }
 
+  @Post(IDP_CLIENT_AUTH_ACTION.RESEND_LOGIN_OTP)
+  async authResendLoginOtp() {
+    this.logAction(IDP_CLIENT_AUTH_ACTION.RESEND_LOGIN_OTP);
+    return firstValueFrom(
+      this.authService.authResendLoginOtp({}).pipe(map(res => res.data))
+    );
+  }
+
   @Post(IDP_CLIENT_AUTH_ACTION.VERIFY_OTP)
   async authVerifyOtp(
     @Body(new ZodValidationPipe(verifyOtpBodySchema))

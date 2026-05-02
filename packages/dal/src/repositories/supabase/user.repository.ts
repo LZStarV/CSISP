@@ -1,4 +1,5 @@
 import { SupabaseDataAccess } from '@csisp/supabase-sdk';
+import { Injectable } from '@nestjs/common';
 
 // eslint-disable-next-line no-restricted-imports
 import type {
@@ -21,27 +22,20 @@ export interface IUserRepository extends IQueryableRepository<
   UserInsert,
   UserUpdate
 > {
-  findByEmail(email: string): Promise<UserRow | null>;
   findByStudentId(studentId: string): Promise<UserRow | null>;
-  findByIds(ids: number[]): Promise<UserRow[]>;
+  findByAuthUserId(authUserId: string): Promise<UserRow | null>;
   findWithMfaSettings(id: number): Promise<UserWithMfa | null>;
   findRecoveryInfo(email: string): Promise<UserRecoveryInfo | null>;
   resetPassword(studentId: string, newHash: string): Promise<void>;
 }
 
+@Injectable()
 export class SupabaseUserRepository
   extends BaseSupabaseRepository<UserRow, number, UserInsert, UserUpdate>
   implements IUserRepository
 {
   constructor(sda: SupabaseDataAccess) {
     super(sda, 'user', 'id');
-  }
-
-  /**
-   * 根据邮箱查询
-   */
-  async findByEmail(email: string): Promise<UserRow | null> {
-    return this.findOne({ email });
   }
 
   /**
@@ -52,16 +46,10 @@ export class SupabaseUserRepository
   }
 
   /**
-   * 根据 ID 列表查询
+   * 根据 auth user ID 查询
    */
-  async findByIds(ids: number[]): Promise<UserRow[]> {
-    const { data } = await this.sda
-      .service()
-      .from(this.tableName)
-      .select('*')
-      .in('id', ids);
-
-    return (data as UserRow[]) || [];
+  async findByAuthUserId(authUserId: string): Promise<UserRow | null> {
+    return this.findOne({ auth_user_id: authUserId });
   }
 
   /**

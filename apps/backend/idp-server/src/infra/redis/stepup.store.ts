@@ -38,7 +38,7 @@ export class StepUpStore {
       state: 'PENDING_PASSWORD',
       exp: this.nowSec() + ttl,
     };
-    await this.kv.set(this.k(sid), JSON.stringify(rec), ttl);
+    await this.kv.set(this.k(sid), rec as any, ttl);
   }
 
   async setPendingEmailOtp(
@@ -51,7 +51,7 @@ export class StepUpStore {
       state: 'PENDING_EMAIL_OTP',
       exp: this.nowSec() + ttl,
     };
-    await this.kv.set(this.k(sid), JSON.stringify(rec), ttl);
+    await this.kv.set(this.k(sid), rec as any, ttl);
   }
 
   async setVerified(sid: string, ttl: number = DEFAULT_TTL): Promise<void> {
@@ -61,18 +61,11 @@ export class StepUpStore {
       state: 'VERIFIED',
       exp: this.nowSec() + ttl,
     };
-    await this.kv.set(this.k(sid), JSON.stringify(rec), ttl);
+    await this.kv.set(this.k(sid), rec as any, ttl);
   }
 
   async getState(sid: string): Promise<StepUpRecord | null> {
-    const raw = await this.kv.get<string>(this.k(sid));
-    if (!raw) return null;
-    try {
-      const obj = JSON.parse(raw) as StepUpRecord;
-      return obj;
-    } catch {
-      return null;
-    }
+    return await this.kv.get<StepUpRecord>(this.k(sid));
   }
 
   async clear(sid: string): Promise<void> {

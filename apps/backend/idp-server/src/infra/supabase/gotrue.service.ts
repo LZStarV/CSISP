@@ -67,7 +67,11 @@ export class GotrueService {
   async signUp(params: {
     email: string;
     password: string;
-    data?: Record<string, any>;
+    data: {
+      student_id: string;
+      display_name?: string;
+      [key: string]: any;
+    };
     emailRedirectTo?: string;
   }): Promise<void> {
     const client = this.supabaseDataAccess.service();
@@ -96,6 +100,61 @@ export class GotrueService {
     });
     if (error) {
       throw error;
+    }
+  }
+
+  // 发送登录 OTP
+  // @param params 发送登录 OTP 参数
+  // @returns 发送登录 OTP 结果
+  // @throws 发送登录 OTP 失败时抛出异常
+  async sendLoginOtp(params: { email: string }): Promise<void> {
+    const client = this.supabaseDataAccess.service();
+    const { error } = await client.auth.signInWithOtp({
+      email: params.email,
+    });
+    if (error) {
+      throw error;
+    }
+  }
+
+  // 通过 auth user ID 获取用户信息
+  // @param authUserId auth user ID
+  // @returns 用户信息（包含 email）
+  async getUserByAuthId(
+    authUserId: string
+  ): Promise<{ id: string; email: string } | null> {
+    try {
+      const client = this.supabaseDataAccess.service();
+      const { data, error } = await client.auth.admin.getUserById(authUserId);
+      if (error || !data.user) {
+        return null;
+      }
+      return {
+        id: data.user.id,
+        email: data.user.email || '',
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // 通过 email 获取 auth user ID
+  // @param email 邮箱
+  // @returns auth user ID
+  async getAuthIdByEmail(email: string): Promise<string | null> {
+    try {
+      const client = this.supabaseDataAccess.service();
+      const { data, error } = await client.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      if (error || !data.users) {
+        return null;
+      }
+      const user = data.users.find(u => u.email === email);
+      return user?.id || null;
+    } catch {
+      return null;
     }
   }
 }

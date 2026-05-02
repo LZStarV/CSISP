@@ -23,6 +23,7 @@ import {
   type ForgotChallengeParams,
   type ForgotVerifyParams,
   type ForgotVerifyResult,
+  type ResendLoginOtpResult,
 } from '@csisp/contracts';
 
 import { createDomainCall } from '../caller';
@@ -55,6 +56,10 @@ export const idpClientAuthApi = {
 
   async sendOtp(): Promise<SendOtpResult> {
     return await authCall<SendOtpResult>('send-otp', {});
+  },
+
+  async resendLoginOtp(): Promise<ResendLoginOtpResult> {
+    return await authCall<ResendLoginOtpResult>('resendLoginOtp', {});
   },
 
   async verifyOtp(params: VerifyOtpParams): Promise<VerifyOtpResult> {

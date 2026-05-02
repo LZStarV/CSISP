@@ -4,10 +4,13 @@ import {
   Catch,
   ExceptionFilter,
   HttpException,
+  Logger,
 } from '@nestjs/common';
 
 @Catch()
 export class RestExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(RestExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<any>();
@@ -15,16 +18,24 @@ export class RestExceptionFilter implements ExceptionFilter {
     const traceId = request?.headers?.['x-trace-id'];
 
     const httpException = exception as HttpException;
-    const status = httpException.getStatus();
-    const errorResponse = httpException.getResponse() as ModelError;
+    const isHttpException = httpException instanceof HttpException;
 
-    if (
-      traceId &&
-      typeof errorResponse === 'object' &&
-      errorResponse !== null
-    ) {
+    const status = isHttpException ? httpException.getStatus() : 500;
+    const errorResponse: any = isHttpException
+      ? (httpException.getResponse() as ModelError)
+      : {
+          code: 'INTERNAL_ERROR',
+          message: (exception as Error)?.message || 'Internal server error',
+        };
+
+    if (traceId) {
       errorResponse.traceId = traceId;
     }
+
+    this.logger.error(
+      `Exception: ${isHttpException ? httpException.message : (exception as Error)?.message}`,
+      isHttpException ? undefined : (exception as Error)?.stack
+    );
 
     response.status(status).json(errorResponse);
   }

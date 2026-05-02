@@ -1,4 +1,5 @@
 import { SupabaseDataAccess } from '@csisp/supabase-sdk';
+import { Injectable } from '@nestjs/common';
 
 // eslint-disable-next-line no-restricted-imports
 import type {
@@ -23,6 +24,7 @@ export interface IOidcClientRepository extends IQueryableRepository<
   findActiveClients(): Promise<OidcClientRow[]>;
 }
 
+@Injectable()
 export class SupabaseOidcClientRepository
   extends BaseSupabaseRepository<
     OidcClientRow,

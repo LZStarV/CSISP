@@ -82,7 +82,7 @@ export const resendSignupOtpResponseSchema = z.object({
 });
 
 export const loginBodySchema = z.object({
-  email: z.string().email().min(5).max(256),
+  student_id: z.string().regex(/^\d{10,14}$/),
   password: z.string().min(1).max(512),
 }) satisfies z.ZodType<LoginInternalDto>;
 
@@ -92,6 +92,10 @@ export const loginResponseSchema = z.object({
 });
 
 export const sendOtpResponseSchema = z.object({
+  ok: z.boolean(),
+});
+
+export const resendLoginOtpResponseSchema = z.object({
   ok: z.boolean(),
 });
 
@@ -206,6 +210,13 @@ const idpClientAuthRoutes = {
     body: z.object({}).optional(),
     responses: { 200: sendOtpResponseSchema },
     summary: '发送 OTP',
+  },
+  resendLoginOtp: {
+    method: HTTP_METHOD.POST,
+    path: '/resendLoginOtp',
+    body: z.object({}).optional(),
+    responses: { 200: resendLoginOtpResponseSchema },
+    summary: '重发登录 OTP',
   },
   verifyOtp: {
     method: HTTP_METHOD.POST,
