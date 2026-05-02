@@ -33,7 +33,10 @@ export class RegistrationService {
     await this.gotrue.signUp({
       email: dto.email,
       password: dto.password,
-      data: dto.display_name ? { display_name: dto.display_name } : undefined,
+      data: {
+        student_id: dto.student_id,
+        ...(dto.display_name ? { display_name: dto.display_name } : {}),
+      },
     });
     const ttl =
       Math.max(1, Number(config.auth.register.redisTtlMinutes || 60)) * 60;

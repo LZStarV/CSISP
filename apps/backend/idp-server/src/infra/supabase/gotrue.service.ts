@@ -67,7 +67,11 @@ export class GotrueService {
   async signUp(params: {
     email: string;
     password: string;
-    data?: Record<string, any>;
+    data: {
+      student_id: string;
+      display_name?: string;
+      [key: string]: any;
+    };
     emailRedirectTo?: string;
   }): Promise<void> {
     const client = this.supabaseDataAccess.service();

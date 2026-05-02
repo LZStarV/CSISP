@@ -1,5 +1,6 @@
 import { SupabaseDataAccess } from '@csisp/supabase-sdk';
 import { createLogger } from '@csisp/utils';
+import { Injectable } from '@nestjs/common';
 
 import type { IQueryableRepository, IQueryOptions } from '../base';
 
@@ -8,6 +9,7 @@ const baseLogger = createLogger('dal');
 /**
  * Supabase Repository 基类 - 封装通用的 Supabase 操作
  */
+@Injectable()
 export abstract class BaseSupabaseRepository<
   T,
   TId,

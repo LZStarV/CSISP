@@ -1,4 +1,5 @@
 import { SupabaseDataAccess } from '@csisp/supabase-sdk';
+import { Injectable } from '@nestjs/common';
 
 // eslint-disable-next-line no-restricted-imports
 import type {
@@ -29,6 +30,7 @@ export interface IUserRepository extends IQueryableRepository<
   resetPassword(studentId: string, newHash: string): Promise<void>;
 }
 
+@Injectable()
 export class SupabaseUserRepository
   extends BaseSupabaseRepository<UserRow, number, UserInsert, UserUpdate>
   implements IUserRepository
