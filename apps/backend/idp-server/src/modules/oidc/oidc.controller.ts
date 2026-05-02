@@ -3,11 +3,17 @@ import { RequestBodyPipe } from '@common/http/request-body.pipe';
 import { Body, Post } from '@nestjs/common';
 
 import { GetAuthorizationRequestDto } from './dto/get-authorization-request.dto';
+import { OidcAuthorizeDto } from './dto/oidc-authorize.dto';
 import { OidcService } from './oidc.service';
 
 @ApiIdpController('oidc')
 export class OidcController {
   constructor(private readonly oidcService: OidcService) {}
+
+  @Post('authorize')
+  async authorize(@Body(RequestBodyPipe) dto: OidcAuthorizeDto) {
+    return this.oidcService.authorize(dto);
+  }
 
   @Post('clients')
   async clients() {

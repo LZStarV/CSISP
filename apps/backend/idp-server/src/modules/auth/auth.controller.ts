@@ -15,6 +15,7 @@ import type { Request as ExpressRequest, Response } from 'express';
 import { CreateExchangeCodeDto } from './dto/create-exchange-code.dto';
 import { EnterDto } from './dto/enter.dto';
 import { LoginInternalDto } from './dto/login-internal.dto';
+import { AuthLogoutDto } from './dto/logout.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResendSignupOtpDto } from './dto/resend-signup-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -29,6 +30,7 @@ import {
   OidcAuthService,
   MfaService,
   ForgotPasswordService,
+  LogoutService,
 } from './service';
 
 @ApiIdpController('auth')
@@ -42,7 +44,8 @@ export class AuthController {
     private readonly oidcAuthService: OidcAuthService,
     private readonly mfaService: MfaService,
     private readonly forgotPasswordService: ForgotPasswordService,
-    private readonly sessionService: SessionService
+    private readonly sessionService: SessionService,
+    private readonly logoutService: LogoutService
   ) {}
 
   @Post('login')
@@ -155,6 +158,15 @@ export class AuthController {
     @Body(RequestBodyPipe) authForgotVerifyRequest: AuthForgotVerifyRequest
   ) {
     return this.forgotPasswordService.forgotVerify(authForgotVerifyRequest);
+  }
+
+  @Post('logout')
+  async authLogout(
+    @Body(RequestBodyPipe) authLogoutDto: AuthLogoutDto,
+    @Req() request: ExpressRequest,
+    @Res({ passthrough: true }) response: Response
+  ) {
+    return this.logoutService.logout(authLogoutDto, request, response);
   }
 
   @Post('session')

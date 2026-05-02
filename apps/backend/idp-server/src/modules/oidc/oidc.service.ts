@@ -12,10 +12,11 @@ import {
 import { RedisPrefix } from '@idp-types/redis';
 import { getIdpLogger } from '@infra/logger';
 import { Inject, Injectable, HttpStatus } from '@nestjs/common';
-import { OIDCScope } from '@utils/oidc/oidc.policy';
+import { OIDCScope, OidcPolicyHelper } from '@utils/oidc/oidc.policy';
 import { TicketIssuer, TicketIdType } from '@utils/ticket.issuer';
 
 import { GetAuthorizationRequestDto } from './dto/get-authorization-request.dto';
+import { OidcAuthorizeDto } from './dto/oidc-authorize.dto';
 
 const logger = getIdpLogger('oidc-service');
 
@@ -36,9 +37,63 @@ export class OidcService {
 
   private readonly authReqIssuer: TicketIssuer<AuthorizationRequestData>;
 
-  /**
-   * 获取授权请求详情 (Ticket 模式)
-   */
+  constructor(
+    private readonly oidcClientRepository: SupabaseOidcClientRepository,
+    @Inject(REDIS_KV) private readonly kv: RedisKV
+  ) {
+    this.ticketIssuer = new TicketIssuer<AuthorizationRequestData>(
+      { prefix: RedisPrefix.OidcTicket, ttl: 600, idType: TicketIdType.UUID },
+      kv
+    );
+    this.authReqIssuer = new TicketIssuer<AuthorizationRequestData>(
+      { prefix: RedisPrefix.OidcAuthReq, ttl: 600 },
+      kv
+    );
+  }
+
+  async authorize(dto: OidcAuthorizeDto): Promise<{ ticket: string }> {
+    const client = await this.oidcClientRepository.findByClientId(
+      dto.client_id
+    );
+    if (!client || client.status !== 'active') {
+      throw new CommonApiException(
+        CommonErrorCode.BadRequest,
+        'Invalid client_id',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const allowed = OidcPolicyHelper.isRedirectUriAllowed(
+      dto.redirect_uri,
+      client.allowed_redirect_uris as string | string[] | null
+    );
+    if (!allowed) {
+      throw new CommonApiException(
+        CommonErrorCode.BadRequest,
+        'redirect_uri not allowed',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const ticket = await this.ticketIssuer.issue({
+      client_id: dto.client_id,
+      redirect_uri: dto.redirect_uri,
+      response_type: 0,
+      state: dto.state,
+      code_challenge: dto.code_challenge || '',
+      code_challenge_method: 0,
+      scope: dto.scope,
+      ts: Date.now(),
+    });
+
+    logger.info(
+      { client_id: dto.client_id, ticket },
+      'OIDC authorize ticket issued'
+    );
+
+    return { ticket };
+  }
+
   async getAuthorizationRequest(
     dto: GetAuthorizationRequestDto
   ): Promise<AuthorizationRequestInfo> {
@@ -70,20 +125,6 @@ export class OidcService {
       redirect_uri: req.redirect_uri,
       state: req.state,
     };
-  }
-
-  constructor(
-    private readonly oidcClientRepository: SupabaseOidcClientRepository,
-    @Inject(REDIS_KV) private readonly kv: RedisKV
-  ) {
-    this.ticketIssuer = new TicketIssuer<AuthorizationRequestData>(
-      { prefix: RedisPrefix.OidcTicket, ttl: 600, idType: TicketIdType.UUID },
-      kv
-    );
-    this.authReqIssuer = new TicketIssuer<AuthorizationRequestData>(
-      { prefix: RedisPrefix.OidcAuthReq, ttl: 600 },
-      kv
-    );
   }
 
   async listClients(): Promise<ClientInfo[]> {

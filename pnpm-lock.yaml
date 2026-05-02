@@ -7,14 +7,14 @@ settings:
 catalogs:
   default:
     '@csisp-api/bff-idp-server':
-      specifier: ^0.2.6
-      version: 0.2.6
+      specifier: ^0.2.7
+      version: 0.2.7
     '@csisp-api/bff-integrated-server':
       specifier: ^0.1.3
       version: 0.1.3
     '@csisp-api/idp-server':
-      specifier: ^0.2.6
-      version: 0.2.6
+      specifier: ^0.2.7
+      version: 0.2.7
     '@csisp-api/integrated-server':
       specifier: ^0.1.3
       version: 0.1.3
@@ -246,7 +246,7 @@ importers:
     dependencies:
       '@csisp-api/idp-server':
         specifier: 'catalog:'
-        version: 0.2.6(@nestjs/microservices@11.1.19)(express@5.2.1)(mongoose@9.5.0(socks@2.8.7))(sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.8))(sequelize@6.37.8)
+        version: 0.2.7(@nestjs/microservices@11.1.19)(express@5.2.1)(mongoose@9.5.0(socks@2.8.7))(sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.8))(sequelize@6.37.8)
       '@csisp/config':
         specifier: workspace:*
         version: link:../../../packages/config
@@ -410,7 +410,7 @@ importers:
     dependencies:
       '@csisp-api/bff-idp-server':
         specifier: 'catalog:'
-        version: 0.2.6(@nestjs/microservices@11.1.19)(class-transformer@0.5.1)(class-validator@0.15.1)
+        version: 0.2.7(@nestjs/microservices@11.1.19)(class-transformer@0.5.1)(class-validator@0.15.1)
       '@csisp-api/bff-integrated-server':
         specifier: 'catalog:'
         version: 0.1.3(@nestjs/platform-express@11.1.19)(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)
@@ -520,7 +520,7 @@ importers:
         version: 5.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@csisp-api/bff-idp-server':
         specifier: 'catalog:'
-        version: 0.2.6(@nestjs/microservices@11.1.19)(class-transformer@0.5.1)(class-validator@0.15.1)
+        version: 0.2.7(@nestjs/microservices@11.1.19)(class-transformer@0.5.1)(class-validator@0.15.1)
       '@csisp/contracts':
         specifier: workspace:*
         version: link:../../../packages/contracts
@@ -678,7 +678,7 @@ importers:
     dependencies:
       '@csisp-api/bff-idp-server':
         specifier: 'catalog:'
-        version: 0.2.6(@nestjs/microservices@11.1.19)(class-transformer@0.5.1)(class-validator@0.15.1)
+        version: 0.2.7(@nestjs/microservices@11.1.19)(class-transformer@0.5.1)(class-validator@0.15.1)
       '@ts-rest/core':
         specifier: ^3.52.1
         version: 3.52.1(@types/node@22.19.11)(zod@3.25.76)
@@ -1217,10 +1217,10 @@ packages:
       }
     engines: { node: '>=0.1.90' }
 
-  '@csisp-api/bff-idp-server@0.2.6':
+  '@csisp-api/bff-idp-server@0.2.7':
     resolution:
       {
-        integrity: sha512-GKfVLttxBA7ztPLGzR+4674kQQQ3NCfCB2JAXSnBHrmfBURn7F9xg7nauOYd4ofhZiURPbwPnqv/scWrW+5ifA==,
+        integrity: sha512-9vciZqpvQQ4z/+vvM1qAsd46M39qOqnmCC40yUyS3Uf+4MDVL50SiDyJQQATGM3PGa3DHogDoixJJCFCCFQlNQ==,
       }
 
   '@csisp-api/bff-integrated-server@0.1.3':
@@ -1229,10 +1229,10 @@ packages:
         integrity: sha512-RJtgyr7FesoCAiQmjpXwUBmikuyZTTGSi5SHXTGN1JTWTOeY6S8fIs2JsXrp5uPIFopQtiMDp82Ml4hHotNM1Q==,
       }
 
-  '@csisp-api/idp-server@0.2.6':
+  '@csisp-api/idp-server@0.2.7':
     resolution:
       {
-        integrity: sha512-slBG9+JqOsA4mkywvZj1lBO8jaOTm0MSGuxhYv4vKVlx0+pdIB7dcYOZaey04+pXsKxRJpGNV/P4yyqgniGrQg==,
+        integrity: sha512-TQQYje7KLCprT8qonLJXIlf7R8PQpSdjDi0aHnP1zjWl77vIHo/DxyqDu6rexywIiLGa58MW1BOs75JHwEv5YA==,
       }
 
   '@csisp-api/integrated-server@0.1.3':
@@ -11425,7 +11425,7 @@ snapshots:
   '@colors/colors@1.5.0':
     optional: true
 
-  '@csisp-api/bff-idp-server@0.2.6(@nestjs/microservices@11.1.19)(class-transformer@0.5.1)(class-validator@0.15.1)':
+  '@csisp-api/bff-idp-server@0.2.7(@nestjs/microservices@11.1.19)(class-transformer@0.5.1)(class-validator@0.15.1)':
     dependencies:
       '@nestjs/axios': 3.1.3(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.15.0)(rxjs@7.8.2)
       '@nestjs/common': 11.1.19(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -11468,7 +11468,7 @@ snapshots:
       - reflect-metadata
       - supports-color
 
-  '@csisp-api/idp-server@0.2.6(@nestjs/microservices@11.1.19)(express@5.2.1)(mongoose@9.5.0(socks@2.8.7))(sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.8))(sequelize@6.37.8)':
+  '@csisp-api/idp-server@0.2.7(@nestjs/microservices@11.1.19)(express@5.2.1)(mongoose@9.5.0(socks@2.8.7))(sequelize-typescript@2.1.6(@types/node@18.19.130)(@types/validator@13.15.10)(reflect-metadata@0.2.2)(sequelize@6.37.8))(sequelize@6.37.8)':
     dependencies:
       '@nestjs/common': 11.1.19(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.19)(@nestjs/platform-express@11.1.19)(reflect-metadata@0.2.2)(rxjs@7.8.2)
