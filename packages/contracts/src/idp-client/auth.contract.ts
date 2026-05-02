@@ -82,7 +82,7 @@ export const resendSignupOtpResponseSchema = z.object({
 });
 
 export const loginBodySchema = z.object({
-  email: z.string().email().min(5).max(256),
+  student_id: z.string().regex(/^\d{10,14}$/),
   password: z.string().min(1).max(512),
 }) satisfies z.ZodType<LoginInternalDto>;
 

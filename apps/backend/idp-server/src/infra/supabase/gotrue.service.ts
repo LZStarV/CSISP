@@ -116,4 +116,45 @@ export class GotrueService {
       throw error;
     }
   }
+
+  // 通过 auth user ID 获取用户信息
+  // @param authUserId auth user ID
+  // @returns 用户信息（包含 email）
+  async getUserByAuthId(
+    authUserId: string
+  ): Promise<{ id: string; email: string } | null> {
+    try {
+      const client = this.supabaseDataAccess.service();
+      const { data, error } = await client.auth.admin.getUserById(authUserId);
+      if (error || !data.user) {
+        return null;
+      }
+      return {
+        id: data.user.id,
+        email: data.user.email || '',
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // 通过 email 获取 auth user ID
+  // @param email 邮箱
+  // @returns auth user ID
+  async getAuthIdByEmail(email: string): Promise<string | null> {
+    try {
+      const client = this.supabaseDataAccess.service();
+      const { data, error } = await client.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      if (error || !data.users) {
+        return null;
+      }
+      const user = data.users.find(u => u.email === email);
+      return user?.id || null;
+    } catch {
+      return null;
+    }
+  }
 }

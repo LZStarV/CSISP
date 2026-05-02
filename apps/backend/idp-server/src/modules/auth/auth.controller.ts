@@ -85,9 +85,10 @@ export class AuthController {
   @Post('verify-otp')
   async authVerifyOtp(
     @Body(RequestBodyPipe) verifyOtpDto: VerifyOtpDto,
-    @Req() request: ExpressRequest
+    @Req() request: ExpressRequest,
+    @Res({ passthrough: true }) response: Response
   ) {
-    return this.otpService.verifyOtpStepUp(verifyOtpDto, request);
+    return this.otpService.verifyOtpStepUp(verifyOtpDto, request, response);
   }
 
   @Post('createExchangeCode')
@@ -163,9 +164,7 @@ export class AuthController {
   ) {
     const uid = (request as any).idpUserId;
     if (!uid) return { logged: false };
-    const userId = await this.sessionService.get(String(uid));
-    if (!userId) return { logged: false };
-    const user = await this.registrationService.findUserById(userId);
+    const user = await this.registrationService.findUserById(uid);
     return {
       logged: true,
       student_id: user?.student_id ?? undefined,

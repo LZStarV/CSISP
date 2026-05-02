@@ -24,6 +24,7 @@ export interface IUserRepository extends IQueryableRepository<
 > {
   findByEmail(email: string): Promise<UserRow | null>;
   findByStudentId(studentId: string): Promise<UserRow | null>;
+  findByAuthUserId(authUserId: string): Promise<UserRow | null>;
   findByIds(ids: number[]): Promise<UserRow[]>;
   findWithMfaSettings(id: number): Promise<UserWithMfa | null>;
   findRecoveryInfo(email: string): Promise<UserRecoveryInfo | null>;
@@ -51,6 +52,30 @@ export class SupabaseUserRepository
    */
   async findByStudentId(studentId: string): Promise<UserRow | null> {
     return this.findOne({ student_id: studentId });
+  }
+
+  /**
+   * 根据 auth user ID 查询
+   */
+  async findByAuthUserId(authUserId: string): Promise<UserRow | null> {
+    return this.findOne({ auth_user_id: authUserId });
+  }
+
+  /**
+   * 根据邮箱获取 auth user ID（直接查询 auth.users 表）
+   */
+  async findAuthUserIdByEmail(email: string): Promise<string | null> {
+    const { data, error } = await this.sda
+      .service()
+      .from('auth.users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+    return data.id;
   }
 
   /**

@@ -1,12 +1,13 @@
 import { LoginInternalDto as GeneratedLoginInternalDto } from '@csisp-api/idp-server';
-import { IsEmail, IsString, Length } from 'class-validator';
+import { IsString, Matches, MinLength, MaxLength } from 'class-validator';
 
 export class LoginInternalDto implements GeneratedLoginInternalDto {
-  @IsEmail()
-  @Length(5, 256)
-  email!: string;
+  @IsString()
+  @Matches(/^\d{10,14}$/, { message: '学号必须是10-14位数字' })
+  student_id!: string;
 
   @IsString()
-  @Length(1, 512)
+  @MinLength(1)
+  @MaxLength(512)
   password!: string;
 }
