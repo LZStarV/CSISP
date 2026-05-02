@@ -22,10 +22,8 @@ export interface IUserRepository extends IQueryableRepository<
   UserInsert,
   UserUpdate
 > {
-  findByEmail(email: string): Promise<UserRow | null>;
   findByStudentId(studentId: string): Promise<UserRow | null>;
   findByAuthUserId(authUserId: string): Promise<UserRow | null>;
-  findByIds(ids: number[]): Promise<UserRow[]>;
   findWithMfaSettings(id: number): Promise<UserWithMfa | null>;
   findRecoveryInfo(email: string): Promise<UserRecoveryInfo | null>;
   resetPassword(studentId: string, newHash: string): Promise<void>;
@@ -41,13 +39,6 @@ export class SupabaseUserRepository
   }
 
   /**
-   * 根据邮箱查询
-   */
-  async findByEmail(email: string): Promise<UserRow | null> {
-    return this.findOne({ email });
-  }
-
-  /**
    * 根据学号查询
    */
   async findByStudentId(studentId: string): Promise<UserRow | null> {
@@ -59,36 +50,6 @@ export class SupabaseUserRepository
    */
   async findByAuthUserId(authUserId: string): Promise<UserRow | null> {
     return this.findOne({ auth_user_id: authUserId });
-  }
-
-  /**
-   * 根据邮箱获取 auth user ID（直接查询 auth.users 表）
-   */
-  async findAuthUserIdByEmail(email: string): Promise<string | null> {
-    const { data, error } = await this.sda
-      .service()
-      .from('auth.users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (error || !data) {
-      return null;
-    }
-    return data.id;
-  }
-
-  /**
-   * 根据 ID 列表查询
-   */
-  async findByIds(ids: number[]): Promise<UserRow[]> {
-    const { data } = await this.sda
-      .service()
-      .from(this.tableName)
-      .select('*')
-      .in('id', ids);
-
-    return (data as UserRow[]) || [];
   }
 
   /**
