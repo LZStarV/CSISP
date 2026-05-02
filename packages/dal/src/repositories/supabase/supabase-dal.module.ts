@@ -1,4 +1,4 @@
-import { SupabaseDataAccess, SUPABASE_SERVICE } from '@csisp/supabase-sdk';
+import { SupabaseDataAccess } from '@csisp/supabase-sdk';
 import { Global, Module } from '@nestjs/common';
 
 import { SupabaseMfaSettingsRepository } from './mfa-settings.repository';
@@ -11,19 +11,19 @@ import { SupabaseUserRepository } from './user.repository';
     {
       provide: SupabaseUserRepository,
       useFactory: (sda: SupabaseDataAccess) => new SupabaseUserRepository(sda),
-      inject: [SUPABASE_SERVICE],
+      inject: [SupabaseDataAccess],
     },
     {
       provide: SupabaseMfaSettingsRepository,
       useFactory: (sda: SupabaseDataAccess) =>
         new SupabaseMfaSettingsRepository(sda),
-      inject: [SUPABASE_SERVICE],
+      inject: [SupabaseDataAccess],
     },
     {
       provide: SupabaseOidcClientRepository,
       useFactory: (sda: SupabaseDataAccess) =>
         new SupabaseOidcClientRepository(sda),
-      inject: [SUPABASE_SERVICE],
+      inject: [SupabaseDataAccess],
     },
   ],
   exports: [

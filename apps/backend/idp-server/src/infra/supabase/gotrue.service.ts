@@ -103,18 +103,15 @@ export class GotrueService {
     }
   }
 
-  // 发送登录 OTP（使用 resend 方法强制发送验证码）
+  // 发送登录 OTP
   // @param params 发送登录 OTP 参数
   // @returns 发送登录 OTP 结果
   // @throws 发送登录 OTP 失败时抛出异常
   async sendLoginOtp(params: { email: string }): Promise<void> {
     const client = this.supabaseDataAccess.service();
-    // 使用 magiclink 类型的 resend 来触发 OTP 发送
-    // 注意：需要在 Supabase Dashboard 中配置邮件模板使用 {{ .Token }} 而不是 {{ .ConfirmationURL }}
-    const { error } = await client.auth.resend({
-      type: 'signup',
+    const { error } = await client.auth.signInWithOtp({
       email: params.email,
-    } as any);
+    });
     if (error) {
       throw error;
     }

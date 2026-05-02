@@ -188,14 +188,14 @@ export function Login() {
             <Input
               placeholder={t(
                 'signup.otp.placeholder',
-                '请输入邮箱中的 6 位验证码',
+                '请输入邮箱中的 8 位验证码',
                 {
-                  digitCount: 6,
+                  digitCount: 8,
                 }
               )}
               value={otpCode}
               onChange={e => setOtpCode(e.target.value)}
-              maxLength={6}
+              maxLength={8}
               inputMode='numeric'
             />
           </Form.Item>
@@ -205,7 +205,7 @@ export function Login() {
               onClick={handleVerifyOtp}
               block
               loading={loading}
-              disabled={!/^\d{6}$/.test(otpCode)}
+              disabled={!/^\d{8}$/.test(otpCode)}
             >
               {t('verify.submit', '完成验证')}
             </Button>

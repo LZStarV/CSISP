@@ -199,7 +199,7 @@ export function SmsVerify() {
             ]}
           >
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Input.OTP length={6} value={codeValue} onChange={setCodeValue} />
+              <Input.OTP length={8} value={codeValue} onChange={setCodeValue} />
             </div>
           </Form.Item>
           <Form.Item>
@@ -208,7 +208,7 @@ export function SmsVerify() {
               htmlType='submit'
               block
               loading={loading}
-              disabled={codeValue.length !== 6}
+              disabled={codeValue.length !== 8}
             >
               {t('verify.submit', '提交验证')}
             </Button>
