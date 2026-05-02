@@ -72,6 +72,11 @@ export class AuthController {
     return this.registrationService.resendSignupOtp(resendSignupOtpDto);
   }
 
+  @Post('resendLoginOtp')
+  async authResendLoginOtp(@Req() request: ExpressRequest) {
+    return this.otpService.resendLoginOtp(request);
+  }
+
   @Post('send-otp')
   async authSendOtp(@Req() request: ExpressRequest) {
     return this.otpService.sendOtpStepUp(request);

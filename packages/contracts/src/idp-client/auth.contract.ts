@@ -95,6 +95,10 @@ export const sendOtpResponseSchema = z.object({
   ok: z.boolean(),
 });
 
+export const resendLoginOtpResponseSchema = z.object({
+  ok: z.boolean(),
+});
+
 export const verifyOtpBodySchema = z.object({
   token: z.string().min(1).max(512),
 }) satisfies z.ZodType<VerifyOtpDto>;
@@ -206,6 +210,13 @@ const idpClientAuthRoutes = {
     body: z.object({}).optional(),
     responses: { 200: sendOtpResponseSchema },
     summary: '发送 OTP',
+  },
+  resendLoginOtp: {
+    method: HTTP_METHOD.POST,
+    path: '/resendLoginOtp',
+    body: z.object({}).optional(),
+    responses: { 200: resendLoginOtpResponseSchema },
+    summary: '重发登录 OTP',
   },
   verifyOtp: {
     method: HTTP_METHOD.POST,

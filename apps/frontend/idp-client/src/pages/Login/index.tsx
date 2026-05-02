@@ -14,6 +14,8 @@ export function Login() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const {
     ticket: storedTicket,
     state: storedState,
@@ -80,6 +82,34 @@ export function Login() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (countdown > 0) return;
+    setResendLoading(true);
+    setErrorMsg(null);
+    try {
+      await idpClientAuthApi.resendLoginOtp();
+      message.success(t('verify.email.resent', '验证码已重新发送，请查收邮箱'));
+      setCountdown(60);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (e) {
+      setErrorMsg(
+        e instanceof Error
+          ? e.message
+          : t('verify.email.resendFailed', '重发验证码失败，请稍后重试')
+      );
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -158,7 +188,7 @@ export function Login() {
             <Input
               placeholder={t(
                 'signup.otp.placeholder',
-                '请输入邮箱中的6位验证码',
+                '请输入邮箱中的 6 位验证码',
                 {
                   digitCount: 6,
                 }
@@ -178,6 +208,21 @@ export function Login() {
               disabled={!/^\d{6}$/.test(otpCode)}
             >
               {t('verify.submit', '完成验证')}
+            </Button>
+          </Form.Item>
+          <Form.Item>
+            <Button
+              type='link'
+              onClick={handleResendOtp}
+              loading={resendLoading}
+              disabled={countdown > 0 || resendLoading}
+              block
+            >
+              {countdown > 0
+                ? t('verify.email.resendCountdown', '{seconds}秒后重发', {
+                    seconds: countdown,
+                  })
+                : t('verify.email.resend', '没有收到验证码？重发')}
             </Button>
           </Form.Item>
         </Form>

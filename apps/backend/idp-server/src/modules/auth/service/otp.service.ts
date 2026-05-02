@@ -53,7 +53,7 @@ export class OtpService {
       throw new AuthApiException(AuthErrorCode.Unauthorized, 'Email missing');
     }
     await store.setPendingEmailOtp(sid, 600);
-    await this.gotrue.signInWithOtp({ email: cur.email });
+    await this.gotrue.sendLoginOtp({ email: cur.email });
     logger.info(
       {
         event: 'send_otp',
@@ -62,6 +62,45 @@ export class OtpService {
         sid,
       },
       'auth send otp success'
+    );
+    return { ok: true };
+  }
+
+  async resendLoginOtp(req: Request): Promise<{ ok: true }> {
+    const logger = getIdpBaseLogger().child({ module: 'auth' });
+    const sid = (req as any).cookies?.idp_stepup as string | undefined;
+    if (!sid) {
+      throw new AuthApiException(
+        AuthErrorCode.Unauthorized,
+        'No step-up session'
+      );
+    }
+    const store = new StepUpStore(this.kv);
+    const cur = await store.getState(sid);
+    if (!cur) {
+      throw new AuthApiException(
+        AuthErrorCode.Unauthorized,
+        'Step-up session not found'
+      );
+    }
+    if (cur.state !== 'PENDING_EMAIL_OTP' && cur.state !== 'PENDING_PASSWORD') {
+      throw new AuthApiException(
+        AuthErrorCode.AuthStepUpRequired,
+        'Cannot resend OTP at this state'
+      );
+    }
+    if (!cur.email) {
+      throw new AuthApiException(AuthErrorCode.Unauthorized, 'Email missing');
+    }
+    await this.gotrue.sendLoginOtp({ email: cur.email });
+    logger.info(
+      {
+        event: 'resend_otp',
+        result: 'success',
+        email: cur.email,
+        sid,
+      },
+      'auth resend otp success'
     );
     return { ok: true };
   }
