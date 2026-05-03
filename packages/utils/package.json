@@ -1,6 +1,6 @@
 {
   "name": "@csisp/utils",
-  "version": "1.0.0",
+  "private": true,
   "type": "commonjs",
   "main": "./dist/index.js",
   "types": "./src/index.ts",

@@ -2,7 +2,7 @@ import { ApiIdpController } from '@common/decorators/controller.decorator';
 import { IdpSessionGuard } from '@common/guards/idp-session.guard';
 import { RequestBodyPipe } from '@common/http/request-body.pipe';
 import { UseGuards } from '@nestjs/common';
-import { Body, Post, Query, Req, Res } from '@nestjs/common';
+import { Body, Post, Req, Res } from '@nestjs/common';
 import type { Request as ExpressRequest, Response } from 'express';
 
 import { Oauth2AuthorizeDto } from './dto/oauth2-authorize.dto';

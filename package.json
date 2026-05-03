@@ -1,7 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "csisp-monorepo",
-  "version": "1.0.0",
+  "name": "csisp",
   "private": true,
   "type": "module",
   "engines": {
