@@ -5,3 +5,4 @@ export const ROUTE_MFA_SMS = '/mfa/sms';
 export const ROUTE_PASSWORD_RESET = '/password/reset';
 export const ROUTE_PASSWORD_FORGOT = '/password/forgot';
 export const ROUTE_FINISH = '/finish';
+export const ROUTE_OAUTH_CONSENT = '/oauth/consent';

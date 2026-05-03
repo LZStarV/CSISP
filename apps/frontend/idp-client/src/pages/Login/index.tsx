@@ -1,10 +1,8 @@
-import type { GetAuthorizationRequestResult } from '@csisp/contracts';
 import { Form, Input, Button, Typography, Alert, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { commonOidcApi } from '@/api/common/oidc';
 import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
@@ -19,12 +17,10 @@ export function Login() {
   const {
     ticket: storedTicket,
     state: storedState,
-    authInfo: storedAuthInfo,
     otpSent,
     otpCode,
     setTicket,
     setStateParam,
-    setAuthInfo,
     setOtpSent,
     setOtpCode,
     clearFlowState,
@@ -44,24 +40,6 @@ export function Login() {
       setStateParam(state);
     }
   }, [ticket, state, setTicket, setStateParam]);
-
-  useEffect(() => {
-    const currentTicket = ticket || storedTicket;
-    if (currentTicket && !storedAuthInfo) {
-      commonOidcApi
-        .getAuthorizationRequest({
-          ticket: currentTicket,
-        })
-        .then((res: GetAuthorizationRequestResult) => {
-          setAuthInfo(res);
-        })
-        .catch(error => {
-          setErrorMsg(
-            error.message || t('oidc.getAuthInfoFailed', '获取授权信息失败')
-          );
-        });
-    }
-  }, [ticket, storedTicket, storedAuthInfo, t, setAuthInfo]);
 
   const handleVerifyOtp = async () => {
     setLoading(true);
@@ -125,12 +103,11 @@ export function Login() {
 
       const currentTicket = ticket || storedTicket;
       const currentState = state || storedState;
-      const currentAuthInfo = storedAuthInfo;
 
       const flowState = {
         ...res,
         ticket: currentTicket,
-        state: currentAuthInfo?.state || currentState,
+        state: currentState,
       };
 
       if (stepUp === 'PENDING_PASSWORD') {
@@ -159,21 +136,8 @@ export function Login() {
   return (
     <AuthLayout>
       <Typography.Title level={3} style={{ textAlign: 'center' }}>
-        {storedAuthInfo
-          ? t('login.loginTo', '登录到 {clientName}', {
-              clientName: storedAuthInfo.client_name,
-            })
-          : t('oidc.unifiedLogin', '统一身份认证登录')}
+        {t('oidc.unifiedLogin', '统一身份认证登录')}
       </Typography.Title>
-      {storedAuthInfo && (
-        <Typography.Paragraph
-          type='secondary'
-          style={{ textAlign: 'center', marginTop: -8 }}
-        >
-          {t('login.subtitle.appRequest', '该应用申请访问您的基本信息')}（
-          {t('login.subtitle.verifyByEmail', '本次将通过邮箱验证完成登录')}）
-        </Typography.Paragraph>
-      )}
       {errorMsg && (
         <Alert
           type='error'

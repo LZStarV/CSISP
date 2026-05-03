@@ -12,8 +12,6 @@ import { UseGuards } from '@nestjs/common';
 import { Body, Post, Req, Res } from '@nestjs/common';
 import type { Request as ExpressRequest, Response } from 'express';
 
-import { CreateExchangeCodeDto } from './dto/create-exchange-code.dto';
-import { EnterDto } from './dto/enter.dto';
 import { LoginInternalDto } from './dto/login-internal.dto';
 import { AuthLogoutDto } from './dto/logout.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -27,7 +25,6 @@ import {
   LoginService,
   OtpService,
   PasswordResetService,
-  OidcAuthService,
   MfaService,
   ForgotPasswordService,
   LogoutService,
@@ -41,7 +38,6 @@ export class AuthController {
     private readonly loginService: LoginService,
     private readonly otpService: OtpService,
     private readonly passwordResetService: PasswordResetService,
-    private readonly oidcAuthService: OidcAuthService,
     private readonly mfaService: MfaService,
     private readonly forgotPasswordService: ForgotPasswordService,
     private readonly sessionService: SessionService,
@@ -94,17 +90,6 @@ export class AuthController {
     return this.otpService.verifyOtpStepUp(verifyOtpDto, request, response);
   }
 
-  @Post('createExchangeCode')
-  async authCreateExchangeCode(
-    @Body(RequestBodyPipe) createExchangeCodeDto: CreateExchangeCodeDto,
-    @Req() request: ExpressRequest
-  ) {
-    return this.oidcAuthService.createExchangeCode(
-      createExchangeCodeDto,
-      request
-    );
-  }
-
   @Post('multifactor')
   async authMultifactor(
     @Body(RequestBodyPipe) authMultifactorRequest: AuthMultifactorRequest,
@@ -118,16 +103,6 @@ export class AuthController {
     @Body(RequestBodyPipe) resetPasswordDto: ResetPasswordDto
   ) {
     return this.passwordResetService.resetPassword(resetPasswordDto);
-  }
-
-  @Post('enter')
-  async authEnter(
-    @Body(RequestBodyPipe) enterDto: EnterDto,
-    @Req() request: ExpressRequest,
-    @Res({ passthrough: true }) response: Response
-  ) {
-    const uid = (request as any).idpUserId;
-    return this.oidcAuthService.enter(enterDto, response, uid);
   }
 
   @Post('mfa_methods')
