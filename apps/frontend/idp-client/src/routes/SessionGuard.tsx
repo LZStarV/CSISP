@@ -19,11 +19,6 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     useSessionStore();
 
   useEffect(() => {
-    if (location.pathname === ROUTE_OAUTH_CONSENT) {
-      setChecking(false);
-      return;
-    }
-
     const params = new URLSearchParams(location.search);
     const tokenHash = params.get('token_hash');
     const type = params.get('type');
@@ -103,7 +98,14 @@ export function SessionGuard({ children }: { children: ReactNode }) {
         } else {
           clearSession();
           if (location.pathname !== ROUTE_LOGIN) {
-            navigate(ROUTE_LOGIN);
+            // 如果是 OAuth consent 页面，带上 redirect 参数
+            if (location.pathname === ROUTE_OAUTH_CONSENT) {
+              const redirectUrl = `${location.pathname}${location.search}`;
+              const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
+              navigate(loginUrl, { replace: true });
+            } else {
+              navigate(ROUTE_LOGIN);
+            }
             return;
           }
         }
@@ -111,7 +113,14 @@ export function SessionGuard({ children }: { children: ReactNode }) {
         message.error('服务器错误或连接失败，请稍后重试');
         clearSession();
         if (location.pathname !== ROUTE_LOGIN) {
-          navigate(ROUTE_LOGIN);
+          // 如果是 OAuth consent 页面，带上 redirect 参数
+          if (location.pathname === ROUTE_OAUTH_CONSENT) {
+            const redirectUrl = `${location.pathname}${location.search}`;
+            const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
+            navigate(loginUrl, { replace: true });
+          } else {
+            navigate(ROUTE_LOGIN);
+          }
           return;
         }
       }

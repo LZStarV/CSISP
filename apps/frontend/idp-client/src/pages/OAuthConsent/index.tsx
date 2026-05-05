@@ -27,6 +27,21 @@ function safeGet<T>(obj: unknown, path: string[], defaultValue: T): T {
   return (result as T) ?? defaultValue;
 }
 
+/**
+ * 辅助函数，自动调用授权通过
+ */
+async function autoApproveAuthorization(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  authorizationId: string
+) {
+  const { data, error } =
+    await supabase.auth.oauth.approveAuthorization(authorizationId);
+  if (error) {
+    throw error;
+  }
+  return data;
+}
+
 export function OAuthConsent() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -155,6 +170,22 @@ export function OAuthConsent() {
 
         if (isAuthDetails(data)) {
           setAuthDetails(data);
+          // 立即自动授权
+          try {
+            const approveData = await autoApproveAuthorization(
+              supabase,
+              authorizationId
+            );
+            if ('redirect_to' in approveData) {
+              window.location.href = (
+                approveData as { redirect_to: string }
+              ).redirect_to;
+              return;
+            }
+          } catch (error) {
+            console.error('Auto approve failed:', error);
+            setErrorMsg(t('oauth.approveFailed', '授权失败，请重试'));
+          }
         } else {
           // 如果数据格式不符合预期，设置错误
           setErrorMsg(t('oauth.invalidData', '收到无效的授权数据'));
