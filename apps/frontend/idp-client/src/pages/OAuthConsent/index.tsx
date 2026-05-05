@@ -1,18 +1,19 @@
 import { Button, Card, Typography, Spin, Alert } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { getSupabaseClient } from '@/lib/supabase';
-import { ROUTE_LOGIN } from '@/routes/router';
+import { ROUTE_LOGIN, ROUTE_OAUTH_CONSENT } from '@/routes/router';
 import { useAuthStore } from '@/stores/auth';
 
 export function OAuthConsent() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { clearFlowState } = useAuthStore();
+  const { clearFlowState, supabaseSession } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -21,58 +22,92 @@ export function OAuthConsent() {
     redirect_uri: string;
     scope?: string;
   } | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   // 从 URL 获取 authorization_id
   const authorizationId = searchParams.get('authorization_id');
 
   useEffect(() => {
+    // 如果不在 OAuth consent 路径，直接返回，不运行逻辑
+    if (location.pathname !== ROUTE_OAUTH_CONSENT) {
+      setLoading(false);
+      setInitialized(true);
+      return;
+    }
+
     async function loadAuthDetails() {
+      // 防止重复运行
+      if (initialized) return;
+
       if (!authorizationId) {
         setErrorMsg('缺少授权ID');
         setLoading(false);
+        setInitialized(true);
         return;
       }
 
       const supabase = getSupabaseClient();
 
-      // 检查用户是否已登录
+      // 先检查用户是否在 Supabase 中登录了
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) {
-        // 如果未登录，重定向到登录页，保留 authorization_id
-        navigate(
-          `${ROUTE_LOGIN}?redirect=/oauth/consent?authorization_id=${authorizationId}`,
-          { replace: true }
-        );
+      // 如果没有登录并且也没有存储的 session，跳转到登录页
+      if (!user && !supabaseSession) {
+        const redirectUrl = `/oauth/consent?authorization_id=${authorizationId}`;
+        const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
+        setInitialized(true);
+        // 使用 window.location 来强制跳转，避免 React Router 问题
+        window.location.href = loginUrl;
         return;
       }
 
-      // 获取授权详情
+      // 如果没有登录但是有存储的 session，先设置 session
+      if (!user && supabaseSession) {
+        await supabase.auth.setSession({
+          access_token: supabaseSession.access_token,
+          refresh_token: supabaseSession.refresh_token,
+        });
+      }
+
       const { data, error } =
         await supabase.auth.oauth.getAuthorizationDetails(authorizationId);
+
+      // 如果是 AuthSessionMissingError，说明需要先登录
+      if (error?.name === 'AuthSessionMissingError') {
+        const redirectUrl = `/oauth/consent?authorization_id=${authorizationId}`;
+        const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
+        setInitialized(true);
+        // 使用 window.location 来强制跳转，避免 React Router 问题
+        window.location.href = loginUrl;
+        return;
+      }
 
       if (error) {
         setErrorMsg(error.message);
         setLoading(false);
+        setInitialized(true);
         return;
       }
 
       // 判断是否为重定向还是授权详情
       if ('redirect_to' in data) {
         // 如果是重定向，直接跳转
-        window.location.href = (data as { redirect_to: string }).redirect_to;
+        const redirectTo = (data as { redirect_to: string }).redirect_to;
+        setInitialized(true);
+        window.location.href = redirectTo;
         return;
       }
 
       // 否则设置授权详情
       setAuthDetails(data as any);
       setLoading(false);
+      setInitialized(true);
     }
 
     loadAuthDetails();
-  }, [authorizationId, navigate]);
+  }, [authorizationId, navigate, supabaseSession, location.pathname]);
 
   const handleApprove = async () => {
     if (!authorizationId) return;

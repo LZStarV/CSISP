@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
+import { getSupabaseClient } from '@/lib/supabase';
 import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
 import { useAuthStore } from '@/stores/auth';
 
@@ -19,10 +20,12 @@ export function Login() {
     state: storedState,
     otpSent,
     otpCode,
+    supabaseSession,
     setTicket,
     setStateParam,
     setOtpSent,
     setOtpCode,
+    setSupabaseSession,
     clearFlowState,
   } = useAuthStore();
   const navigate = useNavigate();
@@ -30,6 +33,7 @@ export function Login() {
 
   const ticket = searchParams.get('ticket');
   const state = searchParams.get('state');
+  const redirect = searchParams.get('redirect');
 
   useEffect(() => {
     // 优先使用 URL 参数，其次使用 store
@@ -49,8 +53,22 @@ export function Login() {
         token: otpCode,
       });
       if (res?.verified) {
+        // 如果有存储的 supabaseSession，设置到 Supabase Auth 中
+        if (supabaseSession) {
+          const supabase = getSupabaseClient();
+          await supabase.auth.setSession({
+            access_token: supabaseSession.access_token,
+            refresh_token: supabaseSession.refresh_token,
+          });
+        }
         clearFlowState();
-        navigate(ROUTE_FINISH, { replace: true });
+        // 如果有 redirect 参数，跳转到 redirect 地址
+        if (redirect) {
+          const decodedRedirect = decodeURIComponent(redirect);
+          navigate(decodedRedirect, { replace: true });
+        } else {
+          navigate(ROUTE_FINISH, { replace: true });
+        }
       }
     } catch (e) {
       setErrorMsg(
@@ -101,6 +119,11 @@ export function Login() {
       });
       const stepUp = (res?.stepUp ?? '') as 'PENDING_PASSWORD' | string;
 
+      // 如果有 supabaseSession，保存到 store 中
+      if ((res as any)?.supabaseSession) {
+        setSupabaseSession((res as any).supabaseSession);
+      }
+
       const currentTicket = ticket || storedTicket;
       const currentState = state || storedState;
 
@@ -120,9 +143,15 @@ export function Login() {
       }
 
       clearFlowState();
-      navigate(ROUTE_FINISH, {
-        state: { ...flowState, fromNormalFlow: true },
-      });
+      // 如果有 redirect 参数，跳转到 redirect 地址
+      if (redirect) {
+        const decodedRedirect = decodeURIComponent(redirect);
+        navigate(decodedRedirect, { replace: true });
+      } else {
+        navigate(ROUTE_FINISH, {
+          state: { ...flowState, fromNormalFlow: true },
+        });
+      }
       return;
     } catch (e) {
       setErrorMsg(

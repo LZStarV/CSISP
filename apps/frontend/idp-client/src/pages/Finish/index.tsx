@@ -4,29 +4,18 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { commonAuthApi } from '@/api/common/auth';
-import { idpClientAuthApi } from '@/api/idp-client/auth';
-import { useAuthStore } from '@/stores/auth';
 import { useSessionStore } from '@/stores/session';
 
 export function Finish() {
   const { t } = useTranslation();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { userInfo, setSession, clearSession } = useSessionStore();
-  const {
-    ticket: storedTicket,
-    state: storedState,
-    clearFlowState,
-  } = useAuthStore();
 
   const [userLabel, setUserLabel] = useState<string>(
     t('session.loggedIn', '已登录')
   );
-  const fromNormalFlow =
-    !!(location.state as any)?.fromNormalFlow ||
-    new URLSearchParams(window.location.search).get('flow') === 'normal';
 
   // 优先使用 store 中的用户信息
   useEffect(() => {
@@ -58,45 +47,6 @@ export function Finish() {
     }
   }, [userInfo, setSession]);
 
-  useEffect(() => {
-    if (fromNormalFlow) {
-      const flowState = location.state as any;
-      const ticket = flowState?.ticket || storedTicket;
-      const state = flowState?.state || storedState;
-      if (ticket || state) {
-        setLoading(true);
-        (async () => {
-          try {
-            const res = await idpClientAuthApi.enter({
-              ticket,
-              state,
-            });
-            const redirectTo = res?.redirectTo;
-            if (redirectTo) {
-              clearFlowState();
-              window.location.href = redirectTo;
-            }
-          } catch (error) {
-            setErrorMsg(
-              error instanceof Error
-                ? error.message
-                : t('enter.systemFailed', '进入系统请求失败')
-            );
-          } finally {
-            setLoading(false);
-          }
-        })();
-      }
-    }
-  }, [
-    fromNormalFlow,
-    location.state,
-    t,
-    storedTicket,
-    storedState,
-    clearFlowState,
-  ]);
-
   const handleLogout = async () => {
     Modal.confirm({
       title: t('logout.title', '确认退出登录？'),
@@ -122,7 +72,7 @@ export function Finish() {
       <Space direction='vertical' style={{ width: '100%' }} size='middle'>
         <Space>
           <Typography.Text strong>{userLabel}</Typography.Text>
-          <Button type='link' onClick={handleLogout} loading={loading}>
+          <Button type='link' onClick={handleLogout}>
             {t('logout.submit', '退出登录')}
           </Button>
         </Space>

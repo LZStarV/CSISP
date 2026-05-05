@@ -12,13 +12,12 @@ import { config } from '@/config';
 const PUBLIC_ROUTES = ['/callback'];
 
 export function setupAuthGuards(router: Router) {
-  router.beforeEach(async (to, _from, next) => {
+  router.beforeEach(async to => {
     // 初始化 OAuth 客户端
     initOAuthClient();
 
     // 检查是否是公开路由
     if (PUBLIC_ROUTES.includes(to.path)) {
-      next();
       return;
     }
 
@@ -26,7 +25,7 @@ export function setupAuthGuards(router: Router) {
     const isAuthenticated = await checkAuthStatus();
 
     if (isAuthenticated) {
-      next();
+      return;
     } else {
       // 保存用户要访问的路径
       await setRedirectAfterLogin(to.fullPath);
@@ -35,6 +34,8 @@ export function setupAuthGuards(router: Router) {
         clientId: config.oauth.clientId,
         redirectUri: config.oauth.redirectUri,
       });
+      // 中止当前导航
+      return false;
     }
   });
 }

@@ -4,7 +4,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { commonAuthApi } from '@/api/common/auth';
 import { idpClientAuthApi } from '@/api/idp-client/auth';
-import { ROUTE_LOGIN, ROUTE_FINISH } from '@/routes/router';
+import {
+  ROUTE_LOGIN,
+  ROUTE_FINISH,
+  ROUTE_OAUTH_CONSENT,
+} from '@/routes/router';
 import { useSessionStore } from '@/stores/session';
 
 export function SessionGuard({ children }: { children: ReactNode }) {
@@ -15,9 +19,16 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     useSessionStore();
 
   useEffect(() => {
+    if (location.pathname === ROUTE_OAUTH_CONSENT) {
+      setChecking(false);
+      return;
+    }
+
     const params = new URLSearchParams(location.search);
     const tokenHash = params.get('token_hash');
     const type = params.get('type');
+    const redirect = params.get('redirect');
+
     if (tokenHash && type) {
       (async () => {
         try {
@@ -25,7 +36,13 @@ export function SessionGuard({ children }: { children: ReactNode }) {
             token: tokenHash,
           } as any);
           if (res?.verified) {
-            navigate(ROUTE_FINISH, { replace: true });
+            // 如果有 redirect 参数，跳转到 redirect 地址
+            if (redirect) {
+              const decodedRedirect = decodeURIComponent(redirect);
+              navigate(decodedRedirect, { replace: true });
+            } else {
+              navigate(ROUTE_FINISH, { replace: true });
+            }
             return;
           }
         } catch {}
@@ -40,7 +57,13 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     // 如果距离上次检查不足1分钟，使用缓存
     if (isLoggedIn && lastChecked > 0 && now - lastChecked < ONE_MINUTE) {
       if (location.pathname === ROUTE_LOGIN) {
-        navigate(ROUTE_FINISH, { state: { fromGuard: true } });
+        // 如果有 redirect 参数，跳转到 redirect 地址
+        if (redirect) {
+          const decodedRedirect = decodeURIComponent(redirect);
+          navigate(decodedRedirect, { replace: true });
+        } else {
+          navigate(ROUTE_FINISH, { state: { fromGuard: true } });
+        }
       }
       setChecking(false);
       return;
@@ -56,7 +79,13 @@ export function SessionGuard({ children }: { children: ReactNode }) {
         if (logged) {
           setSession(true, { name, student_id });
           if (location.pathname === ROUTE_LOGIN) {
-            navigate(ROUTE_FINISH, { state: { fromGuard: true } });
+            // 如果有 redirect 参数，跳转到 redirect 地址
+            if (redirect) {
+              const decodedRedirect = decodeURIComponent(redirect);
+              navigate(decodedRedirect, { replace: true });
+            } else {
+              navigate(ROUTE_FINISH, { state: { fromGuard: true } });
+            }
             return;
           }
         } else {
@@ -79,6 +108,7 @@ export function SessionGuard({ children }: { children: ReactNode }) {
   }, [
     navigate,
     location.pathname,
+    location.search,
     isLoggedIn,
     lastChecked,
     setSession,

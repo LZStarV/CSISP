@@ -69,14 +69,7 @@ function App() {
             </SessionGuard>
           }
         />
-        <Route
-          path={ROUTE_OAUTH_CONSENT}
-          element={
-            <SessionGuard>
-              <OAuthConsent />
-            </SessionGuard>
-          }
-        />
+        <Route path={ROUTE_OAUTH_CONSENT} element={<OAuthConsent />} />
       </Routes>
     </BrowserRouter>
   );

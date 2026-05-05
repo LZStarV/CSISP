@@ -15,20 +15,6 @@ export interface SupabaseModuleOptions {
   anonKey: string;
 }
 
-const createFetchWithTimeout = (timeoutMs: number) => {
-  return (input: URL | RequestInfo, init?: RequestInit) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    const mergedInit: RequestInit = {
-      ...init,
-      signal: controller.signal,
-    };
-
-    return fetch(input, mergedInit).finally(() => clearTimeout(timeoutId));
-  };
-};
-
 @Global()
 @Module({})
 export class SupabaseModule {
@@ -40,9 +26,6 @@ export class SupabaseModule {
           createClient(options.url, options.serviceRoleKey, {
             db: { schema: 'public' },
             auth: { persistSession: false, detectSessionInUrl: false },
-            global: {
-              fetch: createFetchWithTimeout(30000),
-            },
           }),
       },
       {
@@ -53,7 +36,6 @@ export class SupabaseModule {
               db: { schema: 'public' },
               global: {
                 headers: { Authorization: `Bearer ${jwt}` },
-                fetch: createFetchWithTimeout(30000),
               },
               auth: { persistSession: false, detectSessionInUrl: false },
             });
