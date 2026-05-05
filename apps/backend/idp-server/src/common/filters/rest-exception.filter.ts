@@ -7,6 +7,10 @@ import {
   Logger,
 } from '@nestjs/common';
 
+interface ErrorWithCause extends Error {
+  cause?: unknown;
+}
+
 @Catch()
 export class RestExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(RestExceptionFilter.name);
@@ -32,10 +36,25 @@ export class RestExceptionFilter implements ExceptionFilter {
       errorResponse.traceId = traceId;
     }
 
-    this.logger.error(
-      `Exception: ${isHttpException ? httpException.message : (exception as Error)?.message}`,
-      isHttpException ? undefined : (exception as Error)?.stack
-    );
+    const error = exception as ErrorWithCause;
+    const errorDetails: any = {
+      message: error?.message,
+      name: error?.name,
+      stack: error?.stack,
+      cause: error?.cause,
+    };
+
+    if (error instanceof TypeError) {
+      this.logger.error(
+        `TypeError: ${error.message}`,
+        JSON.stringify(errorDetails, null, 2)
+      );
+    } else {
+      this.logger.error(
+        `Exception: ${isHttpException ? httpException.message : error?.message}`,
+        isHttpException ? undefined : error?.stack
+      );
+    }
 
     response.status(status).json(errorResponse);
   }
