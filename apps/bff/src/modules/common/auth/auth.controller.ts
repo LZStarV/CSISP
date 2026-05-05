@@ -4,7 +4,9 @@ import {
   COMMON_AUTH_ACTION,
   COMMON_AUTH_PATH_PREFIX,
   COMMON_PATH_PREFIX,
+  LogoutParams,
   SessionParams,
+  logoutBodySchema,
   sessionBodySchema,
 } from '@csisp/contracts';
 import { AuthService } from '@csisp-api/bff-idp-server';
@@ -36,14 +38,17 @@ export class CommonAuthController {
   }
 
   @Post(COMMON_AUTH_ACTION.LOGOUT)
-  async logout() {
+  async logout(
+    @Body(new ZodValidationPipe(logoutBodySchema))
+    logoutRequest: LogoutParams
+  ) {
     this.logger.info(
       { action: COMMON_AUTH_ACTION.LOGOUT },
       'Common auth proxy request'
     );
     return firstValueFrom(
       this.authService
-        .authSession({ AuthSessionRequest: { logout: true } })
+        .authLogout({ LogoutRequest: logoutRequest })
         .pipe(map(res => res.data))
     );
   }

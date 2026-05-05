@@ -67,32 +67,47 @@ export type Database = {
       oidc_clients: {
         Row: {
           allowed_redirect_uris: Json;
+          backchannel_logout_uri: string | null;
           client_id: string;
           client_secret: string | null;
           created_at: string;
+          grant_types: Json | null;
+          is_confidential: boolean;
           name: string | null;
+          post_logout_redirect_uris: Json | null;
           scopes: Json | null;
           status: string;
+          token_endpoint_auth_method: string;
           updated_at: string;
         };
         Insert: {
           allowed_redirect_uris: Json;
+          backchannel_logout_uri?: string | null;
           client_id: string;
           client_secret?: string | null;
           created_at?: string;
+          grant_types?: Json | null;
+          is_confidential?: boolean;
           name?: string | null;
+          post_logout_redirect_uris?: Json | null;
           scopes?: Json | null;
           status?: string;
+          token_endpoint_auth_method?: string;
           updated_at?: string;
         };
         Update: {
           allowed_redirect_uris?: Json;
+          backchannel_logout_uri?: string | null;
           client_id?: string;
           client_secret?: string | null;
           created_at?: string;
+          grant_types?: Json | null;
+          is_confidential?: boolean;
           name?: string | null;
+          post_logout_redirect_uris?: Json | null;
           scopes?: Json | null;
           status?: string;
+          token_endpoint_auth_method?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -242,6 +257,10 @@ export type Database = {
         Args: { p_new_hash: string; p_student_id: string };
         Returns: undefined;
       };
+      auth_revoke_all_user_tokens: {
+        Args: { p_user_id: number };
+        Returns: number;
+      };
       auth_revoke_client_rt: {
         Args: { p_client_id: string; p_sub: string };
         Returns: number;
@@ -249,6 +268,27 @@ export type Database = {
       auth_revoke_rt_by_id: { Args: { p_id: number }; Returns: undefined };
       auth_revoke_rt_by_sub: { Args: { p_sub: string }; Returns: number };
       bff_get_trusted_frontends_duplicate: { Args: never; Returns: Json };
+      oauth2_find_active_key: {
+        Args: never;
+        Returns: {
+          alg: string;
+          kid: string;
+          kty: string;
+          private_pem_enc: string;
+          public_pem: string;
+          use: string;
+        }[];
+      };
+      oauth2_find_userinfo_by_sub: { Args: { p_sub: string }; Returns: Json };
+      oauth2_rotate_refresh_token: {
+        Args: {
+          p_client_id: string;
+          p_new_rt_hash: string;
+          p_old_rt_id: number;
+          p_sub: string;
+        };
+        Returns: number;
+      };
     };
     Enums: {
       [_ in never]: never;

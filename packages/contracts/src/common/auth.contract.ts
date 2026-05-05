@@ -1,4 +1,7 @@
-import type { AuthSessionRequest } from '@csisp-api/bff-idp-server';
+import type {
+  AuthSessionRequest,
+  LogoutRequest,
+} from '@csisp-api/bff-idp-server';
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 
@@ -12,10 +15,19 @@ export const sessionBodySchema = z.object({
   logout: z.boolean().optional(),
 }) satisfies z.ZodType<AuthSessionRequest>;
 
+export const logoutBodySchema = z.object({
+  post_logout_redirect_uri: z.string().max(1024).optional(),
+  state: z.string().max(256).optional(),
+}) satisfies z.ZodType<LogoutRequest>;
+
 export const sessionResponseSchema = z.object({
   logged: z.boolean(),
   name: z.string().optional(),
   student_id: z.string().optional(),
+});
+
+export const logoutResultSchema = z.object({
+  logged: z.literal(false),
 });
 
 const commonAuthRoutes = {
@@ -29,8 +41,8 @@ const commonAuthRoutes = {
   logout: {
     method: HTTP_METHOD.POST,
     path: '/logout',
-    body: z.object({}).optional(),
-    responses: { 200: sessionResponseSchema },
+    body: logoutBodySchema,
+    responses: { 200: logoutResultSchema },
     summary: '注销会话',
   },
 } as const satisfies Parameters<typeof c.router>[0];

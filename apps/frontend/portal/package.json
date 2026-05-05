@@ -1,7 +1,6 @@
 {
   "name": "@csisp/portal",
   "private": true,
-  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,6 +13,7 @@
     "@csisp/contracts": "workspace:*",
     "@csisp/http": "workspace:*",
     "@csisp/i18n": "workspace:*",
+    "@csisp/oauth": "workspace:*",
     "@vicons/ionicons5": "^0.13.0",
     "@vicons/utils": "^0.1.4",
     "axios": "catalog:frontend",
@@ -26,7 +26,8 @@
     "vue": "catalog:frontend",
     "vue-echarts": "catalog:frontend",
     "vue-i18n": "^9.0.0",
-    "vue-router": "catalog:frontend"
+    "vue-router": "catalog:frontend",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "catalog:frontend",

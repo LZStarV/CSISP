@@ -23,9 +23,9 @@ export const config = {
     url: env.DATABASE_URL,
   },
   supabase: {
-    url: env.SUPABASE_URL,
+    url: env.CSISP_SUPABASE_URL,
     serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
-    anonKey: env.SUPABASE_ANON_KEY,
+    anonKey: env.CSISP_SUPABASE_ANON_KEY,
   },
   mongo: {
     uri: env.MONGODB_URI,

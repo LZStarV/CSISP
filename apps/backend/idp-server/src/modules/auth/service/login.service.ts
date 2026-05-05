@@ -28,7 +28,14 @@ export class LoginService {
   async loginEmailPassword(
     dto: LoginInternalDto,
     res: Response
-  ): Promise<{ stepUp: 'PENDING_PASSWORD' }> {
+  ): Promise<{
+    stepUp: 'PENDING_PASSWORD';
+    supabaseSession: {
+      access_token: string;
+      refresh_token: string;
+      expires_in: number;
+    };
+  }> {
     const logger = getIdpBaseLogger().child({ module: 'auth' });
 
     try {
@@ -68,8 +75,8 @@ export class LoginService {
         );
       }
 
-      // 使用用户的 email 验证密码
-      await this.gotrue.signInWithPassword({
+      // 使用用户的 email 验证密码，获取 Supabase session
+      const supabaseSession = await this.gotrue.signInWithPassword({
         email: authUser.email,
         password: dto.password,
       });
@@ -98,7 +105,7 @@ export class LoginService {
         },
         'auth login success'
       );
-      return { stepUp: 'PENDING_PASSWORD' };
+      return { stepUp: 'PENDING_PASSWORD', supabaseSession };
     } catch (error) {
       if (error instanceof AuthApiException) {
         throw error;

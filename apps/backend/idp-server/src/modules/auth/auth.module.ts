@@ -1,7 +1,6 @@
 import {
   SupabaseUserRepository,
   SupabaseMfaSettingsRepository,
-  SupabaseOidcClientRepository,
 } from '@csisp/dal';
 import { GotrueService } from '@infra/supabase/gotrue.service';
 import { Module } from '@nestjs/common';
@@ -16,7 +15,6 @@ import * as AuthServices from './service';
     GotrueService,
     SupabaseUserRepository,
     SupabaseMfaSettingsRepository,
-    SupabaseOidcClientRepository,
   ],
   exports: [AuthServices.SessionService],
 })

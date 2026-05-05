@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Finish } from '@/pages/Finish';
 import { ForgotInit } from '@/pages/ForgotInit';
 import { Login } from '@/pages/Login';
+import { OAuthConsent } from '@/pages/OAuthConsent';
 import { ResetPassword } from '@/pages/ResetPassword';
 import { Signup } from '@/pages/Signup';
 import {
@@ -12,6 +13,7 @@ import {
   ROUTE_PASSWORD_RESET,
   ROUTE_PASSWORD_FORGOT,
   ROUTE_FINISH,
+  ROUTE_OAUTH_CONSENT,
 } from '@/routes/router';
 import { SessionGuard } from '@/routes/SessionGuard';
 import { useAuthStore } from '@/stores/auth';
@@ -64,6 +66,14 @@ function App() {
           element={
             <SessionGuard>
               <Finish />
+            </SessionGuard>
+          }
+        />
+        <Route
+          path={ROUTE_OAUTH_CONSENT}
+          element={
+            <SessionGuard>
+              <OAuthConsent />
             </SessionGuard>
           }
         />

@@ -15,15 +15,24 @@ export class GotrueService {
   async signInWithPassword(params: {
     email: string;
     password: string;
-  }): Promise<void> {
+  }): Promise<{
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+  }> {
     const client = this.supabaseDataAccess.service();
-    const { error } = await client.auth.signInWithPassword({
+    const { data, error } = await client.auth.signInWithPassword({
       email: params.email,
       password: params.password,
     });
     if (error) {
       throw error;
     }
+    return {
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_in: data.session.expires_in,
+    };
   }
 
   // 登录
