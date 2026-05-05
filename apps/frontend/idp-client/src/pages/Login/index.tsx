@@ -6,8 +6,42 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { getSupabaseClient } from '@/lib/supabase';
-import { ROUTE_FINISH, ROUTE_PASSWORD_FORGOT } from '@/routes/router';
+import {
+  ROUTE_FINISH,
+  ROUTE_PASSWORD_FORGOT,
+  ROUTE_OAUTH_CONSENT,
+} from '@/routes/router';
 import { useAuthStore } from '@/stores/auth';
+
+/**
+ * 验证 redirect URL 是否有效且安全
+ * @param url 要验证的 URL 字符串
+ * @returns 验证结果
+ */
+function isValidRedirectUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+
+  // 检查是否是内部路径
+  const isInternalPath = url.startsWith('/') && !url.startsWith('//');
+
+  if (isInternalPath) {
+    // 对于 OAuth consent 路径，需要检查是否有有效的 authorization_id
+    if (url.startsWith(ROUTE_OAUTH_CONSENT)) {
+      try {
+        const urlObj = new URL(url, 'http://localhost');
+        const authId = urlObj.searchParams.get('authorization_id');
+        return !!authId && authId.trim().length > 0;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  return false;
+}
 
 export function Login() {
   const { t } = useTranslation();
@@ -64,8 +98,17 @@ export function Login() {
         clearFlowState();
         // 如果有 redirect 参数，跳转到 redirect 地址
         if (redirect) {
-          const decodedRedirect = decodeURIComponent(redirect);
-          navigate(decodedRedirect, { replace: true });
+          try {
+            const decodedRedirect = decodeURIComponent(redirect);
+            // 验证 redirect URL 是否有效且安全
+            if (isValidRedirectUrl(decodedRedirect)) {
+              navigate(decodedRedirect, { replace: true });
+            } else {
+              navigate(ROUTE_FINISH, { replace: true });
+            }
+          } catch {
+            navigate(ROUTE_FINISH, { replace: true });
+          }
         } else {
           navigate(ROUTE_FINISH, { replace: true });
         }
@@ -145,8 +188,21 @@ export function Login() {
       clearFlowState();
       // 如果有 redirect 参数，跳转到 redirect 地址
       if (redirect) {
-        const decodedRedirect = decodeURIComponent(redirect);
-        navigate(decodedRedirect, { replace: true });
+        try {
+          const decodedRedirect = decodeURIComponent(redirect);
+          // 验证 redirect URL 是否有效且安全
+          if (isValidRedirectUrl(decodedRedirect)) {
+            navigate(decodedRedirect, { replace: true });
+          } else {
+            navigate(ROUTE_FINISH, {
+              state: { ...flowState, fromNormalFlow: true },
+            });
+          }
+        } catch {
+          navigate(ROUTE_FINISH, {
+            state: { ...flowState, fromNormalFlow: true },
+          });
+        }
       } else {
         navigate(ROUTE_FINISH, {
           state: { ...flowState, fromNormalFlow: true },

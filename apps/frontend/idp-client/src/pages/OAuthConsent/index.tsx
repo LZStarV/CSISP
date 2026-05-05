@@ -8,6 +8,40 @@ import { getSupabaseClient } from '@/lib/supabase';
 import { ROUTE_LOGIN, ROUTE_OAUTH_CONSENT } from '@/routes/router';
 import { useAuthStore } from '@/stores/auth';
 
+/**
+ * 安全地访问嵌套属性的辅助函数
+ */
+function safeGet<T>(obj: unknown, path: string[], defaultValue: T): T {
+  let result: unknown = obj;
+  for (const key of path) {
+    if (
+      result === null ||
+      result === undefined ||
+      typeof result !== 'object' ||
+      !(key in result)
+    ) {
+      return defaultValue;
+    }
+    result = (result as Record<string, unknown>)[key];
+  }
+  return (result as T) ?? defaultValue;
+}
+
+/**
+ * 辅助函数，自动调用授权通过
+ */
+async function autoApproveAuthorization(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  authorizationId: string
+) {
+  const { data, error } =
+    await supabase.auth.oauth.approveAuthorization(authorizationId);
+  if (error) {
+    throw error;
+  }
+  return data;
+}
+
 export function OAuthConsent() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -76,10 +110,16 @@ export function OAuthConsent() {
 
         // 如果还是没有用户，跳转到登录页
         if (!user) {
-          const redirectUrl = `/oauth/consent?authorization_id=${authorizationId}`;
-          const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
           setInitialized(true);
-          navigate(loginUrl, { replace: true });
+          // 确保 authorizationId 有效后再构建 redirect URL
+          if (authorizationId) {
+            const redirectUrl = `/oauth/consent?authorization_id=${encodeURIComponent(authorizationId)}`;
+            const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
+            navigate(loginUrl, { replace: true });
+          } else {
+            // 如果没有有效的 authorizationId，直接跳转到登录页
+            navigate(ROUTE_LOGIN, { replace: true });
+          }
           return;
         }
 
@@ -88,10 +128,16 @@ export function OAuthConsent() {
 
         // 如果是 AuthSessionMissingError，说明需要先登录
         if (error?.name === 'AuthSessionMissingError') {
-          const redirectUrl = `/oauth/consent?authorization_id=${authorizationId}`;
-          const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
           setInitialized(true);
-          navigate(loginUrl, { replace: true });
+          // 确保 authorizationId 有效后再构建 redirect URL
+          if (authorizationId) {
+            const redirectUrl = `/oauth/consent?authorization_id=${encodeURIComponent(authorizationId)}`;
+            const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
+            navigate(loginUrl, { replace: true });
+          } else {
+            // 如果没有有效的 authorizationId，直接跳转到登录页
+            navigate(ROUTE_LOGIN, { replace: true });
+          }
           return;
         }
 
@@ -111,8 +157,39 @@ export function OAuthConsent() {
           return;
         }
 
-        // 否则设置授权详情
-        setAuthDetails(data as any);
+        // 验证数据形状，确保它具有我们需要的属性
+        const isAuthDetails = (
+          d: unknown
+        ): d is {
+          client?: { name?: string };
+          redirect_uri?: string;
+          scope?: string;
+        } => {
+          return typeof d === 'object' && d !== null;
+        };
+
+        if (isAuthDetails(data)) {
+          setAuthDetails(data);
+          // 立即自动授权
+          try {
+            const approveData = await autoApproveAuthorization(
+              supabase,
+              authorizationId
+            );
+            if ('redirect_to' in approveData) {
+              window.location.href = (
+                approveData as { redirect_to: string }
+              ).redirect_to;
+              return;
+            }
+          } catch (error) {
+            console.error('Auto approve failed:', error);
+            setErrorMsg(t('oauth.approveFailed', '授权失败，请重试'));
+          }
+        } else {
+          // 如果数据格式不符合预期，设置错误
+          setErrorMsg(t('oauth.invalidData', '收到无效的授权数据'));
+        }
         setLoading(false);
         setInitialized(true);
       } catch (e) {
@@ -210,54 +287,74 @@ export function OAuthConsent() {
               style={{ marginBottom: 16 }}
             />
           )}
-          <Card
-            style={{ maxWidth: 400, margin: '0 auto' }}
-            title={
-              <div style={{ textAlign: 'center' }}>
-                <Typography.Title level={4} style={{ margin: 0 }}>
-                  {t('oauth.appRequestTitle', '{{appName}} 申请访问您的信息', {
-                    appName: authDetails?.client.name || '应用',
-                  })}
-                </Typography.Title>
-              </div>
-            }
-          >
-            <div style={{ marginBottom: 24 }}>
-              <Typography.Paragraph
-                type='secondary'
-                style={{ marginBottom: 16 }}
-              >
-                {t('oauth.scopeDescription', '此应用将获得以下权限：')}
-              </Typography.Paragraph>
-              {authDetails?.scope && (
-                <ul
-                  style={{ listStyleType: 'disc', paddingLeft: 24, margin: 0 }}
+          {authDetails ? (
+            <Card
+              style={{ maxWidth: 400, margin: '0 auto' }}
+              title={
+                <div style={{ textAlign: 'center' }}>
+                  <Typography.Title level={4} style={{ margin: 0 }}>
+                    {t(
+                      'oauth.appRequestTitle',
+                      '{{appName}} 申请访问您的信息',
+                      {
+                        appName: safeGet(
+                          authDetails,
+                          ['client', 'name'],
+                          '应用'
+                        ),
+                      }
+                    )}
+                  </Typography.Title>
+                </div>
+              }
+            >
+              <div style={{ marginBottom: 24 }}>
+                <Typography.Paragraph
+                  type='secondary'
+                  style={{ marginBottom: 16 }}
                 >
-                  {authDetails.scope.split(' ').map((scope, index) => (
-                    <li key={index} style={{ marginBottom: 8 }}>
-                      <Typography.Text>
-                        {t(`oauth.scope.${scope}`, getScopeLabel(scope))}
-                      </Typography.Text>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                  {t('oauth.scopeDescription', '此应用将获得以下权限：')}
+                </Typography.Paragraph>
+                {authDetails.scope && (
+                  <ul
+                    style={{
+                      listStyleType: 'disc',
+                      paddingLeft: 24,
+                      margin: 0,
+                    }}
+                  >
+                    {authDetails.scope.split(' ').map((scope, index) => (
+                      <li key={index} style={{ marginBottom: 8 }}>
+                        <Typography.Text>
+                          {t(`oauth.scope.${scope}`, getScopeLabel(scope))}
+                        </Typography.Text>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-              <Button onClick={handleCancel} block disabled={processing}>
-                {t('oauth.cancel', '取消')}
-              </Button>
-              <Button
-                type='primary'
-                onClick={handleApprove}
-                block
-                loading={processing}
-              >
-                {t('oauth.approve', '授权')}
-              </Button>
-            </div>
-          </Card>
+              <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                <Button onClick={handleCancel} block disabled={processing}>
+                  {t('oauth.cancel', '取消')}
+                </Button>
+                <Button
+                  type='primary'
+                  onClick={handleApprove}
+                  block
+                  loading={processing}
+                >
+                  {t('oauth.approve', '授权')}
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <Alert
+              type='warning'
+              message={t('oauth.noDetails', '无法获取授权详情，请稍后重试')}
+              showIcon
+            />
+          )}
         </>
       )}
     </AuthLayout>
