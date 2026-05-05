@@ -39,7 +39,6 @@ services:
       pnpm i --frozen-lockfile &&
       turbo run build --filter=@csisp/idp-server
     startCommand: pnpm -F @csisp/idp-server start
-    healthCheckPath: /api/idp/health
     envVars:
       - fromGroup: csisp-env-prod
 
