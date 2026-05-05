@@ -47,67 +47,87 @@ export function OAuthConsent() {
       }
 
       const supabase = getSupabaseClient();
+      let user = null;
 
-      // 先检查用户是否在 Supabase 中登录了
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        // 先检查用户是否在 Supabase 中登录了
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser();
+        user = currentUser;
 
-      // 如果没有登录并且也没有存储的 session，跳转到登录页
-      if (!user && !supabaseSession) {
-        const redirectUrl = `/oauth/consent?authorization_id=${authorizationId}`;
-        const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
-        setInitialized(true);
-        // 使用 window.location 来强制跳转，避免 React Router 问题
-        window.location.href = loginUrl;
-        return;
-      }
+        // 如果没有登录但是有存储的 session，先设置 session
+        if (!user && supabaseSession) {
+          try {
+            await supabase.auth.setSession({
+              access_token: supabaseSession.access_token,
+              refresh_token: supabaseSession.refresh_token,
+            });
+            // 再次获取用户
+            const {
+              data: { user: newUser },
+            } = await supabase.auth.getUser();
+            user = newUser;
+          } catch {
+            // setSession 失败，可能是 token 过期
+            user = null;
+          }
+        }
 
-      // 如果没有登录但是有存储的 session，先设置 session
-      if (!user && supabaseSession) {
-        await supabase.auth.setSession({
-          access_token: supabaseSession.access_token,
-          refresh_token: supabaseSession.refresh_token,
-        });
-      }
+        // 如果还是没有用户，跳转到登录页
+        if (!user) {
+          const redirectUrl = `/oauth/consent?authorization_id=${authorizationId}`;
+          const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
+          setInitialized(true);
+          navigate(loginUrl, { replace: true });
+          return;
+        }
 
-      const { data, error } =
-        await supabase.auth.oauth.getAuthorizationDetails(authorizationId);
+        const { data, error } =
+          await supabase.auth.oauth.getAuthorizationDetails(authorizationId);
 
-      // 如果是 AuthSessionMissingError，说明需要先登录
-      if (error?.name === 'AuthSessionMissingError') {
-        const redirectUrl = `/oauth/consent?authorization_id=${authorizationId}`;
-        const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
-        setInitialized(true);
-        // 使用 window.location 来强制跳转，避免 React Router 问题
-        window.location.href = loginUrl;
-        return;
-      }
+        // 如果是 AuthSessionMissingError，说明需要先登录
+        if (error?.name === 'AuthSessionMissingError') {
+          const redirectUrl = `/oauth/consent?authorization_id=${authorizationId}`;
+          const loginUrl = `${ROUTE_LOGIN}?redirect=${encodeURIComponent(redirectUrl)}`;
+          setInitialized(true);
+          navigate(loginUrl, { replace: true });
+          return;
+        }
 
-      if (error) {
-        setErrorMsg(error.message);
+        if (error) {
+          setErrorMsg(error.message);
+          setLoading(false);
+          setInitialized(true);
+          return;
+        }
+
+        // 判断是否为重定向还是授权详情
+        if ('redirect_to' in data) {
+          // 如果是重定向，直接跳转
+          const redirectTo = (data as { redirect_to: string }).redirect_to;
+          setInitialized(true);
+          window.location.href = redirectTo;
+          return;
+        }
+
+        // 否则设置授权详情
+        setAuthDetails(data as any);
         setLoading(false);
         setInitialized(true);
-        return;
-      }
-
-      // 判断是否为重定向还是授权详情
-      if ('redirect_to' in data) {
-        // 如果是重定向，直接跳转
-        const redirectTo = (data as { redirect_to: string }).redirect_to;
+      } catch (e) {
+        setErrorMsg(
+          e instanceof Error
+            ? e.message
+            : t('oauth.loadFailed', '加载授权信息失败')
+        );
+        setLoading(false);
         setInitialized(true);
-        window.location.href = redirectTo;
-        return;
       }
-
-      // 否则设置授权详情
-      setAuthDetails(data as any);
-      setLoading(false);
-      setInitialized(true);
     }
 
     loadAuthDetails();
-  }, [authorizationId, navigate, supabaseSession, location.pathname]);
+  }, [authorizationId, navigate, supabaseSession, location.pathname, t]);
 
   const handleApprove = async () => {
     if (!authorizationId) return;

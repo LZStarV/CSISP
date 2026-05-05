@@ -29,6 +29,18 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     const type = params.get('type');
     const redirect = params.get('redirect');
 
+    // 检查 redirect 是否指向 OAuth consent 页面
+    let isRedirectToOAuthConsent = false;
+    if (redirect) {
+      try {
+        const decodedRedirect = decodeURIComponent(redirect);
+        isRedirectToOAuthConsent =
+          decodedRedirect.startsWith(ROUTE_OAUTH_CONSENT);
+      } catch {
+        // 解码失败，忽略
+      }
+    }
+
     if (tokenHash && type) {
       (async () => {
         try {
@@ -57,11 +69,11 @@ export function SessionGuard({ children }: { children: ReactNode }) {
     // 如果距离上次检查不足1分钟，使用缓存
     if (isLoggedIn && lastChecked > 0 && now - lastChecked < ONE_MINUTE) {
       if (location.pathname === ROUTE_LOGIN) {
-        // 如果有 redirect 参数，跳转到 redirect 地址
-        if (redirect) {
+        // 只有当 redirect 不是指向 OAuth consent 页面时，才使用缓存跳转
+        if (redirect && !isRedirectToOAuthConsent) {
           const decodedRedirect = decodeURIComponent(redirect);
           navigate(decodedRedirect, { replace: true });
-        } else {
+        } else if (!redirect) {
           navigate(ROUTE_FINISH, { state: { fromGuard: true } });
         }
       }
@@ -80,13 +92,13 @@ export function SessionGuard({ children }: { children: ReactNode }) {
           setSession(true, { name, student_id });
           if (location.pathname === ROUTE_LOGIN) {
             // 如果有 redirect 参数，跳转到 redirect 地址
-            if (redirect) {
+            // 但如果是 OAuth consent 页面，我们就不在这里跳，而是让用户在登录页面完成登录后再跳转
+            if (redirect && !isRedirectToOAuthConsent) {
               const decodedRedirect = decodeURIComponent(redirect);
               navigate(decodedRedirect, { replace: true });
-            } else {
+            } else if (!redirect) {
               navigate(ROUTE_FINISH, { state: { fromGuard: true } });
             }
-            return;
           }
         } else {
           clearSession();
