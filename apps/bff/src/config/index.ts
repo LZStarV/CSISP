@@ -15,9 +15,9 @@ export const config = {
     enabled: true,
   },
   supabase: {
-    url: env.SUPABASE_URL,
-    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
-    anonKey: env.SUPABASE_ANON_KEY,
+    url: env.CSISP_SUPABASE_URL,
+    serviceRoleKey: env.CSISP_SUPABASE_SERVICE_ROLE_KEY,
+    anonKey: env.CSISP_SUPABASE_ANON_KEY,
   },
   redis: {
     namespace: env.REDIS_NAMESPACE || 'bff',
