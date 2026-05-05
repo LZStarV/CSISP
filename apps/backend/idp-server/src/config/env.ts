@@ -13,7 +13,7 @@ export const idpServerEnvSchema = z.object({
   JWT_SECRET: envString(),
   OIDC_KEK_SECRET: envString(),
   CSISP_SUPABASE_URL: envString(),
-  CSISP_SUPABASE_SERVICE_ROLE_KEY: envString(),
+  SUPABASE_SERVICE_ROLE_KEY: envString(),
   CSISP_SUPABASE_ANON_KEY: envString(),
   IDP_COOKIE_DOMAIN: envOptionalString(),
   SMS_SIGN_NAME: envOptionalString(),

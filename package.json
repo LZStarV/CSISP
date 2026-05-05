@@ -18,7 +18,7 @@
     "stag:bff": "infisical run --env=staging -- turbo run dev --filter=@csisp/bff",
     "dev:idp:client": "infisical run -- turbo run dev --filter=@csisp/idp-client",
     "dev:admin": "infisical run -- turbo run dev --filter=@csisp/admin",
-    "dev:portal": "infisical run -- turbo run dev --filter=@csisp/portal",
+    "stag:portal": "infisical run --env=staging -- turbo run dev --filter=@csisp/portal",
     "dev:backoffice": "infisical run -- turbo run dev --filter=@csisp/backoffice",
     "build": "turbo build"
   },

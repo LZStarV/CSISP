@@ -11,7 +11,7 @@ export const EnvSchema = z.object({
   INTEGRATED_SERVER_URL: envHostPortString(),
   IDP_SERVER_URL: envUrlString(),
   CSISP_SUPABASE_URL: envUrlString(),
-  CSISP_SUPABASE_SERVICE_ROLE_KEY: envString(),
+  SUPABASE_SERVICE_ROLE_KEY: envString(),
   CSISP_SUPABASE_ANON_KEY: envString(),
   REDIS_NAMESPACE: envOptionalString(),
   UPSTASH_REDIS_REST_URL: envOptionalString(),

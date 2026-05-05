@@ -16,7 +16,7 @@ export const config = {
   },
   supabase: {
     url: env.CSISP_SUPABASE_URL,
-    serviceRoleKey: env.CSISP_SUPABASE_SERVICE_ROLE_KEY,
+    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
     anonKey: env.CSISP_SUPABASE_ANON_KEY,
   },
   redis: {
