@@ -3,6 +3,8 @@
   "announcement.fetchFailed": "获取公告列表失败",
   "announcement.publishTime": "发布时间",
   "announcement.title": "公告列表",
+  "announcement.empty": "暂无数据",
+  "forum.empty": "暂无数据",
   "common.back": "返回",
   "common.cancel": "取消",
   "common.confirm": "确认",
