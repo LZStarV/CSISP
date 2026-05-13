@@ -36,6 +36,5 @@ const mainLayoutStore = useMainLayoutStore();
 .main-content {
   overflow: hidden;
   padding: 24px;
-  background: #f5f7f9;
 }
 </style>

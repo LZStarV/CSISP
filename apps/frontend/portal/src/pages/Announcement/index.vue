@@ -80,7 +80,6 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .announcement-page {
-  background: white;
   padding: 24px;
   border-radius: 4px;
 }

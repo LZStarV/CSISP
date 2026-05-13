@@ -2,6 +2,7 @@
   <div class="header-content">
     <div class="logo">{{ t('layout.header.title', '论坛系统') }}</div>
     <div class="user-info">
+      <ThemeSwitcher />
       <LanguageSwitcher />
       <span>{{ t('layout.header.user', '测试用户') }}</span>
     </div>
@@ -12,6 +13,7 @@
 import { useI18n } from 'vue-i18n';
 
 import LanguageSwitcher from '@/components/LanguageSwitcher/index.vue';
+import ThemeSwitcher from '@/components/ThemeSwitcher/index.vue';
 
 const { t } = useI18n();
 </script>
