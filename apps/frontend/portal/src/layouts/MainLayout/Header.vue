@@ -22,6 +22,7 @@ const { t } = useI18n();
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
+  height: 64px;
 }
 
 .logo {
@@ -32,6 +33,7 @@ const { t } = useI18n();
 .user-info {
   display: flex;
   align-items: center;
+  gap: 16px;
   font-size: 14px;
 }
 </style>
