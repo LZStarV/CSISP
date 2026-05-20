@@ -7,7 +7,6 @@ import { SupabaseUserRepository } from '@csisp/dal';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import { getIdpBaseLogger } from '@infra/logger';
-import { StepUpStore } from '@infra/redis/stepup.store';
 import { GotrueService } from '@infra/supabase';
 import { Injectable } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
@@ -24,87 +23,28 @@ export class OtpService {
     @Inject(REDIS_KV) private readonly kv: RedisKV
   ) {}
 
-  async sendOtpStepUp(req: Request): Promise<{ ok: true }> {
+  async sendOtpStepUp(dto: { tempToken: string }): Promise<{ ok: true }> {
     const logger = getIdpBaseLogger().child({ module: 'auth' });
-    const sid = (req as any).cookies?.idp_stepup as string | undefined;
-    if (!sid) {
+
+    // 从 tempToken 获取 email
+    const tempData = await this.kv.get<{ email: string }>(
+      `temp:${dto.tempToken}`
+    );
+    if (!tempData || !tempData.email) {
       throw new AuthApiException(
         AuthErrorCode.Unauthorized,
-        'No step-up session'
+        '临时凭证无效或已过期'
       );
     }
-    const store = new StepUpStore(this.kv);
-    const cur = await store.getState(sid);
-    if (!cur) {
-      throw new AuthApiException(
-        AuthErrorCode.Unauthorized,
-        'Step-up session not found'
-      );
-    }
-    if (cur.state === 'VERIFIED') {
-      throw new AuthApiException(
-        AuthErrorCode.Unauthorized,
-        'Already verified'
-      );
-    }
-    if (cur.state !== 'PENDING_PASSWORD') {
-      throw new AuthApiException(
-        AuthErrorCode.AuthStepUpRequired,
-        'Step-up state mismatch'
-      );
-    }
-    if (!cur.email) {
-      throw new AuthApiException(AuthErrorCode.Unauthorized, 'Email missing');
-    }
-    await store.setPendingEmailOtp(sid, 600);
-    await this.gotrue.sendLoginOtp({ email: cur.email });
+
+    await this.gotrue.sendLoginOtp({ email: tempData.email });
     logger.info(
       {
         event: 'send_otp',
         result: 'success',
-        email: cur.email,
-        sid,
+        email: tempData.email,
       },
       'auth send otp success'
-    );
-    return { ok: true };
-  }
-
-  async resendLoginOtp(req: Request): Promise<{ ok: true }> {
-    const logger = getIdpBaseLogger().child({ module: 'auth' });
-    const sid = (req as any).cookies?.idp_stepup as string | undefined;
-    if (!sid) {
-      throw new AuthApiException(
-        AuthErrorCode.Unauthorized,
-        'No step-up session'
-      );
-    }
-    const store = new StepUpStore(this.kv);
-    const cur = await store.getState(sid);
-    if (!cur) {
-      throw new AuthApiException(
-        AuthErrorCode.Unauthorized,
-        'Step-up session not found'
-      );
-    }
-    if (cur.state !== 'PENDING_EMAIL_OTP' && cur.state !== 'PENDING_PASSWORD') {
-      throw new AuthApiException(
-        AuthErrorCode.AuthStepUpRequired,
-        'Cannot resend OTP at this state'
-      );
-    }
-    if (!cur.email) {
-      throw new AuthApiException(AuthErrorCode.Unauthorized, 'Email missing');
-    }
-    await this.gotrue.sendLoginOtp({ email: cur.email });
-    logger.info(
-      {
-        event: 'resend_otp',
-        result: 'success',
-        email: cur.email,
-        sid,
-      },
-      'auth resend otp success'
     );
     return { ok: true };
   }
@@ -113,45 +53,31 @@ export class OtpService {
     dto: VerifyOtpDto,
     req: Request,
     res: Response
-  ): Promise<{ verified: true }> {
+  ): Promise<{ verified: true; supabaseSession?: any }> {
     const logger = getIdpBaseLogger().child({ module: 'auth' });
-    const sid = (req as any).cookies?.idp_stepup as string | undefined;
-    if (!sid) {
+
+    // 从 tempToken 获取数据
+    const tempData = await this.kv.get<{
+      email: string;
+      supabaseSession: any;
+    }>(`temp:${dto.tempToken}`);
+
+    if (!tempData || !tempData.email) {
       throw new AuthApiException(
         AuthErrorCode.Unauthorized,
-        'No step-up session'
+        '临时凭证无效或已过期'
       );
     }
-    const store = new StepUpStore(this.kv);
-    const cur = await store.getState(sid);
-    if (!cur) {
-      throw new AuthApiException(
-        AuthErrorCode.Unauthorized,
-        'Step-up session not found'
-      );
-    }
-    if (cur.state === 'VERIFIED') {
-      throw new AuthApiException(
-        AuthErrorCode.Unauthorized,
-        'Already verified'
-      );
-    }
-    if (cur.state !== 'PENDING_EMAIL_OTP') {
-      throw new AuthApiException(
-        AuthErrorCode.AuthStepUpRequired,
-        'Step-up state mismatch'
-      );
-    }
+
     try {
       await this.gotrue.verifyOtp({
-        email: cur.email!,
+        email: tempData.email,
         token: dto.token,
         type: 'email',
       });
-      await store.setVerified(sid, 600);
 
       // 先通过 email 获取 auth user ID
-      const authUserId = await this.gotrue.getAuthIdByEmail(cur.email!);
+      const authUserId = await this.gotrue.getAuthIdByEmail(tempData.email);
       let user = null;
       if (authUserId) {
         user = await this.userRepository.findByAuthUserId(authUserId);
@@ -180,23 +106,19 @@ export class OtpService {
             event: 'create_session',
             result: 'success',
             userId: user.id,
-            email: cur.email,
+            email: tempData.email,
           },
           'auth create session success'
         );
-      } else {
-        logger.warn(
-          {
-            event: 'create_session',
-            result: 'failed',
-            email: cur.email,
-            reason: 'user_not_found',
-          },
-          'auth create session failed - user not found'
-        );
       }
 
-      return { verified: true };
+      // 删除临时凭证（一次性使用）
+      await this.kv.del(`temp:${dto.tempToken}`);
+
+      return {
+        verified: true,
+        supabaseSession: tempData.supabaseSession,
+      };
     } catch {
       throw new AuthApiException(
         AuthErrorCode.OtpInvalidOrExpired,

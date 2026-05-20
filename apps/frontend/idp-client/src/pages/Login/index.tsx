@@ -6,11 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { idpClientAuthApi } from '@/api/idp-client/auth';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { getSupabaseClient } from '@/lib/supabase';
-import {
-  ROUTE_FINISH,
-  ROUTE_PASSWORD_FORGOT,
-  ROUTE_OAUTH_CONSENT,
-} from '@/routes/router';
+import { ROUTE_FINISH } from '@/routes/router';
 import { useAuthStore } from '@/stores/auth';
 
 /**
@@ -23,24 +19,8 @@ function isValidRedirectUrl(url: string): boolean {
     return false;
   }
 
-  // 检查是否是内部路径
-  const isInternalPath = url.startsWith('/') && !url.startsWith('//');
-
-  if (isInternalPath) {
-    // 对于 OAuth consent 路径，需要检查是否有有效的 authorization_id
-    if (url.startsWith(ROUTE_OAUTH_CONSENT)) {
-      try {
-        const urlObj = new URL(url, 'http://localhost');
-        const authId = urlObj.searchParams.get('authorization_id');
-        return !!authId && authId.trim().length > 0;
-      } catch {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  return false;
+  // 只允许内部路径
+  return url.startsWith('/') && !url.startsWith('//');
 }
 
 export function Login() {
@@ -50,14 +30,11 @@ export function Login() {
   const [resendLoading, setResendLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const {
-    ticket: storedTicket,
-    state: storedState,
     otpSent,
     otpCode,
     supabaseSession,
     setTicket,
     setStateParam,
-    setOtpSent,
     setOtpCode,
     setSupabaseSession,
     clearFlowState,
@@ -83,8 +60,13 @@ export function Login() {
     setLoading(true);
     setErrorMsg(null);
     try {
+      const tempToken = sessionStorage.getItem('tempToken');
+      if (!tempToken) {
+        throw new Error('临时凭证不存在，请重新登录');
+      }
       const res = await idpClientAuthApi.verifyOtp({
         token: otpCode,
+        tempToken,
       });
       if (res?.verified) {
         // 如果有存储的 supabaseSession，设置到 Supabase Auth 中
@@ -129,7 +111,11 @@ export function Login() {
     setResendLoading(true);
     setErrorMsg(null);
     try {
-      await idpClientAuthApi.resendLoginOtp();
+      const tempToken = sessionStorage.getItem('tempToken');
+      if (!tempToken) {
+        throw new Error('临时凭证不存在，请重新登录');
+      }
+      await idpClientAuthApi.sendOtp();
       message.success(t('verify.email.resent', '验证码已重新发送，请查收邮箱'));
       setCountdown(60);
       const timer = setInterval(() => {
@@ -160,55 +146,31 @@ export function Login() {
         student_id: values.student_id,
         password: values.password,
       });
-      const stepUp = (res?.stepUp ?? '') as 'PENDING_PASSWORD' | string;
 
-      // 如果有 supabaseSession，保存到 store 中
       if ((res as any)?.supabaseSession) {
+        const supabase = getSupabaseClient();
+        await supabase.auth.setSession({
+          access_token: (res as any).supabaseSession.access_token,
+          refresh_token: (res as any).supabaseSession.refresh_token,
+        });
+
+        // 同时保存到 store（用于恢复）
         setSupabaseSession((res as any).supabaseSession);
       }
 
-      const currentTicket = ticket || storedTicket;
-      const currentState = state || storedState;
-
-      const flowState = {
-        ...res,
-        ticket: currentTicket,
-        state: currentState,
-      };
-
-      if (stepUp === 'PENDING_PASSWORD') {
-        await idpClientAuthApi.sendOtp();
-        message.success(
-          t('verify.email.sent', '验证邮件已发送，请前往邮箱查收并完成验证')
-        );
-        setOtpSent(true);
-        return;
-      }
-
       clearFlowState();
-      // 如果有 redirect 参数，跳转到 redirect 地址
       if (redirect) {
         try {
           const decodedRedirect = decodeURIComponent(redirect);
-          // 验证 redirect URL 是否有效且安全
           if (isValidRedirectUrl(decodedRedirect)) {
             navigate(decodedRedirect, { replace: true });
-          } else {
-            navigate(ROUTE_FINISH, {
-              state: { ...flowState, fromNormalFlow: true },
-            });
+            return;
           }
         } catch {
-          navigate(ROUTE_FINISH, {
-            state: { ...flowState, fromNormalFlow: true },
-          });
+          // 解码失败，跳转到首页
         }
-      } else {
-        navigate(ROUTE_FINISH, {
-          state: { ...flowState, fromNormalFlow: true },
-        });
       }
-      return;
+      message.success(t('login.success', '登录成功'));
     } catch (e) {
       setErrorMsg(
         e instanceof Error ? e.message : t('login.failed', '登录失败，请重试')
@@ -319,12 +281,6 @@ export function Login() {
             {t('login.submit', '登录')}
           </Button>
         </Form.Item>
-
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <Button type='link' onClick={() => navigate(ROUTE_PASSWORD_FORGOT)}>
-            {t('login.forgotPassword', '忘记密码？')}
-          </Button>
-        </div>
       </Form>
     </AuthLayout>
   );

@@ -1,8 +1,4 @@
-import type {
-  RegisterParams,
-  ResendSignupOtpParams,
-  VerifySignupOtpParams,
-} from '@csisp/contracts';
+import type { RegisterParams, VerifySignupOtpParams } from '@csisp/contracts';
 import { Form, Input, Button, Typography, Alert, message, Space } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -103,11 +99,7 @@ export function Signup() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const params: ResendSignupOtpParams = { email };
-      const res = await idpClientAuthApi.resendSignupOtp(params);
-      if (!res?.ok) {
-        throw new Error(t('forgot.init.failed', '发送失败，请稍后重试'));
-      }
+      await idpClientAuthApi.sendOtp();
       message.success(t('signup.otp.resent', '验证码已重新发送，请查收邮箱'));
       setResendCooldown(60);
     } catch (e) {

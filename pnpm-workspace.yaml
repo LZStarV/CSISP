@@ -13,8 +13,8 @@ catalog:
   pino-pretty: ^11.3.0
   '@csisp-api/integrated-server': ^0.1.3
   '@csisp-api/bff-integrated-server': ^0.1.3
-  '@csisp-api/idp-server': ^0.2.9
-  '@csisp-api/bff-idp-server': ^0.2.9
+  '@csisp-api/idp-server': ^0.2.10
+  '@csisp-api/bff-idp-server': ^0.2.10
 
 # 命名 Catalogs
 catalogs:

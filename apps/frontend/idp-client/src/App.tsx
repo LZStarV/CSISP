@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import { Finish } from '@/pages/Finish';
-import { ForgotInit } from '@/pages/ForgotInit';
 import { Login } from '@/pages/Login';
 import { OAuthConsent } from '@/pages/OAuthConsent';
 import { ResetPassword } from '@/pages/ResetPassword';
@@ -11,7 +10,6 @@ import {
   ROUTE_ROOT,
   ROUTE_LOGIN,
   ROUTE_PASSWORD_RESET,
-  ROUTE_PASSWORD_FORGOT,
   ROUTE_FINISH,
   ROUTE_OAUTH_CONSENT,
 } from '@/routes/router';
@@ -60,7 +58,6 @@ function App() {
             </SessionGuard>
           }
         />
-        <Route path={ROUTE_PASSWORD_FORGOT} element={<ForgotInit />} />
         <Route
           path={ROUTE_FINISH}
           element={

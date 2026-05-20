@@ -1,13 +1,6 @@
 import { ApiIdpController } from '@common/decorators/controller.decorator';
 import { IdpSessionGuard } from '@common/guards/idp-session.guard';
 import { RequestBodyPipe } from '@common/http/request-body.pipe';
-import type {
-  AuthForgotChallengeRequest,
-  AuthForgotInitRequest,
-  AuthForgotVerifyRequest,
-  AuthMultifactorRequest,
-  AuthSessionRequest,
-} from '@csisp-api/idp-server';
 import { UseGuards } from '@nestjs/common';
 import { Body, Post, Req, Res } from '@nestjs/common';
 import type { Request as ExpressRequest, Response } from 'express';
@@ -15,41 +8,27 @@ import type { Request as ExpressRequest, Response } from 'express';
 import { LoginInternalDto } from './dto/login-internal.dto';
 import { AuthLogoutDto } from './dto/logout.dto';
 import { RegisterDto } from './dto/register.dto';
-import { ResendSignupOtpDto } from './dto/resend-signup-otp.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
 import {
-  SessionService,
   RegistrationService,
   LoginService,
   OtpService,
-  PasswordResetService,
-  MfaService,
-  ForgotPasswordService,
   LogoutService,
 } from './service';
 
 @ApiIdpController('auth')
-@UseGuards(IdpSessionGuard)
 export class AuthController {
   constructor(
     private readonly registrationService: RegistrationService,
     private readonly loginService: LoginService,
     private readonly otpService: OtpService,
-    private readonly passwordResetService: PasswordResetService,
-    private readonly mfaService: MfaService,
-    private readonly forgotPasswordService: ForgotPasswordService,
-    private readonly sessionService: SessionService,
     private readonly logoutService: LogoutService
   ) {}
 
   @Post('login')
-  async authLogin(
-    @Body(RequestBodyPipe) loginInternalDto: LoginInternalDto,
-    @Res({ passthrough: true }) response: Response
-  ) {
-    return this.loginService.loginEmailPassword(loginInternalDto, response);
+  async authLogin(@Body(RequestBodyPipe) loginInternalDto: LoginInternalDto) {
+    return this.loginService.loginEmailPassword(loginInternalDto);
   }
 
   @Post('register')
@@ -64,21 +43,9 @@ export class AuthController {
     return this.registrationService.verifySignupOtp(verifySignupOtpDto);
   }
 
-  @Post('resendSignupOtp')
-  async authResendSignupOtp(
-    @Body(RequestBodyPipe) resendSignupOtpDto: ResendSignupOtpDto
-  ) {
-    return this.registrationService.resendSignupOtp(resendSignupOtpDto);
-  }
-
-  @Post('resendLoginOtp')
-  async authResendLoginOtp(@Req() request: ExpressRequest) {
-    return this.otpService.resendLoginOtp(request);
-  }
-
   @Post('send-otp')
-  async authSendOtp(@Req() request: ExpressRequest) {
-    return this.otpService.sendOtpStepUp(request);
+  async authSendOtp(@Body(RequestBodyPipe) body: { tempToken: string }) {
+    return this.otpService.sendOtpStepUp(body);
   }
 
   @Post('verify-otp')
@@ -90,52 +57,8 @@ export class AuthController {
     return this.otpService.verifyOtpStepUp(verifyOtpDto, request, response);
   }
 
-  @Post('multifactor')
-  async authMultifactor(
-    @Body(RequestBodyPipe) authMultifactorRequest: AuthMultifactorRequest,
-    @Req() request: ExpressRequest
-  ) {
-    return this.mfaService.multifactor(authMultifactorRequest, request.res);
-  }
-
   @Post('reset_password')
-  async authResetPassword(
-    @Body(RequestBodyPipe) resetPasswordDto: ResetPasswordDto
-  ) {
-    return this.passwordResetService.resetPassword(resetPasswordDto);
-  }
-
-  @Post('mfa_methods')
-  async authMfaMethods(@Req() request: ExpressRequest) {
-    const sid = (request as any).idpSession;
-    return this.mfaService.mfaMethodsBySession(sid);
-  }
-
-  @Post('forgot_init')
-  async authForgotInit(
-    @Body(RequestBodyPipe) authForgotInitRequest: AuthForgotInitRequest
-  ) {
-    return this.forgotPasswordService.forgotInit(authForgotInitRequest);
-  }
-
-  @Post('forgot_challenge')
-  async authForgotChallenge(
-    @Body(RequestBodyPipe)
-    authForgotChallengeRequest: AuthForgotChallengeRequest
-  ) {
-    return this.forgotPasswordService.forgotChallenge(
-      authForgotChallengeRequest
-    );
-  }
-
-  @Post('forgot_verify')
-  async authForgotVerify(
-    @Body(RequestBodyPipe) authForgotVerifyRequest: AuthForgotVerifyRequest
-  ) {
-    return this.forgotPasswordService.forgotVerify(authForgotVerifyRequest);
-  }
-
-  @Post('logout')
+  @UseGuards(IdpSessionGuard)
   async authLogout(
     @Body(RequestBodyPipe) authLogoutDto: AuthLogoutDto,
     @Req() request: ExpressRequest,
@@ -145,10 +68,8 @@ export class AuthController {
   }
 
   @Post('session')
-  async authSession(
-    @Body(RequestBodyPipe) _authSessionRequest: AuthSessionRequest,
-    @Req() request: ExpressRequest
-  ) {
+  @UseGuards(IdpSessionGuard)
+  async authSession(@Req() request: ExpressRequest) {
     const uid = (request as any).idpUserId;
     if (!uid) return { logged: false };
     const user = await this.registrationService.findUserById(uid);

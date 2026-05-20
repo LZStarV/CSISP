@@ -1,7 +1,7 @@
 import { Space, Typography, Button, Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { commonAuthApi } from '@/api/common/auth';
 import { useSessionStore } from '@/stores/session';
@@ -9,7 +9,6 @@ import { useSessionStore } from '@/stores/session';
 export function Finish() {
   const { t } = useTranslation();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const location = useLocation();
   const navigate = useNavigate();
   const { userInfo, setSession, clearSession } = useSessionStore();
 

@@ -1,30 +1,18 @@
 import { getBffLogger } from '@common/logger';
 import { ZodValidationPipe } from '@common/pipes/zod-validation.pipe';
 import {
-  CreateExchangeCodeParams,
   EnterParams,
-  ForgotChallengeParams,
-  ForgotInitParams,
-  ForgotVerifyParams,
   IDP_CLIENT_AUTH_ACTION,
   IDP_CLIENT_AUTH_PATH_PREFIX,
   IDP_CLIENT_PATH_PREFIX,
   LoginParams,
-  MultifactorParams,
   RegisterParams,
   ResetPasswordParams,
-  ResendSignupOtpParams,
   VerifyOtpParams,
   VerifySignupOtpParams,
-  createExchangeCodeBodySchema,
   enterBodySchema,
-  forgotChallengeBodySchema,
-  forgotInitBodySchema,
-  forgotVerifyBodySchema,
   loginBodySchema,
-  multifactorBodySchema,
   registerBodySchema,
-  resendSignupOtpBodySchema,
   resetPasswordBodySchema,
   verifyOtpBodySchema,
   verifySignupOtpBodySchema,
@@ -84,32 +72,11 @@ export class IdpAuthController {
     );
   }
 
-  @Post(IDP_CLIENT_AUTH_ACTION.RESEND_SIGNUP_OTP)
-  async authResendSignupOtp(
-    @Body(new ZodValidationPipe(resendSignupOtpBodySchema))
-    resendSignupOtpDto: ResendSignupOtpParams
-  ) {
-    this.logAction(IDP_CLIENT_AUTH_ACTION.RESEND_SIGNUP_OTP);
-    return firstValueFrom(
-      this.authService
-        .authResendSignupOtp({ ResendSignupOtpDto: resendSignupOtpDto })
-        .pipe(map(res => res.data))
-    );
-  }
-
   @Post(IDP_CLIENT_AUTH_ACTION.SEND_OTP)
   async authSendOtp() {
     this.logAction(IDP_CLIENT_AUTH_ACTION.SEND_OTP);
     return firstValueFrom(
       this.authService.authSendOtp({}).pipe(map(res => res.data))
-    );
-  }
-
-  @Post(IDP_CLIENT_AUTH_ACTION.RESEND_LOGIN_OTP)
-  async authResendLoginOtp() {
-    this.logAction(IDP_CLIENT_AUTH_ACTION.RESEND_LOGIN_OTP);
-    return firstValueFrom(
-      this.authService.authResendLoginOtp({}).pipe(map(res => res.data))
     );
   }
 
@@ -122,36 +89,6 @@ export class IdpAuthController {
     return firstValueFrom(
       this.authService
         .authVerifyOtp({ VerifyOtpDto: verifyOtpDto })
-        .pipe(map(res => res.data))
-    );
-  }
-
-  @Post(IDP_CLIENT_AUTH_ACTION.CREATE_EXCHANGE_CODE)
-  async authCreateExchangeCode(
-    @Body(new ZodValidationPipe(createExchangeCodeBodySchema))
-    createExchangeCodeDto: CreateExchangeCodeParams
-  ) {
-    this.logAction(IDP_CLIENT_AUTH_ACTION.CREATE_EXCHANGE_CODE);
-    return firstValueFrom(
-      this.authService
-        .authCreateExchangeCode({
-          CreateExchangeCodeDto: createExchangeCodeDto,
-        })
-        .pipe(map(res => res.data))
-    );
-  }
-
-  @Post(IDP_CLIENT_AUTH_ACTION.MULTIFACTOR)
-  async authMultifactor(
-    @Body(new ZodValidationPipe(multifactorBodySchema))
-    authMultifactorRequest: MultifactorParams
-  ) {
-    this.logAction(IDP_CLIENT_AUTH_ACTION.MULTIFACTOR);
-    return firstValueFrom(
-      this.authService
-        .authMultifactor({
-          AuthMultifactorRequest: authMultifactorRequest,
-        })
         .pipe(map(res => res.data))
     );
   }
@@ -180,57 +117,6 @@ export class IdpAuthController {
     return firstValueFrom(
       this.authService
         .authEnter({ AuthEnterRequest: authEnterRequest })
-        .pipe(map(res => res.data))
-    );
-  }
-
-  @Post(IDP_CLIENT_AUTH_ACTION.MFA_METHODS)
-  async authMfaMethods() {
-    this.logAction(IDP_CLIENT_AUTH_ACTION.MFA_METHODS);
-    return firstValueFrom(
-      this.authService.authMfaMethods({}).pipe(map(res => res.data))
-    );
-  }
-
-  @Post(IDP_CLIENT_AUTH_ACTION.FORGOT_INIT)
-  async authForgotInit(
-    @Body(new ZodValidationPipe(forgotInitBodySchema))
-    authForgotInitRequest: ForgotInitParams
-  ) {
-    this.logAction(IDP_CLIENT_AUTH_ACTION.FORGOT_INIT);
-    return firstValueFrom(
-      this.authService
-        .authForgotInit({
-          AuthForgotInitRequest: authForgotInitRequest,
-        })
-        .pipe(map(res => res.data))
-    );
-  }
-
-  @Post(IDP_CLIENT_AUTH_ACTION.FORGOT_CHALLENGE)
-  async authForgotChallenge(
-    @Body(new ZodValidationPipe(forgotChallengeBodySchema))
-    authForgotChallengeRequest: ForgotChallengeParams
-  ) {
-    this.logAction(IDP_CLIENT_AUTH_ACTION.FORGOT_CHALLENGE);
-    return firstValueFrom(
-      this.authService
-        .authForgotChallenge({
-          AuthForgotChallengeRequest: authForgotChallengeRequest,
-        })
-        .pipe(map(res => res.data))
-    );
-  }
-
-  @Post(IDP_CLIENT_AUTH_ACTION.FORGOT_VERIFY)
-  async authForgotVerify(
-    @Body(new ZodValidationPipe(forgotVerifyBodySchema))
-    authForgotVerifyRequest: ForgotVerifyParams
-  ) {
-    this.logAction(IDP_CLIENT_AUTH_ACTION.FORGOT_VERIFY);
-    return firstValueFrom(
-      this.authService
-        .authForgotVerify({ AuthForgotVerifyRequest: authForgotVerifyRequest })
         .pipe(map(res => res.data))
     );
   }

@@ -1,19 +1,11 @@
-import crypto from 'crypto';
-
 import {
   AuthApiException,
   AuthErrorCode,
 } from '@common/errors/auth-error-codes';
-import { config } from '@config';
 import { SupabaseUserRepository } from '@csisp/dal';
-import type { RedisKV } from '@csisp/redis-sdk';
-import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import { getIdpBaseLogger } from '@infra/logger';
-import { StepUpStore } from '@infra/redis/stepup.store';
 import { GotrueService } from '@infra/supabase';
 import { Injectable } from '@nestjs/common';
-import { Inject } from '@nestjs/common';
-import type { Response } from 'express';
 
 import { LoginInternalDto } from '../dto/login-internal.dto';
 
@@ -21,15 +13,10 @@ import { LoginInternalDto } from '../dto/login-internal.dto';
 export class LoginService {
   constructor(
     private readonly gotrue: GotrueService,
-    private readonly userRepository: SupabaseUserRepository,
-    @Inject(REDIS_KV) private readonly kv: RedisKV
+    private readonly userRepository: SupabaseUserRepository
   ) {}
 
-  async loginEmailPassword(
-    dto: LoginInternalDto,
-    res: Response
-  ): Promise<{
-    stepUp: 'PENDING_PASSWORD';
+  async loginEmailPassword(dto: LoginInternalDto): Promise<{
     supabaseSession: {
       access_token: string;
       refresh_token: string;
@@ -81,31 +68,16 @@ export class LoginService {
         password: dto.password,
       });
 
-      // 创建 step-up session
-      const sid = crypto.randomUUID();
-      const store = new StepUpStore(this.kv);
-      await store.setPendingPassword(sid, authUser.email, 600);
-
-      res.cookie('idp_stepup', sid, {
-        httpOnly: true,
-        secure: config.runtime.isProduction,
-        sameSite: 'strict',
-        domain: config.session.cookieDomain,
-        path: '/',
-        maxAge: 600 * 1000,
-      });
-
       logger.info(
         {
           event: 'login',
           result: 'success',
           student_id: dto.student_id,
           email: authUser.email,
-          sid,
         },
         'auth login success'
       );
-      return { stepUp: 'PENDING_PASSWORD', supabaseSession };
+      return { supabaseSession };
     } catch (error) {
       if (error instanceof AuthApiException) {
         throw error;

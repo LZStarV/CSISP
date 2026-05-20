@@ -33,13 +33,6 @@ export class LogoutService {
       path: '/',
     });
 
-    res.clearCookie('idp_stepup', {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'strict',
-      path: '/',
-    });
-
     return { logged: false };
   }
 }

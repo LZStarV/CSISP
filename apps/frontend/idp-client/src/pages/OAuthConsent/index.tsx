@@ -182,8 +182,7 @@ export function OAuthConsent() {
               ).redirect_to;
               return;
             }
-          } catch (error) {
-            console.error('Auto approve failed:', error);
+          } catch {
             setErrorMsg(t('oauth.approveFailed', '授权失败，请重试'));
           }
         } else {
