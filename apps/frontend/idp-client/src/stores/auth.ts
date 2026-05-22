@@ -14,10 +14,12 @@ const storage = localforage.createInstance({
 interface AuthState {
   ticket: string | null;
   state: string | null;
+  loginMode: 'password' | 'email';
   otpSent: boolean;
   otpCode: string;
   setTicket: (ticket: string | null) => void;
   setStateParam: (state: string | null) => void;
+  setLoginMode: (mode: 'password' | 'email') => void;
   setOtpSent: (sent: boolean) => void;
   setOtpCode: (code: string) => void;
   clearFlowState: () => void;
@@ -29,11 +31,13 @@ export const useAuthStore = create<AuthState>()(
     set => ({
       ticket: null,
       state: null,
+      loginMode: 'password',
       otpSent: false,
       otpCode: '',
 
       setTicket: (ticket: string | null) => set({ ticket }),
       setStateParam: (state: string | null) => set({ state }),
+      setLoginMode: (mode: 'password' | 'email') => set({ loginMode: mode }),
       setOtpSent: (sent: boolean) => set({ otpSent: sent }),
       setOtpCode: (code: string) => set({ otpCode: code }),
 

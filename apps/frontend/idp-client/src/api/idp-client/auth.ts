@@ -7,10 +7,13 @@ import {
   type RegisterResult,
   type VerifySignupOtpParams,
   type VerifySignupOtpResult,
+  type ResendSignupOtpParams,
+  type ResendSignupOtpResult,
   type VerifyOtpParams,
   type VerifyOtpResult,
   type EnterParams,
   type ResetPasswordParams,
+  type SendOtpParams,
   type SendOtpResult,
 } from '@csisp/contracts';
 
@@ -36,12 +39,18 @@ export const idpClientAuthApi = {
     return await authCall<VerifySignupOtpResult>('verifySignupOtp', params);
   },
 
+  async resendSignupOtp(
+    params: ResendSignupOtpParams
+  ): Promise<ResendSignupOtpResult> {
+    return await authCall<ResendSignupOtpResult>('resendSignupOtp', params);
+  },
+
   async verifyOtp(params: VerifyOtpParams): Promise<VerifyOtpResult> {
     return await authCall<VerifyOtpResult>('verify-otp', params);
   },
 
-  async sendOtp(): Promise<SendOtpResult> {
-    return await authCall<SendOtpResult>('send-otp', {});
+  async sendOtp(params: SendOtpParams): Promise<SendOtpResult> {
+    return await authCall<SendOtpResult>('send-otp', params);
   },
 
   async resetPassword(params: ResetPasswordParams) {

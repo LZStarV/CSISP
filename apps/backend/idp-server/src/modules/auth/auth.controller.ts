@@ -5,6 +5,7 @@ import { Body, Post } from '@nestjs/common';
 import { LoginInternalDto } from './dto/login-internal.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { SendLoginOtpDto } from './dto/send-login-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
 import {
@@ -41,13 +42,13 @@ export class AuthController {
   }
 
   @Post('send-otp')
-  async authSendOtp(@Body(RequestBodyPipe) body: { tempToken: string }) {
-    return this.otpService.sendOtpStepUp(body);
+  async authSendOtp(@Body(RequestBodyPipe) sendLoginOtpDto: SendLoginOtpDto) {
+    return this.otpService.sendLoginOtp(sendLoginOtpDto);
   }
 
   @Post('verify-otp')
   async authVerifyOtp(@Body(RequestBodyPipe) verifyOtpDto: VerifyOtpDto) {
-    return this.otpService.verifyOtpStepUp(verifyOtpDto);
+    return this.otpService.verifyLoginOtp(verifyOtpDto);
   }
 
   @Post('reset_password')

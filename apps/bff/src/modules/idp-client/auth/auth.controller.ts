@@ -8,12 +8,14 @@ import {
   LoginParams,
   RegisterParams,
   ResetPasswordParams,
+  SendOtpParams,
   VerifyOtpParams,
   VerifySignupOtpParams,
   enterBodySchema,
   loginBodySchema,
   registerBodySchema,
   resetPasswordBodySchema,
+  sendOtpBodySchema,
   verifyOtpBodySchema,
   verifySignupOtpBodySchema,
 } from '@csisp/contracts';
@@ -73,10 +75,15 @@ export class IdpAuthController {
   }
 
   @Post(IDP_CLIENT_AUTH_ACTION.SEND_OTP)
-  async authSendOtp() {
+  async authSendOtp(
+    @Body(new ZodValidationPipe(sendOtpBodySchema))
+    sendOtpDto: SendOtpParams
+  ) {
     this.logAction(IDP_CLIENT_AUTH_ACTION.SEND_OTP);
     return firstValueFrom(
-      this.authService.authSendOtp({}).pipe(map(res => res.data))
+      this.authService
+        .authSendOtp({ AuthSendOtpRequest: sendOtpDto })
+        .pipe(map(res => res.data))
     );
   }
 

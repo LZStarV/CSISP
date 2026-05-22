@@ -99,7 +99,7 @@ export function Signup() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      await idpClientAuthApi.sendOtp();
+      await idpClientAuthApi.resendSignupOtp({ email });
       message.success(t('signup.otp.resent', '验证码已重新发送，请查收邮箱'));
       setResendCooldown(60);
     } catch (e) {

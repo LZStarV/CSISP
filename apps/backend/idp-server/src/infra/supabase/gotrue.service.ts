@@ -51,17 +51,14 @@ export class GotrueService {
     }
   }
 
-  // 验证 OTP
-  // @param params 验证 OTP 参数
-  // @returns 验证 OTP 结果
-  // @throws 验证 OTP 失败时抛出异常
+  // 验证 OTP，type 为 'email' 时返回 Supabase session，signup 时返回 null
   async verifyOtp(params: {
     email: string;
     token: string;
     type: 'email' | 'signup';
-  }): Promise<void> {
+  }): Promise<SupabaseSession | null> {
     const client = this.supabaseDataAccess.service();
-    const { error } = await client.auth.verifyOtp({
+    const { data, error } = await client.auth.verifyOtp({
       email: params.email,
       token: params.token,
       type: params.type,
@@ -69,6 +66,14 @@ export class GotrueService {
     if (error) {
       throw error;
     }
+    if (data.session) {
+      return {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_in: data.session.expires_in,
+      };
+    }
+    return null;
   }
 
   // 注册

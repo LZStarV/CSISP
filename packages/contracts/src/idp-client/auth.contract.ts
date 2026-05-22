@@ -1,5 +1,6 @@
 import type {
   AuthEnterRequest,
+  AuthSendOtpRequest,
   LoginInternalDto,
   RegisterDto,
   ResetPasswordDto,
@@ -58,13 +59,16 @@ export const loginBodySchema = z.object({
 }) satisfies z.ZodType<LoginInternalDto>;
 
 export const loginResponseSchema = z.object({
-  supabaseSession: supabaseSessionSchema.optional(),
-  stepUp: z.string().optional(),
-  nextSteps: z.array(z.string()).optional(),
+  supabaseSession: supabaseSessionSchema,
 });
+
+export const sendOtpBodySchema = z.object({
+  email: z.string().email().min(5).max(256),
+}) satisfies z.ZodType<AuthSendOtpRequest>;
 
 export const sendOtpResponseSchema = z.object({
   ok: z.boolean(),
+  tempToken: z.string(),
 });
 
 export const resendLoginOtpResponseSchema = z.object({
@@ -153,9 +157,9 @@ const idpClientAuthRoutes = {
   sendOtp: {
     method: HTTP_METHOD.POST,
     path: '/send-otp',
-    body: z.object({}).optional(),
+    body: sendOtpBodySchema,
     responses: { 200: sendOtpResponseSchema },
-    summary: '发送 OTP',
+    summary: '发送邮箱登录 OTP',
   },
   resendLoginOtp: {
     method: HTTP_METHOD.POST,

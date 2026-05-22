@@ -10,6 +10,8 @@ import { OAuthLoginOptions } from './types';
 
 const STORAGE_KEY_VERIFIER = 'oauth_code_verifier';
 const STORAGE_KEY_STATE = 'oauth_state';
+const STORAGE_KEY_CLIENT_ID = 'oauth_client_id';
+const STORAGE_KEY_REDIRECT_URI = 'oauth_redirect_uri';
 const STORAGE_KEY_REDIRECT_AFTER_LOGIN = 'oauth_redirect_after_login';
 
 /**
@@ -24,6 +26,8 @@ export async function initiateOAuthLogin(
 
   await setStorageItem(STORAGE_KEY_VERIFIER, codeVerifier);
   await setStorageItem(STORAGE_KEY_STATE, state);
+  await setStorageItem(STORAGE_KEY_CLIENT_ID, options.clientId);
+  await setStorageItem(STORAGE_KEY_REDIRECT_URI, options.redirectUri);
 
   const params = new URLSearchParams({
     response_type: 'code',
@@ -70,10 +74,47 @@ export async function handleOAuthCallback(): Promise<{
       return { ok: false, error: 'Missing code verifier' };
     }
 
-    // 使用 Supabase 的 exchangeCodeForSession 交换 code 为 session
+    // 官方 OAuth PKCE token 交换：POST /auth/v1/oauth/token
     const supabase = getOAuthClient();
-    const { error: sessionError } =
-      await supabase.auth.exchangeCodeForSession(code);
+    const clientId = await getStorageItem<string>(STORAGE_KEY_CLIENT_ID);
+    const redirectUri = await getStorageItem<string>(STORAGE_KEY_REDIRECT_URI);
+
+    if (!clientId || !redirectUri) {
+      return { ok: false, error: 'Missing client_id or redirect_uri' };
+    }
+
+    const tokenResponse = await fetch(
+      `${oauthConfig.supabase.url}/auth/v1/oauth/token`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          code_verifier: codeVerifier,
+        }),
+      }
+    );
+
+    if (!tokenResponse.ok) {
+      const body = await tokenResponse.json().catch(() => ({}));
+      return {
+        ok: false,
+        error:
+          (body as Record<string, string>).message ||
+          `Token exchange failed: ${tokenResponse.status}`,
+      };
+    }
+
+    const tokens = await tokenResponse.json();
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+    });
 
     if (sessionError) {
       return { ok: false, error: sessionError.message };
@@ -81,6 +122,8 @@ export async function handleOAuthCallback(): Promise<{
 
     await removeStorageItem(STORAGE_KEY_VERIFIER);
     await removeStorageItem(STORAGE_KEY_STATE);
+    await removeStorageItem(STORAGE_KEY_CLIENT_ID);
+    await removeStorageItem(STORAGE_KEY_REDIRECT_URI);
 
     return { ok: true };
   } catch (e) {

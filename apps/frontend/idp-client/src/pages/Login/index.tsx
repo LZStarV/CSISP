@@ -11,15 +11,11 @@ import { useAuthStore } from '@/stores/auth';
 
 /**
  * 验证 redirect URL 是否有效且安全
- * @param url 要验证的 URL 字符串
- * @returns 验证结果
  */
 function isValidRedirectUrl(url: string): boolean {
   if (!url || typeof url !== 'string') {
     return false;
   }
-
-  // 只允许内部路径
   return url.startsWith('/') && !url.startsWith('//');
 }
 
@@ -27,16 +23,15 @@ export function Login() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [resendLoading, setResendLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const {
-    otpSent,
-    otpCode,
-    setTicket,
-    setStateParam,
-    setOtpCode,
-    clearFlowState,
-  } = useAuthStore();
+
+  // 邮箱 OTP 登录模式的状态
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [emailValue, setEmailValue] = useState('');
+
+  const { loginMode, setLoginMode, setTicket, setStateParam, clearFlowState } =
+    useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const ticket = searchParams.get('ticket');
@@ -63,90 +58,41 @@ export function Login() {
                 navigate(decodedRedirect, { replace: true });
                 return;
               }
-            } catch {}
+            } catch {
+              /* ignore */
+            }
           }
           navigate(ROUTE_FINISH, { replace: true });
         }
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     }
     checkExistingSession();
   }, []);
 
-  const handleVerifyOtp = async () => {
-    setLoading(true);
-    setErrorMsg(null);
-    try {
-      const tempToken = sessionStorage.getItem('tempToken');
-      if (!tempToken) {
-        throw new Error('临时凭证不存在，请重新登录');
-      }
-      const res = await idpClientAuthApi.verifyOtp({
-        token: otpCode,
-        tempToken,
-      });
-      if (res?.verified) {
-        clearFlowState();
-        // 如果有 redirect 参数，跳转到 redirect 地址
-        if (redirect) {
-          try {
-            const decodedRedirect = decodeURIComponent(redirect);
-            // 验证 redirect URL 是否有效且安全
-            if (isValidRedirectUrl(decodedRedirect)) {
-              navigate(decodedRedirect, { replace: true });
-            } else {
-              navigate(ROUTE_FINISH, { replace: true });
-            }
-          } catch {
-            navigate(ROUTE_FINISH, { replace: true });
-          }
-        } else {
-          navigate(ROUTE_FINISH, { replace: true });
+  const handleNavigateAfterLogin = () => {
+    clearFlowState();
+    if (redirect) {
+      try {
+        const decodedRedirect = decodeURIComponent(redirect);
+        if (isValidRedirectUrl(decodedRedirect)) {
+          navigate(decodedRedirect, { replace: true });
+          return;
         }
+      } catch {
+        /* ignore */
       }
-    } catch (e) {
-      setErrorMsg(
-        e instanceof Error
-          ? e.message
-          : t('verify.otp.invalid', '验证失败或验证码已过期')
-      );
-    } finally {
-      setLoading(false);
     }
+    navigate(ROUTE_FINISH, { replace: true });
   };
 
-  const handleResendOtp = async () => {
-    if (countdown > 0) return;
-    setResendLoading(true);
-    setErrorMsg(null);
-    try {
-      const tempToken = sessionStorage.getItem('tempToken');
-      if (!tempToken) {
-        throw new Error('临时凭证不存在，请重新登录');
-      }
-      await idpClientAuthApi.sendOtp();
-      message.success(t('verify.email.resent', '验证码已重新发送，请查收邮箱'));
-      setCountdown(60);
-      const timer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (e) {
-      setErrorMsg(
-        e instanceof Error
-          ? e.message
-          : t('verify.email.resendFailed', '重发验证码失败，请稍后重试')
-      );
-    } finally {
-      setResendLoading(false);
-    }
-  };
+  // ========== 密码登录 ==========
 
-  const onFinish = async (values: { student_id: string; password: string }) => {
+  const onPasswordFinish = async (values: {
+    student_id: string;
+    password: string;
+  }) => {
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -163,17 +109,7 @@ export function Login() {
         });
       }
 
-      clearFlowState();
-      if (redirect) {
-        try {
-          const decodedRedirect = decodeURIComponent(redirect);
-          if (isValidRedirectUrl(decodedRedirect)) {
-            navigate(decodedRedirect, { replace: true });
-            return;
-          }
-        } catch {}
-      }
-      navigate(ROUTE_FINISH, { replace: true });
+      handleNavigateAfterLogin();
     } catch (e) {
       setErrorMsg(
         e instanceof Error ? e.message : t('login.failed', '登录失败，请重试')
@@ -183,11 +119,116 @@ export function Login() {
     }
   };
 
+  // ========== 邮箱 OTP 登录 ==========
+
+  const handleSendOtp = async () => {
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      const res = await idpClientAuthApi.sendOtp({ email: emailValue });
+      if (res?.ok && res.tempToken) {
+        sessionStorage.setItem('tempToken', res.tempToken);
+        setOtpSent(true);
+        message.success(t('login.email.otpSent', '验证码已发送，请查收邮箱'));
+        setCountdown(60);
+        const timer = setInterval(() => {
+          setCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    } catch (e) {
+      setErrorMsg(
+        e instanceof Error
+          ? e.message
+          : t('login.email.sendFailed', '发送验证码失败，请稍后重试')
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (countdown > 0) return;
+    try {
+      await idpClientAuthApi.sendOtp({ email: emailValue });
+      message.success(t('login.email.resent', '验证码已重新发送，请查收邮箱'));
+      setCountdown(60);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (e) {
+      setErrorMsg(
+        e instanceof Error
+          ? e.message
+          : t('login.email.resendFailed', '重发验证码失败，请稍后重试')
+      );
+    }
+  };
+
+  const handleEmailLogin = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const tempToken = sessionStorage.getItem('tempToken');
+      if (!tempToken) {
+        throw new Error(
+          t('login.email.noTempToken', '临时凭证不存在，请先获取验证码')
+        );
+      }
+      const res = await idpClientAuthApi.verifyOtp({
+        token: otpCode,
+        tempToken,
+      });
+
+      if (res?.supabaseSession) {
+        const supabase = getSupabaseClient();
+        await supabase.auth.setSession({
+          access_token: res.supabaseSession.access_token,
+          refresh_token: res.supabaseSession.refresh_token,
+        });
+      }
+
+      sessionStorage.removeItem('tempToken');
+      handleNavigateAfterLogin();
+    } catch (e) {
+      setErrorMsg(
+        e instanceof Error
+          ? e.message
+          : t('verify.otp.invalid', '验证失败或验证码已过期')
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchMode = () => {
+    setErrorMsg(null);
+    setOtpSent(false);
+    setOtpCode('');
+    setEmailValue('');
+    setCountdown(0);
+    setLoginMode(loginMode === 'password' ? 'email' : 'password');
+  };
+
+  const isPasswordMode = loginMode === 'password';
+
   return (
     <AuthLayout>
       <Typography.Title level={3} style={{ textAlign: 'center' }}>
         {t('oidc.unifiedLogin', '统一身份认证登录')}
       </Typography.Title>
+
       {errorMsg && (
         <Alert
           type='error'
@@ -196,95 +237,137 @@ export function Login() {
           style={{ marginBottom: 16 }}
         />
       )}
-      {otpSent && (
-        <Form layout='vertical' disabled={loading}>
-          <Form.Item label={t('verify.otp.label', '邮箱验证码')} required>
+
+      {/* ===== 密码登录模式 ===== */}
+      {isPasswordMode && (
+        <Form layout='vertical' onFinish={onPasswordFinish} disabled={loading}>
+          <Form.Item
+            label={t('login.studentId.label', '学号')}
+            name='student_id'
+            rules={[
+              {
+                required: true,
+                message: t('login.studentId.required', '学号不能为空'),
+              },
+              {
+                pattern: /^\d{10,14}$/,
+                message: t(
+                  'login.studentId.invalid',
+                  '请输入10-14位数字的学号'
+                ),
+              },
+            ]}
+          >
             <Input
-              placeholder={t(
-                'signup.otp.placeholder',
-                '请输入邮箱中的 8 位验证码',
-                {
-                  digitCount: 8,
-                }
-              )}
-              value={otpCode}
-              onChange={e => setOtpCode(e.target.value)}
-              maxLength={8}
-              inputMode='numeric'
+              placeholder={t('login.studentId.placeholder', '请输入学号')}
+              autoComplete='username'
+              maxLength={14}
             />
           </Form.Item>
-          <Form.Item>
-            <Button
-              type='primary'
-              onClick={handleVerifyOtp}
-              block
-              loading={loading}
-              disabled={!/^\d{8}$/.test(otpCode)}
-            >
-              {t('verify.submit', '完成验证')}
-            </Button>
+
+          <Form.Item
+            label={t('login.password.label', '密码')}
+            name='password'
+            rules={[
+              {
+                required: true,
+                message: t('login.password.required', '密码不能为空'),
+              },
+            ]}
+          >
+            <Input.Password
+              placeholder={t('login.password.placeholder', '请输入密码')}
+              autoComplete='current-password'
+            />
           </Form.Item>
+
           <Form.Item>
-            <Button
-              type='link'
-              onClick={handleResendOtp}
-              loading={resendLoading}
-              disabled={countdown > 0 || resendLoading}
-              block
-            >
-              {countdown > 0
-                ? t('verify.email.resendCountdown', '{seconds}秒后重发', {
-                    seconds: countdown,
-                  })
-                : t('verify.email.resend', '没有收到验证码？重发')}
+            <Button type='primary' htmlType='submit' block loading={loading}>
+              {t('login.submit', '登录')}
             </Button>
           </Form.Item>
         </Form>
       )}
-      <Form layout='vertical' onFinish={onFinish} disabled={loading}>
-        <Form.Item
-          label={t('login.studentId.label', '学号')}
-          name='student_id'
-          rules={[
-            {
-              required: true,
-              message: t('login.studentId.required', '学号不能为空'),
-            },
-            {
-              pattern: /^\d{10,14}$/,
-              message: t('login.studentId.invalid', '请输入10-14位数字的学号'),
-            },
-          ]}
-        >
-          <Input
-            placeholder={t('login.studentId.placeholder', '请输入学号')}
-            autoComplete='username'
-            maxLength={14}
-          />
-        </Form.Item>
 
-        <Form.Item
-          label={t('login.password.label', '密码')}
-          name='password'
-          rules={[
-            {
-              required: true,
-              message: t('login.password.required', '密码不能为空'),
-            },
-          ]}
-        >
-          <Input.Password
-            placeholder={t('login.password.placeholder', '请输入密码')}
-            autoComplete='current-password'
-          />
-        </Form.Item>
+      {/* ===== 邮箱 OTP 登录模式 ===== */}
+      {!isPasswordMode && (
+        <Form layout='vertical' disabled={loading}>
+          <Form.Item label={t('login.email.label', '邮箱')} required>
+            <Input
+              placeholder={t('login.email.placeholder', '请输入邮箱')}
+              value={emailValue}
+              onChange={e => setEmailValue(e.target.value)}
+              type='email'
+              autoComplete='email'
+            />
+          </Form.Item>
 
-        <Form.Item>
-          <Button type='primary' htmlType='submit' block loading={loading}>
-            {t('login.submit', '登录')}
-          </Button>
-        </Form.Item>
-      </Form>
+          {!otpSent && (
+            <Form.Item>
+              <Button
+                type='primary'
+                onClick={handleSendOtp}
+                block
+                loading={loading}
+                disabled={
+                  !emailValue || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)
+                }
+              >
+                {t('login.email.getOtp', '获取验证码')}
+              </Button>
+            </Form.Item>
+          )}
+
+          {otpSent && (
+            <>
+              <Form.Item label={t('login.otp.label', '验证码')} required>
+                <Input
+                  placeholder={t('login.otp.placeholder', '请输入验证码')}
+                  value={otpCode}
+                  onChange={e => setOtpCode(e.target.value)}
+                  maxLength={8}
+                  inputMode='numeric'
+                />
+              </Form.Item>
+
+              <Form.Item>
+                <Button
+                  type='primary'
+                  onClick={handleEmailLogin}
+                  block
+                  loading={loading}
+                  disabled={!/^\d{6,8}$/.test(otpCode)}
+                >
+                  {t('login.submit', '登录')}
+                </Button>
+              </Form.Item>
+
+              <Form.Item style={{ textAlign: 'center' }}>
+                <Button
+                  type='link'
+                  onClick={handleResendOtp}
+                  disabled={countdown > 0}
+                >
+                  {countdown > 0
+                    ? t('login.email.resendCountdown', '{seconds}秒后重发', {
+                        seconds: countdown,
+                      })
+                    : t('login.email.resend', '没有收到验证码？重发')}
+                </Button>
+              </Form.Item>
+            </>
+          )}
+        </Form>
+      )}
+
+      {/* ===== 模式切换链接 ===== */}
+      <div style={{ textAlign: 'right', marginTop: 8 }}>
+        <Button type='link' onClick={switchMode}>
+          {isPasswordMode
+            ? t('login.mode.switchToEmail', '邮箱登录')
+            : t('login.mode.switchToPassword', '密码登录')}
+        </Button>
+      </div>
     </AuthLayout>
   );
 }
