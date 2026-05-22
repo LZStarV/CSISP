@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "pnpm gen:types && tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
     "gen:types": "tsx scripts/gen-types.ts",
     "gen:types:local": "tsx scripts/gen-types.ts --env local",
     "format:types": "prettier --write src/types/type.ts"
