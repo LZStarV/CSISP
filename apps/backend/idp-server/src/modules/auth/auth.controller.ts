@@ -1,20 +1,17 @@
 import { ApiIdpController } from '@common/decorators/controller.decorator';
-import { IdpSessionGuard } from '@common/guards/idp-session.guard';
 import { RequestBodyPipe } from '@common/http/request-body.pipe';
-import { UseGuards } from '@nestjs/common';
-import { Body, Post, Req, Res } from '@nestjs/common';
-import type { Request as ExpressRequest, Response } from 'express';
+import { Body, Post } from '@nestjs/common';
 
 import { LoginInternalDto } from './dto/login-internal.dto';
-import { AuthLogoutDto } from './dto/logout.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
 import {
   RegistrationService,
   LoginService,
   OtpService,
-  LogoutService,
+  PasswordResetService,
 } from './service';
 
 @ApiIdpController('auth')
@@ -23,7 +20,7 @@ export class AuthController {
     private readonly registrationService: RegistrationService,
     private readonly loginService: LoginService,
     private readonly otpService: OtpService,
-    private readonly logoutService: LogoutService
+    private readonly passwordResetService: PasswordResetService
   ) {}
 
   @Post('login')
@@ -49,33 +46,14 @@ export class AuthController {
   }
 
   @Post('verify-otp')
-  async authVerifyOtp(
-    @Body(RequestBodyPipe) verifyOtpDto: VerifyOtpDto,
-    @Req() request: ExpressRequest,
-    @Res({ passthrough: true }) response: Response
-  ) {
-    return this.otpService.verifyOtpStepUp(verifyOtpDto, request, response);
+  async authVerifyOtp(@Body(RequestBodyPipe) verifyOtpDto: VerifyOtpDto) {
+    return this.otpService.verifyOtpStepUp(verifyOtpDto);
   }
 
   @Post('reset_password')
-  @UseGuards(IdpSessionGuard)
-  async authLogout(
-    @Body(RequestBodyPipe) authLogoutDto: AuthLogoutDto,
-    @Req() request: ExpressRequest,
-    @Res({ passthrough: true }) response: Response
+  async authResetPassword(
+    @Body(RequestBodyPipe) resetPasswordDto: ResetPasswordDto
   ) {
-    return this.logoutService.logout(authLogoutDto, request, response);
-  }
-
-  @Post('session')
-  @UseGuards(IdpSessionGuard)
-  async authSession(@Req() request: ExpressRequest) {
-    const uid = (request as any).idpUserId;
-    if (!uid) return { logged: false };
-    const user = await this.registrationService.findUserById(uid);
-    return {
-      logged: true,
-      student_id: user?.student_id ?? undefined,
-    };
+    return this.passwordResetService.resetPassword(resetPasswordDto);
   }
 }

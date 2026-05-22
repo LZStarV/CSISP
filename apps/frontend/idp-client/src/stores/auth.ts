@@ -16,14 +16,10 @@ interface AuthState {
   state: string | null;
   otpSent: boolean;
   otpCode: string;
-  supabaseSession: { access_token: string; refresh_token: string } | null;
   setTicket: (ticket: string | null) => void;
   setStateParam: (state: string | null) => void;
   setOtpSent: (sent: boolean) => void;
   setOtpCode: (code: string) => void;
-  setSupabaseSession: (
-    session: { access_token: string; refresh_token: string } | null
-  ) => void;
   clearFlowState: () => void;
   initFromStorage: () => Promise<void>;
 }
@@ -35,15 +31,11 @@ export const useAuthStore = create<AuthState>()(
       state: null,
       otpSent: false,
       otpCode: '',
-      supabaseSession: null,
 
       setTicket: (ticket: string | null) => set({ ticket }),
       setStateParam: (state: string | null) => set({ state }),
       setOtpSent: (sent: boolean) => set({ otpSent: sent }),
       setOtpCode: (code: string) => set({ otpCode: code }),
-      setSupabaseSession: (
-        session: { access_token: string; refresh_token: string } | null
-      ) => set({ supabaseSession: session }),
 
       clearFlowState: () =>
         set({
@@ -51,7 +43,6 @@ export const useAuthStore = create<AuthState>()(
           state: null,
           otpSent: false,
           otpCode: '',
-          supabaseSession: null,
         }),
 
       initFromStorage: async () => {
@@ -65,7 +56,6 @@ export const useAuthStore = create<AuthState>()(
         // 仅持久化需要跨刷新保留的状态
         ticket: state.ticket,
         state: state.state,
-        supabaseSession: state.supabaseSession,
       }),
     }
   )

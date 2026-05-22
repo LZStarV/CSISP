@@ -32,29 +32,45 @@ export function Login() {
   const {
     otpSent,
     otpCode,
-    supabaseSession,
     setTicket,
     setStateParam,
     setOtpCode,
-    setSupabaseSession,
     clearFlowState,
   } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
   const ticket = searchParams.get('ticket');
   const state = searchParams.get('state');
   const redirect = searchParams.get('redirect');
 
   useEffect(() => {
-    // 优先使用 URL 参数，其次使用 store
-    if (ticket) {
-      setTicket(ticket);
-    }
-    if (state) {
-      setStateParam(state);
-    }
+    if (ticket) setTicket(ticket);
+    if (state) setStateParam(state);
   }, [ticket, state, setTicket, setStateParam]);
+
+  useEffect(() => {
+    async function checkExistingSession() {
+      try {
+        const supabase = getSupabaseClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          if (redirect) {
+            try {
+              const decodedRedirect = decodeURIComponent(redirect);
+              if (isValidRedirectUrl(decodedRedirect)) {
+                navigate(decodedRedirect, { replace: true });
+                return;
+              }
+            } catch {}
+          }
+          navigate(ROUTE_FINISH, { replace: true });
+        }
+      } catch {}
+    }
+    checkExistingSession();
+  }, []);
 
   const handleVerifyOtp = async () => {
     setLoading(true);
@@ -69,14 +85,6 @@ export function Login() {
         tempToken,
       });
       if (res?.verified) {
-        // 如果有存储的 supabaseSession，设置到 Supabase Auth 中
-        if (supabaseSession) {
-          const supabase = getSupabaseClient();
-          await supabase.auth.setSession({
-            access_token: supabaseSession.access_token,
-            refresh_token: supabaseSession.refresh_token,
-          });
-        }
         clearFlowState();
         // 如果有 redirect 参数，跳转到 redirect 地址
         if (redirect) {
@@ -147,15 +155,12 @@ export function Login() {
         password: values.password,
       });
 
-      if ((res as any)?.supabaseSession) {
+      if (res?.supabaseSession) {
         const supabase = getSupabaseClient();
         await supabase.auth.setSession({
-          access_token: (res as any).supabaseSession.access_token,
-          refresh_token: (res as any).supabaseSession.refresh_token,
+          access_token: res.supabaseSession.access_token,
+          refresh_token: res.supabaseSession.refresh_token,
         });
-
-        // 同时保存到 store（用于恢复）
-        setSupabaseSession((res as any).supabaseSession);
       }
 
       clearFlowState();
@@ -166,11 +171,9 @@ export function Login() {
             navigate(decodedRedirect, { replace: true });
             return;
           }
-        } catch {
-          // 解码失败，跳转到首页
-        }
+        } catch {}
       }
-      message.success(t('login.success', '登录成功'));
+      navigate(ROUTE_FINISH, { replace: true });
     } catch (e) {
       setErrorMsg(
         e instanceof Error ? e.message : t('login.failed', '登录失败，请重试')

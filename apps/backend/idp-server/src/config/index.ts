@@ -24,10 +24,6 @@ export const config = {
       redisTtlMinutes: 60,
     },
   },
-  session: {
-    cookieDomain:
-      env.IDP_COOKIE_DOMAIN === '' ? undefined : env.IDP_COOKIE_DOMAIN,
-  },
   sms: {
     signName: env.SMS_SIGN_NAME || '速通互联验证码',
     templateCode: env.SMS_TEMPLATE_CODE || '100001',

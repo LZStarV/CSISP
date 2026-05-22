@@ -17,12 +17,6 @@ export type Next = {
   redirectTo?: string;
 };
 
-export type SessionResult = {
-  logged: boolean;
-  name?: string;
-  student_id?: string;
-};
-
 // OIDC 相关最小类型
 export enum OIDCScope {
   Openid = 0,

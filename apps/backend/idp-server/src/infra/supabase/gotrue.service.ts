@@ -1,6 +1,12 @@
 import { SupabaseDataAccess } from '@csisp/supabase-sdk';
 import { Inject, Injectable } from '@nestjs/common';
 
+export interface SupabaseSession {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+}
+
 @Injectable()
 export class GotrueService {
   constructor(
@@ -15,11 +21,7 @@ export class GotrueService {
   async signInWithPassword(params: {
     email: string;
     password: string;
-  }): Promise<{
-    access_token: string;
-    refresh_token: string;
-    expires_in: number;
-  }> {
+  }): Promise<SupabaseSession> {
     const client = this.supabaseDataAccess.service();
     const { data, error } = await client.auth.signInWithPassword({
       email: params.email,

@@ -15,7 +15,6 @@ export const idpServerEnvSchema = z.object({
   CSISP_SUPABASE_URL: envString(),
   SUPABASE_SERVICE_ROLE_KEY: envString(),
   CSISP_SUPABASE_ANON_KEY: envString(),
-  IDP_COOKIE_DOMAIN: envOptionalString(),
   SMS_SIGN_NAME: envOptionalString(),
   SMS_TEMPLATE_CODE: envOptionalString(),
   SMS_SCHEME_NAME: envOptionalString(),

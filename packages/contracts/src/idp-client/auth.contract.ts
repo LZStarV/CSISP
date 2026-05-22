@@ -15,6 +15,12 @@ import { IDP_CLIENT_AUTH_PATH_PREFIX } from '../constants/path-prefix';
 
 const c = initContract();
 
+export const supabaseSessionSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string(),
+  expires_in: z.number(),
+});
+
 export const registerBodySchema = z.object({
   email: z.string().email().min(5).max(256),
   password: z.string().min(1).max(512),
@@ -52,6 +58,7 @@ export const loginBodySchema = z.object({
 }) satisfies z.ZodType<LoginInternalDto>;
 
 export const loginResponseSchema = z.object({
+  supabaseSession: supabaseSessionSchema.optional(),
   stepUp: z.string().optional(),
   nextSteps: z.array(z.string()).optional(),
 });
@@ -71,6 +78,7 @@ export const verifyOtpBodySchema = z.object({
 
 export const verifyOtpResponseSchema = z.object({
   verified: z.boolean(),
+  supabaseSession: supabaseSessionSchema.optional(),
 });
 
 export const createExchangeCodeBodySchema = z.object({

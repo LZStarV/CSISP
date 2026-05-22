@@ -1,87 +1,73 @@
-import { Space, Typography, Button, Modal } from 'antd';
+import { Button, Result, Spin, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
-import { commonAuthApi } from '@/api/common/auth';
-import { useSessionStore } from '@/stores/session';
+import { config } from '@/config';
+import { ROUTE_LOGIN } from '@/routes/router';
+
+const REDIRECT_DELAY_MS = 2000;
 
 export function Finish() {
   const { t } = useTranslation();
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const { userInfo, setSession, clearSession } = useSessionStore();
+  const [countdown, setCountdown] = useState(REDIRECT_DELAY_MS / 1000);
+  const [targetUrl, setTargetUrl] = useState<string | null>(null);
 
-  const [userLabel, setUserLabel] = useState<string>(
-    t('session.loggedIn', '已登录')
-  );
-
-  // 优先使用 store 中的用户信息
   useEffect(() => {
-    if (userInfo) {
-      const n = userInfo.name;
-      const sid = userInfo.student_id;
-      if (n && sid) setUserLabel(`${n}（${sid}）`);
-      else if (sid) setUserLabel(`（${sid}）`);
-      else if (n) setUserLabel(n);
+    const url = config.defaultRedirectUrl;
+    if (!url) {
+      return;
     }
-  }, [userInfo]);
+    setTargetUrl(url);
 
-  // 如果 store 中没有用户信息，才去请求
-  useEffect(() => {
-    if (!userInfo) {
-      (async () => {
-        try {
-          const res = await commonAuthApi.session();
-          const n = (res as any)?.name as string | undefined;
-          const sid = (res as any)?.student_id as string | undefined;
-          if (res?.logged) {
-            setSession(true, { name: n, student_id: sid });
-          }
-          if (n && sid) setUserLabel(`${n}（${sid}）`);
-          else if (sid) setUserLabel(`（${sid}）`);
-          else if (n) setUserLabel(n);
-        } catch {}
-      })();
-    }
-  }, [userInfo, setSession]);
-
-  const handleLogout = async () => {
-    Modal.confirm({
-      title: t('logout.title', '确认退出登录？'),
-      onOk: async () => {
-        try {
-          await commonAuthApi.logout();
-          sessionStorage.removeItem('idp_studentId');
-          clearSession();
-          navigate('/login');
-        } catch (error) {
-          setErrorMsg(
-            error instanceof Error
-              ? error.message
-              : t('logout.failed', '退出失败，请重试')
-          );
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          window.location.href = url;
+          return 0;
         }
-      },
-    });
-  };
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!targetUrl) {
+    return (
+      <Result
+        status='info'
+        title={t('finish.loginSuccess', '登录成功')}
+        subTitle={t('finish.noRedirect', '未配置默认跳转应用')}
+        extra={
+          <Button type='primary' href={ROUTE_LOGIN}>
+            {t('finish.backToLogin', '返回登录')}
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
-    <div style={{ maxWidth: 720, margin: '32px auto', textAlign: 'center' }}>
-      <Space direction='vertical' style={{ width: '100%' }} size='middle'>
-        <Space>
-          <Typography.Text strong>{userLabel}</Typography.Text>
-          <Button type='link' onClick={handleLogout}>
-            {t('logout.submit', '退出登录')}
-          </Button>
-        </Space>
-        <Typography.Title level={3}>
-          {t('session.loggedInUnified', '已登录到统一身份认证')}
-        </Typography.Title>
-        {errorMsg && (
-          <Typography.Text type='danger'>{errorMsg}</Typography.Text>
-        )}
-      </Space>
-    </div>
+    <Result
+      icon={<Spin size='large' />}
+      title={t('finish.loginSuccess', '登录成功')}
+      subTitle={
+        <Typography.Text>
+          {t('finish.redirecting', '正在前往目标应用...')}
+          <Typography.Text type='secondary' style={{ marginLeft: 8 }}>
+            ({countdown}s)
+          </Typography.Text>
+        </Typography.Text>
+      }
+      extra={[
+        <Button key='go' type='primary' href={targetUrl}>
+          {t('finish.goNow', '立即前往')}
+        </Button>,
+        <Button key='cancel' href={ROUTE_LOGIN}>
+          {t('finish.cancel', '取消')}
+        </Button>,
+      ]}
+    />
   );
 }

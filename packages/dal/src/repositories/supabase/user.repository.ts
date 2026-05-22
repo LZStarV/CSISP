@@ -2,14 +2,9 @@ import { SupabaseDataAccess } from '@csisp/supabase-sdk';
 import { Injectable } from '@nestjs/common';
 
 // eslint-disable-next-line no-restricted-imports
-import type {
-  UserRow,
-  UserInsert,
-  UserUpdate,
-  MfaSettingsRow,
-} from '../../types';
+import type { UserRow, UserInsert, UserUpdate } from '../../types';
 import type { IQueryableRepository } from '../base';
-import type { UserWithMfa, UserRecoveryInfo } from '../types';
+import type { UserRecoveryInfo } from '../types';
 
 import { BaseSupabaseRepository } from './base.supabase.repository';
 
@@ -24,7 +19,6 @@ export interface IUserRepository extends IQueryableRepository<
 > {
   findByStudentId(studentId: string): Promise<UserRow | null>;
   findByAuthUserId(authUserId: string): Promise<UserRow | null>;
-  findWithMfaSettings(id: number): Promise<UserWithMfa | null>;
   findRecoveryInfo(email: string): Promise<UserRecoveryInfo | null>;
   resetPassword(studentId: string, newHash: string): Promise<void>;
 }
@@ -50,34 +44,6 @@ export class SupabaseUserRepository
    */
   async findByAuthUserId(authUserId: string): Promise<UserRow | null> {
     return this.findOne({ auth_user_id: authUserId });
-  }
-
-  /**
-   * 查找用户及其 MFA 设置 - 使用嵌套查询优化 N+1 问题
-   */
-  async findWithMfaSettings(id: number): Promise<UserWithMfa | null> {
-    const { data } = await this.sda
-      .service()
-      .from('user')
-      .select('*, mfa:mfa_settings(*)')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (!data) return null;
-
-    const user = data as UserRow & { mfa?: MfaSettingsRow[] };
-
-    return {
-      ...user,
-      mfaSettings: user.mfa?.[0]
-        ? {
-            sms_enabled: user.mfa[0].sms_enabled,
-            email_enabled: user.mfa[0].email_enabled,
-            otp_enabled: user.mfa[0].otp_enabled,
-            fido2_enabled: user.mfa[0].fido2_enabled,
-          }
-        : undefined,
-    };
   }
 
   /**

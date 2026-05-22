@@ -24,9 +24,7 @@ export function setupAuthGuards(router: Router) {
     // 检查认证状态
     const isAuthenticated = await checkAuthStatus();
 
-    if (isAuthenticated) {
-      return;
-    } else {
+    if (!isAuthenticated) {
       // 保存用户要访问的路径
       await setRedirectAfterLogin(to.fullPath);
       // 重定向到 OAuth 登录

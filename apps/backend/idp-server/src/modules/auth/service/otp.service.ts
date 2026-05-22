@@ -2,16 +2,13 @@ import {
   AuthApiException,
   AuthErrorCode,
 } from '@common/errors/auth-error-codes';
-import { config } from '@config';
 import { SupabaseUserRepository } from '@csisp/dal';
 import type { RedisKV } from '@csisp/redis-sdk';
 import { REDIS_KV } from '@csisp/redis-sdk/nest';
 import { getIdpBaseLogger } from '@infra/logger';
-import { GotrueService } from '@infra/supabase';
+import { GotrueService, SupabaseSession } from '@infra/supabase';
 import { Injectable } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
-import { SessionIssuer, SessionMode, SameSite } from '@utils/session.issuer';
-import type { Request, Response } from 'express';
 
 import { VerifyOtpDto } from '../dto/verify-otp.dto';
 
@@ -26,7 +23,6 @@ export class OtpService {
   async sendOtpStepUp(dto: { tempToken: string }): Promise<{ ok: true }> {
     const logger = getIdpBaseLogger().child({ module: 'auth' });
 
-    // 从 tempToken 获取 email
     const tempData = await this.kv.get<{ email: string }>(
       `temp:${dto.tempToken}`
     );
@@ -50,16 +46,11 @@ export class OtpService {
   }
 
   async verifyOtpStepUp(
-    dto: VerifyOtpDto,
-    req: Request,
-    res: Response
-  ): Promise<{ verified: true; supabaseSession?: any }> {
-    const logger = getIdpBaseLogger().child({ module: 'auth' });
-
-    // 从 tempToken 获取数据
+    dto: VerifyOtpDto
+  ): Promise<{ verified: true; supabaseSession?: SupabaseSession }> {
     const tempData = await this.kv.get<{
       email: string;
-      supabaseSession: any;
+      supabaseSession: SupabaseSession;
     }>(`temp:${dto.tempToken}`);
 
     if (!tempData || !tempData.email) {
@@ -76,43 +67,6 @@ export class OtpService {
         type: 'email',
       });
 
-      // 先通过 email 获取 auth user ID
-      const authUserId = await this.gotrue.getAuthIdByEmail(tempData.email);
-      let user = null;
-      if (authUserId) {
-        user = await this.userRepository.findByAuthUserId(authUserId);
-      }
-
-      if (user && user.id) {
-        const sessionIssuer = new SessionIssuer(
-          {
-            ttlShort: 300,
-            ttlLong: 3600,
-            redisPrefix: 'idp:sess:',
-            cookie: {
-              name: 'idp_session',
-              httpOnly: true,
-              sameSite: SameSite.Lax,
-              secure: config.runtime.isProduction,
-              domain: config.session.cookieDomain,
-              path: '/',
-            },
-          },
-          this.kv
-        );
-        await sessionIssuer.issue(res, user.id, SessionMode.Long);
-        logger.info(
-          {
-            event: 'create_session',
-            result: 'success',
-            userId: user.id,
-            email: tempData.email,
-          },
-          'auth create session success'
-        );
-      }
-
-      // 删除临时凭证（一次性使用）
       await this.kv.del(`temp:${dto.tempToken}`);
 
       return {
