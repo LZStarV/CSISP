@@ -91,8 +91,11 @@ export function OAuthConsent() {
           return;
         }
 
-        if ('redirect_to' in data && typeof data.redirect_to === 'string') {
-          window.location.href = data.redirect_to;
+        if (
+          typeof (data as Record<string, unknown>).redirect_url === 'string'
+        ) {
+          window.location.href = (data as Record<string, unknown>)
+            .redirect_url as string;
           return;
         }
 
@@ -138,7 +141,7 @@ export function OAuthConsent() {
         await supabase.auth.signOut({ scope: 'local' });
       } catch {}
 
-      window.location.href = (data as any).redirect_to;
+      window.location.href = (data as any).redirect_url;
     } catch (e) {
       setErrorMsg(
         e instanceof Error
@@ -167,12 +170,10 @@ export function OAuthConsent() {
         setProcessing(false);
         return;
       }
-      window.location.href = (data as any).redirect_to;
+      window.location.href = (data as any).redirect_url;
     } catch (e) {
       setErrorMsg(
-        e instanceof Error
-          ? e.message
-          : t('oauth.approveFailed', '拒绝授权失败，请重试')
+        e instanceof Error ? e.message : t('oauth.cancelFailed', '取消授权失败')
       );
       setProcessing(false);
     }
