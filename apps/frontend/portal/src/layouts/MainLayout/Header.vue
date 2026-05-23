@@ -2,8 +2,9 @@
   <div class="header-content">
     <div class="logo">{{ t('layout.header.title', '论坛系统') }}</div>
     <div class="user-info">
-      <span>{{ userStore.userProfile?.display_name }}</span>
+      <ThemeSwitcher />
       <LanguageSwitcher />
+      <span>{{ userStore.userProfile?.display_name }}</span>
     </div>
   </div>
 </template>
@@ -12,6 +13,7 @@
 import { useI18n } from 'vue-i18n';
 
 import LanguageSwitcher from '@/components/LanguageSwitcher/index.vue';
+import ThemeSwitcher from '@/components/ThemeSwitcher/index.vue';
 import { useUserStore } from '@/stores/user';
 
 const { t } = useI18n();
@@ -24,6 +26,7 @@ const userStore = useUserStore();
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
+  height: 64px;
 }
 
 .logo {
@@ -32,6 +35,9 @@ const userStore = useUserStore();
 }
 
 .user-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   font-size: 14px;
 }
 </style>

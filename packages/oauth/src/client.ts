@@ -21,12 +21,10 @@ export function initOAuthClient(config?: OAuthConfig): SupabaseClient {
   return client;
 }
 
-// 获取 OAuth 客户端
+// 获取 OAuth 客户端（若未初始化则自动使用默认配置创建）
 export function getOAuthClient(): SupabaseClient {
   if (!client) {
-    throw new Error(
-      'OAuth client not initialized. Call initOAuthClient() first.'
-    );
+    client = initOAuthClient();
   }
   return client;
 }

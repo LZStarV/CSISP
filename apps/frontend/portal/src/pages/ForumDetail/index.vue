@@ -146,7 +146,6 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .forum-detail-page {
-  background: white;
   padding: 24px;
   border-radius: 4px;
 }

@@ -3,6 +3,8 @@
   "announcement.fetchFailed": "Failed to fetch announcement list",
   "announcement.publishTime": "Published",
   "announcement.title": "Announcement List",
+  "announcement.empty": "No data yet",
+  "forum.empty": "No data yet",
   "common.back": "Back",
   "common.cancel": "Cancel",
   "common.confirm": "Confirm",

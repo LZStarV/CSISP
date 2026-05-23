@@ -4,9 +4,16 @@
     <n-spin :show="loading">
       <n-list class="announcement-list" hoverable clickable>
         <template #default>
-          <n-list-item v-for="item in announcements" :key="item.id">
-            <AnnouncementCard :announcement="item" />
-          </n-list-item>
+          <n-empty
+            v-if="announcements.length === 0 && !loading"
+            :description="t('announcement.empty', '暂无数据')"
+            class="empty-state"
+          />
+          <template v-else>
+            <n-list-item v-for="item in announcements" :key="item.id">
+              <AnnouncementCard :announcement="item" />
+            </n-list-item>
+          </template>
         </template>
         <template #footer>
           <n-pagination
@@ -80,12 +87,15 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .announcement-page {
-  background: white;
   padding: 24px;
   border-radius: 4px;
 }
 
 .announcement-list {
   margin-top: 16px;
+}
+
+.empty-state {
+  padding: 48px 0;
 }
 </style>
