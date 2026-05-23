@@ -17,9 +17,9 @@
     "dev:bff": "infisical run -- turbo run dev --filter=@csisp/bff",
     "stag:bff": "infisical run --env=staging -- turbo run dev --filter=@csisp/bff",
     "dev:idp:client": "infisical run -- turbo run dev --filter=@csisp/idp-client",
-    "dev:admin": "infisical run -- turbo run dev --filter=@csisp/admin",
-    "stag:portal": "infisical run --env=staging -- turbo run dev --filter=@csisp/portal",
-    "dev:backoffice": "infisical run -- turbo run dev --filter=@csisp/backoffice",
+    "admin": "infisical run --env=prod -- turbo run dev --filter=@csisp/admin",
+    "portal": "infisical run --env=prod -- turbo run dev --filter=@csisp/portal",
+    "backoffice": "infisical run --env=prod -- turbo run dev --filter=@csisp/backoffice",
     "build": "turbo build"
   },
   "packageManager": "pnpm@10.33.0+sha256.bfcc1bcbad279b13a516c446a75b3c58b6904b45d57a1951411015e50b751a80",

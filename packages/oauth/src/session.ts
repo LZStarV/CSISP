@@ -1,3 +1,5 @@
+import { User } from '@supabase/supabase-js';
+
 import { getOAuthClient } from './client';
 
 /**
@@ -18,7 +20,7 @@ export async function checkAuthStatus(): Promise<boolean> {
 /**
  * 获取当前认证用户
  */
-export async function getCurrentUser() {
+export async function getCurrentUser(): Promise<User | null> {
   const supabase = getOAuthClient();
   const { data } = await supabase.auth.getUser();
   return data.user ?? null;

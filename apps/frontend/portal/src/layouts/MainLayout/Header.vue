@@ -2,7 +2,7 @@
   <div class="header-content">
     <div class="logo">{{ t('layout.header.title', '论坛系统') }}</div>
     <div class="user-info">
-      <span>{{ t('layout.header.user', '测试用户') }}</span>
+      <span>{{ userStore.userProfile?.display_name }}</span>
       <LanguageSwitcher />
     </div>
   </div>
@@ -12,8 +12,10 @@
 import { useI18n } from 'vue-i18n';
 
 import LanguageSwitcher from '@/components/LanguageSwitcher/index.vue';
+import { useUserStore } from '@/stores/user';
 
 const { t } = useI18n();
+const userStore = useUserStore();
 </script>
 
 <style lang="scss" scoped>
