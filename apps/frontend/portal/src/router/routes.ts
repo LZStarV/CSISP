@@ -38,6 +38,12 @@ export const routes: RouteRecordRaw[] = [
     redirect: '/Announcement',
     children: [...pageRoutes],
   },
+  // OAuth 回调路由（独立路由，不使用 MainLayout）
+  {
+    path: '/callback',
+    name: 'Callback',
+    component: () => import('@/pages/Callback/index.vue'),
+  },
   // 404 路由
   {
     path: '/:pathMatch(.*)*',

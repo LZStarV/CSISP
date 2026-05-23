@@ -1,0 +1,26 @@
+{
+  "name": "@csisp/oauth",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "format": "pnpm exec eslint . --fix && pnpm exec prettier --write ."
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.1",
+    "localforage": "catalog:frontend",
+    "zod": "catalog:frontend"
+  }
+}

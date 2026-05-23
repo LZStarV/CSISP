@@ -3,9 +3,9 @@ import { z } from 'zod';
 
 export const backendIntegratedEnvSchema = z.object({
   DATABASE_URL: envString(),
-  SUPABASE_URL: envString(),
+  CSISP_SUPABASE_URL: envString(),
   SUPABASE_SERVICE_ROLE_KEY: envString(),
-  SUPABASE_ANON_KEY: envString(),
+  CSISP_SUPABASE_ANON_KEY: envString(),
   MONGODB_URI: envString(),
   REDIS_NAMESPACE: envString(),
   UPSTASH_REDIS_REST_URL: envOptionalString(),

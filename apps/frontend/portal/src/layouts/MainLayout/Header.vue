@@ -4,7 +4,7 @@
     <div class="user-info">
       <ThemeSwitcher />
       <LanguageSwitcher />
-      <span>{{ t('layout.header.user', '测试用户') }}</span>
+      <span>{{ userStore.userProfile?.display_name }}</span>
     </div>
   </div>
 </template>
@@ -14,8 +14,10 @@ import { useI18n } from 'vue-i18n';
 
 import LanguageSwitcher from '@/components/LanguageSwitcher/index.vue';
 import ThemeSwitcher from '@/components/ThemeSwitcher/index.vue';
+import { useUserStore } from '@/stores/user';
 
 const { t } = useI18n();
+const userStore = useUserStore();
 </script>
 
 <style lang="scss" scoped>

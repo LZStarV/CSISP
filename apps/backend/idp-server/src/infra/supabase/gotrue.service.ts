@@ -1,6 +1,12 @@
 import { SupabaseDataAccess } from '@csisp/supabase-sdk';
 import { Inject, Injectable } from '@nestjs/common';
 
+export interface SupabaseSession {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+}
+
 @Injectable()
 export class GotrueService {
   constructor(
@@ -15,15 +21,20 @@ export class GotrueService {
   async signInWithPassword(params: {
     email: string;
     password: string;
-  }): Promise<void> {
+  }): Promise<SupabaseSession> {
     const client = this.supabaseDataAccess.service();
-    const { error } = await client.auth.signInWithPassword({
+    const { data, error } = await client.auth.signInWithPassword({
       email: params.email,
       password: params.password,
     });
     if (error) {
       throw error;
     }
+    return {
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_in: data.session.expires_in,
+    };
   }
 
   // 登录
@@ -40,17 +51,14 @@ export class GotrueService {
     }
   }
 
-  // 验证 OTP
-  // @param params 验证 OTP 参数
-  // @returns 验证 OTP 结果
-  // @throws 验证 OTP 失败时抛出异常
+  // 验证 OTP，type 为 'email' 时返回 Supabase session，signup 时返回 null
   async verifyOtp(params: {
     email: string;
     token: string;
     type: 'email' | 'signup';
-  }): Promise<void> {
+  }): Promise<SupabaseSession | null> {
     const client = this.supabaseDataAccess.service();
-    const { error } = await client.auth.verifyOtp({
+    const { data, error } = await client.auth.verifyOtp({
       email: params.email,
       token: params.token,
       type: params.type,
@@ -58,6 +66,14 @@ export class GotrueService {
     if (error) {
       throw error;
     }
+    if (data.session) {
+      return {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_in: data.session.expires_in,
+      };
+    }
+    return null;
   }
 
   // 注册
@@ -67,7 +83,11 @@ export class GotrueService {
   async signUp(params: {
     email: string;
     password: string;
-    data?: Record<string, any>;
+    data: {
+      student_id: string;
+      display_name?: string;
+      [key: string]: any;
+    };
     emailRedirectTo?: string;
   }): Promise<void> {
     const client = this.supabaseDataAccess.service();
@@ -96,6 +116,61 @@ export class GotrueService {
     });
     if (error) {
       throw error;
+    }
+  }
+
+  // 发送登录 OTP
+  // @param params 发送登录 OTP 参数
+  // @returns 发送登录 OTP 结果
+  // @throws 发送登录 OTP 失败时抛出异常
+  async sendLoginOtp(params: { email: string }): Promise<void> {
+    const client = this.supabaseDataAccess.service();
+    const { error } = await client.auth.signInWithOtp({
+      email: params.email,
+    });
+    if (error) {
+      throw error;
+    }
+  }
+
+  // 通过 auth user ID 获取用户信息
+  // @param authUserId auth user ID
+  // @returns 用户信息（包含 email）
+  async getUserByAuthId(
+    authUserId: string
+  ): Promise<{ id: string; email: string } | null> {
+    try {
+      const client = this.supabaseDataAccess.service();
+      const { data, error } = await client.auth.admin.getUserById(authUserId);
+      if (error || !data.user) {
+        return null;
+      }
+      return {
+        id: data.user.id,
+        email: data.user.email || '',
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // 通过 email 获取 auth user ID
+  // @param email 邮箱
+  // @returns auth user ID
+  async getAuthIdByEmail(email: string): Promise<string | null> {
+    try {
+      const client = this.supabaseDataAccess.service();
+      const { data, error } = await client.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      if (error || !data.users) {
+        return null;
+      }
+      const user = data.users.find(u => u.email === email);
+      return user?.id || null;
+    } catch {
+      return null;
     }
   }
 }

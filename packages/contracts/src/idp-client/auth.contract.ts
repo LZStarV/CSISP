@@ -1,13 +1,8 @@
 import type {
   AuthEnterRequest,
-  AuthForgotChallengeRequest,
-  AuthForgotInitRequest,
-  AuthForgotVerifyRequest,
-  AuthMultifactorRequest,
-  CreateExchangeCodeDto,
+  AuthSendOtpRequest,
   LoginInternalDto,
   RegisterDto,
-  ResendSignupOtpDto,
   ResetPasswordDto,
   VerifyOtpDto,
   VerifySignupOtpDto,
@@ -21,33 +16,10 @@ import { IDP_CLIENT_AUTH_PATH_PREFIX } from '../constants/path-prefix';
 
 const c = initContract();
 
-const mfaTypeSchema = z.union([
-  z.literal(0),
-  z.literal(1),
-  z.literal(2),
-  z.literal(3),
-]);
-const authNextStepSchema = z.number().int().min(0).max(3);
-const recoveryUnavailableReasonSchema = z.number().int().min(0).max(4);
-
-const mfaMethodSchema = z.object({
-  type: mfaTypeSchema,
-  enabled: z.boolean(),
-  extra: z.string().nullable().optional(),
-});
-
-const nextSchema = z.object({
-  nextSteps: z.array(authNextStepSchema),
-  sms: z
-    .object({
-      code: z.string(),
-      success: z.boolean(),
-      message: z.string().optional(),
-      request_id: z.string().optional(),
-      access_denied_detail: z.string().optional(),
-    })
-    .optional(),
-  redirectTo: z.string().optional(),
+export const supabaseSessionSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string(),
+  expires_in: z.number(),
 });
 
 export const registerBodySchema = z.object({
@@ -75,39 +47,49 @@ export const verifySignupOtpResponseSchema = z.object({
 
 export const resendSignupOtpBodySchema = z.object({
   email: z.string().email(),
-}) satisfies z.ZodType<ResendSignupOtpDto>;
+});
 
 export const resendSignupOtpResponseSchema = z.object({
   ok: z.boolean(),
 });
 
 export const loginBodySchema = z.object({
-  email: z.string().email().min(5).max(256),
+  student_id: z.string().regex(/^\d{10,14}$/),
   password: z.string().min(1).max(512),
 }) satisfies z.ZodType<LoginInternalDto>;
 
 export const loginResponseSchema = z.object({
-  stepUp: z.string().optional(),
-  nextSteps: z.array(z.string()).optional(),
+  supabaseSession: supabaseSessionSchema,
 });
 
+export const sendOtpBodySchema = z.object({
+  email: z.string().email().min(5).max(256),
+}) satisfies z.ZodType<AuthSendOtpRequest>;
+
 export const sendOtpResponseSchema = z.object({
+  ok: z.boolean(),
+  tempToken: z.string(),
+});
+
+export const resendLoginOtpResponseSchema = z.object({
   ok: z.boolean(),
 });
 
 export const verifyOtpBodySchema = z.object({
   token: z.string().min(1).max(512),
+  tempToken: z.string().min(1).max(512),
 }) satisfies z.ZodType<VerifyOtpDto>;
 
 export const verifyOtpResponseSchema = z.object({
   verified: z.boolean(),
+  supabaseSession: supabaseSessionSchema.optional(),
 });
 
 export const createExchangeCodeBodySchema = z.object({
   app_id: z.string().min(1).max(128),
   redirect_uri: z.string().min(1).max(512),
   state: z.string().min(1).max(512).optional(),
-}) satisfies z.ZodType<CreateExchangeCodeDto>;
+});
 
 export const createExchangeCodeResponseSchema = z.object({
   code: z.string(),
@@ -124,51 +106,23 @@ export const resetPasswordBodySchema = z.object({
     .optional(),
 }) satisfies z.ZodType<ResetPasswordDto>;
 
-export const multifactorBodySchema = z.object({
-  type: mfaTypeSchema,
-  codeOrAssertion: z.string().min(1).max(512),
-}) satisfies z.ZodType<AuthMultifactorRequest>;
-
 export const enterBodySchema = z.object({
   ticket: z.string().min(1).max(128),
   state: z.string().min(1).max(512).optional(),
 }) satisfies z.ZodType<AuthEnterRequest>;
 
-export const mfaMethodsResponseSchema = z.object({
-  multifactor: z.array(mfaMethodSchema),
-});
-
-export const forgotInitBodySchema = z.object({
-  email: z.string().email(),
-}) satisfies z.ZodType<AuthForgotInitRequest>;
-
-export const forgotInitResponseSchema = z.object({
-  student_id: z.string(),
-  name: z.string().nullable().optional(),
-  methods: z.array(
-    z.object({
-      type: mfaTypeSchema,
-      enabled: z.boolean(),
-      extra: z.string().nullable().optional(),
-      reason: recoveryUnavailableReasonSchema.nullable().optional(),
+const nextSchema = z.object({
+  nextSteps: z.array(z.number().int().min(0).max(3)),
+  sms: z
+    .object({
+      code: z.string(),
+      success: z.boolean(),
+      message: z.string().optional(),
+      request_id: z.string().optional(),
+      access_denied_detail: z.string().optional(),
     })
-  ),
-});
-
-export const forgotChallengeBodySchema = z.object({
-  type: z.string().min(1).max(128),
-  studentId: z.string().min(1).max(128),
-}) satisfies z.ZodType<AuthForgotChallengeRequest>;
-
-export const forgotVerifyBodySchema = z.object({
-  type: z.string().min(1).max(128),
-  studentId: z.string().min(1).max(128),
-  code: z.string().min(1).max(128),
-}) satisfies z.ZodType<AuthForgotVerifyRequest>;
-
-export const forgotVerifyResponseSchema = z.object({
-  ok: z.boolean(),
-  reset_token: z.string().optional(),
+    .optional(),
+  redirectTo: z.string().optional(),
 });
 
 const idpClientAuthRoutes = {
@@ -203,9 +157,16 @@ const idpClientAuthRoutes = {
   sendOtp: {
     method: HTTP_METHOD.POST,
     path: '/send-otp',
-    body: z.object({}).optional(),
+    body: sendOtpBodySchema,
     responses: { 200: sendOtpResponseSchema },
-    summary: '发送 OTP',
+    summary: '发送邮箱登录 OTP',
+  },
+  resendLoginOtp: {
+    method: HTTP_METHOD.POST,
+    path: '/resendLoginOtp',
+    body: z.object({}).optional(),
+    responses: { 200: resendLoginOtpResponseSchema },
+    summary: '重发登录 OTP',
   },
   verifyOtp: {
     method: HTTP_METHOD.POST,
@@ -221,13 +182,6 @@ const idpClientAuthRoutes = {
     responses: { 200: createExchangeCodeResponseSchema },
     summary: '创建交换码',
   },
-  multifactor: {
-    method: HTTP_METHOD.POST,
-    path: '/multifactor',
-    body: multifactorBodySchema,
-    responses: { 200: nextSchema },
-    summary: '多因子认证',
-  },
   resetPassword: {
     method: HTTP_METHOD.POST,
     path: '/reset_password',
@@ -241,34 +195,6 @@ const idpClientAuthRoutes = {
     body: enterBodySchema,
     responses: { 200: nextSchema },
     summary: '进入流程',
-  },
-  mfaMethods: {
-    method: HTTP_METHOD.POST,
-    path: '/mfa_methods',
-    body: z.object({}).optional(),
-    responses: { 200: mfaMethodsResponseSchema },
-    summary: '获取 MFA 方法',
-  },
-  forgotInit: {
-    method: HTTP_METHOD.POST,
-    path: '/forgot_init',
-    body: forgotInitBodySchema,
-    responses: { 200: forgotInitResponseSchema },
-    summary: '忘记密码初始化',
-  },
-  forgotChallenge: {
-    method: HTTP_METHOD.POST,
-    path: '/forgot_challenge',
-    body: forgotChallengeBodySchema,
-    responses: { 200: nextSchema },
-    summary: '忘记密码挑战',
-  },
-  forgotVerify: {
-    method: HTTP_METHOD.POST,
-    path: '/forgot_verify',
-    body: forgotVerifyBodySchema,
-    responses: { 200: forgotVerifyResponseSchema },
-    summary: '忘记密码验证',
   },
 } as const satisfies Parameters<typeof c.router>[0];
 

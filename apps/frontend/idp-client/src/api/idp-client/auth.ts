@@ -9,20 +9,12 @@ import {
   type VerifySignupOtpResult,
   type ResendSignupOtpParams,
   type ResendSignupOtpResult,
-  type SendOtpResult,
   type VerifyOtpParams,
   type VerifyOtpResult,
-  type CreateExchangeCodeParams,
-  type CreateExchangeCodeResult,
-  type MultifactorParams,
   type EnterParams,
   type ResetPasswordParams,
-  type MfaMethodsResult,
-  type ForgotInitParams,
-  type ForgotInitResult,
-  type ForgotChallengeParams,
-  type ForgotVerifyParams,
-  type ForgotVerifyResult,
+  type SendOtpParams,
+  type SendOtpResult,
 } from '@csisp/contracts';
 
 import { createDomainCall } from '../caller';
@@ -53,25 +45,12 @@ export const idpClientAuthApi = {
     return await authCall<ResendSignupOtpResult>('resendSignupOtp', params);
   },
 
-  async sendOtp(): Promise<SendOtpResult> {
-    return await authCall<SendOtpResult>('send-otp', {});
-  },
-
   async verifyOtp(params: VerifyOtpParams): Promise<VerifyOtpResult> {
     return await authCall<VerifyOtpResult>('verify-otp', params);
   },
 
-  async createExchangeCode(
-    params: CreateExchangeCodeParams
-  ): Promise<CreateExchangeCodeResult> {
-    return await authCall<CreateExchangeCodeResult>(
-      'createExchangeCode',
-      params
-    );
-  },
-
-  async multifactor(params: MultifactorParams) {
-    return await authCall('multifactor', params);
+  async sendOtp(params: SendOtpParams): Promise<SendOtpResult> {
+    return await authCall<SendOtpResult>('send-otp', params);
   },
 
   async resetPassword(params: ResetPasswordParams) {
@@ -83,21 +62,5 @@ export const idpClientAuthApi = {
       redirectTo?: string;
       nextSteps?: string[];
     };
-  },
-
-  async mfaMethods(): Promise<MfaMethodsResult> {
-    return await authCall<MfaMethodsResult>('mfa_methods', {});
-  },
-
-  async forgotInit(params: ForgotInitParams): Promise<ForgotInitResult> {
-    return await authCall<ForgotInitResult>('forgot_init', params);
-  },
-
-  async forgotChallenge(params: ForgotChallengeParams) {
-    return await authCall('forgot_challenge', params);
-  },
-
-  async forgotVerify(params: ForgotVerifyParams): Promise<ForgotVerifyResult> {
-    return await authCall<ForgotVerifyResult>('forgot_verify', params);
   },
 };

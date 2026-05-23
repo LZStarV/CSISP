@@ -13,9 +13,9 @@ export const config = {
     baseUrl: normalizeBaseUrl(env.CSISP_IDP_RPC_URL),
   },
   supabase: {
-    url: env.SUPABASE_URL,
+    url: env.CSISP_SUPABASE_URL,
     serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
-    anonKey: env.SUPABASE_ANON_KEY,
+    anonKey: env.CSISP_SUPABASE_ANON_KEY,
   },
   auth: {
     jwtSecret: env.JWT_SECRET,
@@ -23,10 +23,6 @@ export const config = {
     register: {
       redisTtlMinutes: 60,
     },
-  },
-  session: {
-    cookieDomain:
-      env.IDP_COOKIE_DOMAIN === '' ? undefined : env.IDP_COOKIE_DOMAIN,
   },
   sms: {
     signName: env.SMS_SIGN_NAME || '速通互联验证码',

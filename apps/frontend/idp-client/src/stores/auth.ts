@@ -1,4 +1,3 @@
-import type { GetAuthorizationRequestResult } from '@csisp/contracts';
 import localforage from 'localforage';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -15,12 +14,12 @@ const storage = localforage.createInstance({
 interface AuthState {
   ticket: string | null;
   state: string | null;
-  authInfo: GetAuthorizationRequestResult | null;
+  loginMode: 'password' | 'email';
   otpSent: boolean;
   otpCode: string;
   setTicket: (ticket: string | null) => void;
   setStateParam: (state: string | null) => void;
-  setAuthInfo: (authInfo: GetAuthorizationRequestResult | null) => void;
+  setLoginMode: (mode: 'password' | 'email') => void;
   setOtpSent: (sent: boolean) => void;
   setOtpCode: (code: string) => void;
   clearFlowState: () => void;
@@ -32,14 +31,13 @@ export const useAuthStore = create<AuthState>()(
     set => ({
       ticket: null,
       state: null,
-      authInfo: null,
+      loginMode: 'password',
       otpSent: false,
       otpCode: '',
 
       setTicket: (ticket: string | null) => set({ ticket }),
       setStateParam: (state: string | null) => set({ state }),
-      setAuthInfo: (authInfo: GetAuthorizationRequestResult | null) =>
-        set({ authInfo }),
+      setLoginMode: (mode: 'password' | 'email') => set({ loginMode: mode }),
       setOtpSent: (sent: boolean) => set({ otpSent: sent }),
       setOtpCode: (code: string) => set({ otpCode: code }),
 
@@ -47,7 +45,6 @@ export const useAuthStore = create<AuthState>()(
         set({
           ticket: null,
           state: null,
-          authInfo: null,
           otpSent: false,
           otpCode: '',
         }),
@@ -63,7 +60,6 @@ export const useAuthStore = create<AuthState>()(
         // 仅持久化需要跨刷新保留的状态
         ticket: state.ticket,
         state: state.state,
-        authInfo: state.authInfo,
       }),
     }
   )

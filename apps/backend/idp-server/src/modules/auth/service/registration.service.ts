@@ -16,7 +16,6 @@ import { HttpStatus } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 
 import { RegisterDto } from '../dto/register.dto';
-import { ResendSignupOtpDto } from '../dto/resend-signup-otp.dto';
 import { VerifySignupOtpDto } from '../dto/verify-signup-otp.dto';
 
 @Injectable()
@@ -33,7 +32,10 @@ export class RegistrationService {
     await this.gotrue.signUp({
       email: dto.email,
       password: dto.password,
-      data: dto.display_name ? { display_name: dto.display_name } : undefined,
+      data: {
+        student_id: dto.student_id,
+        ...(dto.display_name ? { display_name: dto.display_name } : {}),
+      },
     });
     const ttl =
       Math.max(1, Number(config.auth.register.redisTtlMinutes || 60)) * 60;
@@ -56,11 +58,6 @@ export class RegistrationService {
     }
     await this.finalizeUserByEmail(dto.email);
     return { verified: true };
-  }
-
-  async resendSignupOtp(dto: ResendSignupOtpDto): Promise<{ ok: true }> {
-    await this.gotrue.resendSignupOtp({ email: dto.email });
-    return { ok: true };
   }
 
   private async finalizeUserByEmail(email: string): Promise<boolean> {

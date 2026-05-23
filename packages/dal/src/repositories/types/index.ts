@@ -1,5 +1,1 @@
-export type {
-  UserWithMfa,
-  UserRecoveryInfo,
-  RecoveryMethod,
-} from './user.types';
+export type { UserRecoveryInfo, RecoveryMethod } from './user.types';

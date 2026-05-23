@@ -34,7 +34,9 @@ export class SupabaseModule {
           return (jwt: string): SupabaseClient =>
             createClient(options.url, options.anonKey, {
               db: { schema: 'public' },
-              global: { headers: { Authorization: `Bearer ${jwt}` } },
+              global: {
+                headers: { Authorization: `Bearer ${jwt}` },
+              },
               auth: { persistSession: false, detectSessionInUrl: false },
             });
         },

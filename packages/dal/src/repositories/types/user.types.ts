@@ -1,15 +1,5 @@
 // eslint-disable-next-line no-restricted-imports
-import type { UserRow, MfaSettingsRow } from '../../types';
-
-/**
- * 带 MFA 设置的用户信息
- */
-export interface UserWithMfa extends UserRow {
-  mfaSettings?: Pick<
-    MfaSettingsRow,
-    'sms_enabled' | 'email_enabled' | 'otp_enabled' | 'fido2_enabled'
-  >;
-}
+import type { UserRow } from '../../types';
 
 /**
  * 用户找回密码信息

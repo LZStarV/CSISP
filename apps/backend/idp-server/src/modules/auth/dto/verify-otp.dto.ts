@@ -5,4 +5,7 @@ export class VerifyOtpDto implements GeneratedVerifyOtpDto {
   @IsString()
   @Length(4, 16)
   token!: string;
+
+  @IsString()
+  tempToken!: string;
 }
