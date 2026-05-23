@@ -1,3 +1,5 @@
+import { THEME } from '@/stores/theme';
+
 export type SupportedLocale = 'zh' | 'en';
 
 export interface LocaleOption {
@@ -5,7 +7,7 @@ export interface LocaleOption {
   label: string;
 }
 
-export type SupportedTheme = 'light' | 'dark';
+export type SupportedTheme = (typeof THEME)[keyof typeof THEME];
 
 export interface ThemeOption {
   value: SupportedTheme;
