@@ -321,34 +321,57 @@ apps/bff/src/
 
 **文件**：`apps/bff/src/modules/{frontend-app}/{domain}/{domain}.controller.ts`
 
-```typescript
-import { Controller, Post, Body, Logger } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { demoContract } from '@csisp/contracts';
-import { TsRest } from '@ts-rest/nest';
+**实现方式**：使用标准 NestJS 装饰器 + Zod 验证（推荐）
 
-@Controller('api/portal/demo')
-@ApiTags('Portal - Demo')
+```typescript
+import { Controller, Post, Body, Inject, Logger } from '@nestjs/common';
+import { ClientGrpc } from '@nestjs/microservices';
+import { ZodValidationPipe } from '@common/pipes/zod-validation.pipe';
+import { firstValueFrom, map } from 'rxjs';
+import {
+  PORTAL_DEMO_ACTION,
+  PORTAL_DEMO_PATH_PREFIX,
+  PORTAL_PATH_PREFIX,
+  createDemoBodySchema,
+  type CreateDemoParams,
+  type CreateDemoResult,
+} from '@csisp/contracts';
+
+const CONTROLLER_PREFIX = `${PORTAL_PATH_PREFIX}${PORTAL_DEMO_PATH_PREFIX}`;
+
+@Controller(CONTROLLER_PREFIX)
 export class DemoController {
   private readonly logger = new Logger(DemoController.name);
 
-  @Post('createDemo')
-  @TsRest(demoContract.createDemo)
-  async createDemo(@Body() body: z.infer<typeof createDemoBodySchema>) {
-    this.logger.log('Creating demo', body);
+  constructor(
+    @Inject(INTEGRATED_CLIENT)
+    private readonly grpcClient: ClientGrpc
+  ) {}
 
-    const result = await this.demoClient.createDemo(body).toPromise();
+  @Post(PORTAL_DEMO_ACTION.CREATE_DEMO)
+  async createDemo(
+    @Body(new ZodValidationPipe(createDemoBodySchema))
+    params: CreateDemoParams
+  ): Promise<CreateDemoResult> {
+    this.logger.log('Creating demo', params);
 
-    return { status: 200, body: result };
+    // 调用上游 gRPC 服务并返回结果
+    return firstValueFrom(
+      this.demoClient
+        .createDemo({ CreateDemoRequest: params })
+        .pipe(map(res => res.data))
+    );
   }
 }
 ```
 
 **Controller 实现要点**：
 
-- 使用 `@TsRest()` 装饰器绑定 Contract
-- 参数类型从 Contract 推导，不需要手动定义
-- 返回值必须匹配 Contract 定义的 Response Schema
+- 使用标准 NestJS 装饰器 (`@Controller`, `@Post`, `@Body`)
+- 使用 `ZodValidationPipe` 进行参数验证（从 `@csisp/contracts` 导入 Schema）
+- 通过 gRPC Client 调用后端服务 (`@Inject(INTEGRATED_CLIENT)`)
+- 使用 `firstValueFrom` + `map` 处理 RxJS Observable
+- 返回值直接为 Result 类型，不需要 `{ status, body }` 包装
 - 使用 Logger 记录关键操作
 
 ### 3.3 Module 注册
@@ -860,6 +883,179 @@ const naiveDateLocale = computed(() => {
 
 ---
 
+## 4.10 Portal OAuth 认证集成
+
+Portal 应用采用 **OAuth 2.0 + PKCE** 协议进行身份认证，通过 `@csisp/oauth` 包实现 SSO 单点登录。
+
+### 认证流程概览
+
+```
+用户访问受保护资源
+    ↓
+路由守卫 (guards.ts) 检查会话状态
+    ↓
+未登录 → 保存目标路径 → 跳转 IDP 发起 OAuth 登录
+    ↓
+IDP 完成认证 → 重定向回 Portal /callback?code=xxx&state=yyy
+    ↓
+处理回调 → PKCE token 交换 → 保存 session
+    ↓
+跳转到目标页面 ✅
+```
+
+### 核心文件
+
+| 文件                           | 用途                               |
+| ------------------------------ | ---------------------------------- |
+| `src/router/guards.ts`         | OAuth 路由守卫，自动拦截未认证请求 |
+| `src/pages/Callback/index.vue` | OAuth 回调处理页面                 |
+| `src/config/index.ts`          | OAuth 配置 (clientId, redirectUri) |
+
+### 1. 路由守卫配置
+
+**文件**：`src/router/guards.ts`
+
+```typescript
+import {
+  checkAuthStatus,
+  initiateOAuthLogin,
+  setRedirectAfterLogin,
+  initOAuthClient,
+} from '@csisp/oauth';
+import type { Router } from 'vue-router';
+
+// 不需要认证的路由（公开页面）
+const PUBLIC_ROUTES = ['/callback'];
+
+export function setupAuthGuards(router: Router) {
+  router.beforeEach(async to => {
+    // 初始化 OAuth 客户端（必须在使用前调用）
+    initOAuthClient();
+
+    // 公开路由直接放行
+    if (PUBLIC_ROUTES.includes(to.path)) {
+      return;
+    }
+
+    // 检查当前用户是否已认证
+    const isAuthenticated = await checkAuthStatus();
+
+    if (!isAuthenticated) {
+      // 保存用户要访问的路径（登录后跳转回来）
+      await setRedirectAfterLogin(to.fullPath);
+
+      // 发起 OAuth 登录流程（重定向到 IDP）
+      await initiateOAuthLogin({
+        clientId: config.oauth.clientId, // 从配置读取
+        redirectUri: config.oauth.redirectUri, // 回调地址
+      });
+
+      // 中止当前导航（因为即将重定向）
+      return false;
+    }
+  });
+}
+```
+
+**在 router 中启用守卫**：
+
+```typescript
+// src/router/index.ts
+import { setupAuthGuards } from './guards';
+
+const router = createRouter({
+  /* ... */
+});
+
+setupAuthGuards(router); // ← 注册 OAuth 守卫
+
+export default router;
+```
+
+### 2. OAuth 回调处理
+
+**文件**：`src/pages/Callback/index.vue`
+
+<template>
+  <div class="callback-page">
+    <n-spin :show="loading" description="正在处理登录授权..." />
+    <!-- 错误提示 -->
+  </div>
+</template>
+
+<script setup lang="ts">
+import {
+  handleOAuthCallback,
+  consumeRedirectAfterLogin,
+  initOAuthClient,
+} from '@csisp/oauth';
+import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const loading = ref(true);
+const error = ref<string | null>(null);
+
+async function processCallback() {
+  try {
+    // 1. 初始化客户端
+    initOAuthClient();
+
+    // 2. 处理 OAuth 回调（自动从 URL 读取 code 和 state）
+    const result = await handleOAuthCallback();
+
+    if (result.ok) {
+      // 3. 获取保存的目标路径（登录前用户想访问的页面）
+      const redirectPath = await consumeRedirectAfterLogin();
+
+      // 4. 跳转到目标页面或首页
+      await router.replace(redirectPath || '/');
+    } else {
+      error.value = result.error || '处理登录授权失败';
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '处理登录授权时发生错误';
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(() => {
+  processCallback();
+});
+</script>
+
+````
+
+### 3. 配置说明
+
+**文件**：`src/config/index.ts` 或环境变量
+
+```typescript
+export const config = {
+  oauth: {
+    clientId: import.meta.env.VITE_OAUTH_CLIENT_ID,        // OAuth Client ID
+    redirectUri: `${window.location.origin}/callback`,     // 回调地址（必须与 IDP 注册的一致）
+  },
+};
+````
+
+### 4. 手动登出
+
+```typescript
+import { signOut } from '@csisp/oauth';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+async function handleLogout() {
+  await signOut(); // 清除 Supabase session
+  await router.push('/login'); // 跳转到登录页（可选）
+}
+```
+
+---
+
 ## 5. 验证与检查
 
 **验证命令**：
@@ -904,5 +1100,5 @@ pnpm -F {frontend-app} format
 
 ---
 
-**文档版本**：v2.0（已优化，代码示例减少 50%）
-**最后更新**：2026-04-30
+**文档版本**：v2.1（更新 BFF Controller 实现方式、新增 Portal OAuth 认证集成章节）
+**最后更新**：2026-05-24

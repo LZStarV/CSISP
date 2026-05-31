@@ -59,8 +59,7 @@ CSISP/
 
 **核心模块**:
 
-- `modules/auth/` - 登录/注册/OTP/会话管理
-- `modules/oidc/` - OIDC 协议实现
+- `modules/auth/` - 登录/注册/OTP/密码重置
 - `modules/health/` - 健康检查
 - `infra/supabase/` - Supabase GoTrue 集成
 - `infra/redis/` - 会话存储 (ExchangeStore, StepupStore)
@@ -69,10 +68,10 @@ CSISP/
 
 - `src/main.ts` - 服务入口
 - `src/modules/auth/auth.controller.ts` - 认证接口
-- `src/modules/auth/service/session.service.ts` - 会话管理服务
-- `src/modules/auth/service/registration.service.ts` - 用户注册服务
 - `src/modules/auth/service/login.service.ts` - 登录验证服务
+- `src/modules/auth/service/registration.service.ts` - 用户注册服务
 - `src/modules/auth/service/otp.service.ts` - OTP 验证服务
+- `src/modules/auth/service/password-reset.service.ts` - 密码重置服务
 - `src/infra/supabase/gotrue.service.ts` - Supabase 集成
 
 **说明**: 使用外部 npm 包 `@csisp-api/idp-server` 作为 IDP 接口定义。
@@ -92,7 +91,8 @@ CSISP/
 
 **核心模块**:
 
-- `common/http/` - HTTP 基础设施
+- `modules/forum/` - 论坛服务 (帖子/回复/动态 Feed)
+- `modules/announce/` - 公告服务
 - `modules/health/` - 健康检查
 
 ---
@@ -159,21 +159,34 @@ modules/
 **关键文件**:
 
 - `src/main.tsx` - 入口
-- `src/App.tsx` - 根组件 (含 SessionGuard)
+- `src/App.tsx` - 根组件
 - `src/api/caller.ts` - API 调用封装
-- `src/routes/SessionGuard.tsx` - 会话守卫
+- `src/pages/Login/index.tsx` - 登录页 (含会话检查)
+- `src/pages/OAuthConsent/index.tsx` - OAuth 授权页
 - `src/config/index.ts` - API 前缀配置 (`/api/idp`)
 
 **通信方式**: RPC 风格的 REST 接口 over Fetch，使用 `@csisp/http` 包提供的 ky 封装工具
 
 ```typescript
-// API 调用示例
-import { call } from '@csisp/http';
+// API 调用示例 (使用 createDomainCall 工厂函数)
+import { createDomainCall } from '@/api/caller';
+import {
+  IDP_CLIENT_PATH_PREFIX,
+  type IdpClientAuthAction,
+} from '@csisp/contracts';
 
-const authCall = <T>(action: string, params?: unknown) =>
-  call<T>('/api/idp', 'auth', action, params);
+const authCall = createDomainCall<IdpClientAuthAction>(
+  IDP_CLIENT_PATH_PREFIX, // '/api/idp'
+  'auth'
+);
 
-// 可用方法: register, login-internal, verify-otp, session, etc.
+// 类型安全的调用方式
+export const idpClientAuthApi = {
+  async login(params: LoginParams): Promise<LoginResult> {
+    return await authCall<LoginResult>('login', params);
+  },
+  // 其他方法: register, verifySignupOtp, verifyOtp, sendOtp, resetPassword, enter
+};
 ```
 
 ---
@@ -223,6 +236,21 @@ src/api/
 **URL 构建规则**: `call` 函数的 URL 拼接逻辑为 `${pathPrefix}/${domain}/${action}`
 
 **状态**: 基础框架已搭建，已接入 gRPC 接口，后续将逐步接入业务功能。
+
+**认证机制**:
+
+Portal 应用采用 **OAuth 2.0 + PKCE** 协议进行身份认证：
+
+1. **路由守卫** (`src/router/guards.ts`):
+   - 检查用户访问受保护资源时的认证状态
+   - 未登录时自动跳转到 IDP 发起 OAuth 登录流程
+
+2. **OAuth 回调处理** (`src/pages/Callback/index.vue`):
+   - 处理 IDP 返回的 authorization code
+   - 通过 PKCE 流程交换 access_token
+   - 保存会话状态后跳转到目标页面
+
+3. **依赖包**: 使用 `@csisp/oauth` 提供 OAuth 客户端能力
 
 ---
 
@@ -404,6 +432,66 @@ t('common.total', '共 {total} 条', { total: 100 });
 
 ---
 
+### 3.8 @csisp/oauth (OAuth 客户端)
+
+| 导出              | 用途                                       |
+| ----------------- | ------------------------------------------ |
+| `.`               | OAuth 2.0 + PKCE 认证流程核心实现          |
+| `./client`        | Supabase 客户端封装与初始化                |
+| `./pkce`          | PKCE Code Verifier / Challenge 生成 (S256) |
+| `./session`       | 会话状态检查、用户获取、登出等操作         |
+| `./store/storage` | 基于 localForage 的安全存储 (IndexedDB)    |
+
+**核心功能**:
+
+- **OAuth 登录流程**: `initiateOAuthLogin()` - 发起 PKCE 授权请求
+- **回调处理**: `handleOAuthCallback()` - 处理授权码交换 token
+- **会话管理**: `checkAuthStatus()`, `getCurrentUser()`, `signOut()`
+- **安全特性**:
+  - 使用 `crypto.getRandomValues()` 生成加密安全随机数
+  - SHA-256 Code Challenge Method (S256)
+  - State 参数防 CSRF 攻击
+  - localForage 持久化存储 (非 Cookie)
+
+**使用场景**:
+
+- Portal 应用的 SSO 单点登录
+- 第三方应用 OAuth 授权流程
+- 多应用间会话共享
+
+**依赖**: `@supabase/supabase-js`, `localforage`
+
+**典型使用流程**:
+
+```typescript
+import {
+  initiateOAuthLogin,
+  handleOAuthCallback,
+  checkAuthStatus,
+  initOAuthClient,
+} from '@csisp/oauth';
+
+// 1. 初始化客户端
+initOAuthClient();
+
+// 2. 检查认证状态 (路由守卫中)
+const isAuthenticated = await checkAuthStatus();
+
+// 3. 未登录时发起 OAuth 登录
+await initiateOAuthLogin({
+  clientId: 'your-client-id',
+  redirectUri: 'https://your-app.com/callback',
+});
+
+// 4. 处理 OAuth 回调
+const result = await handleOAuthCallback();
+if (result.ok) {
+  // 登录成功，跳转到目标页面
+}
+```
+
+---
+
 ## 4. 依赖关系图
 
 ```mermaid
@@ -433,21 +521,24 @@ flowchart TB
         N["supabase-sdk"]
         O["i18n"]
         P["contracts"]
+        T["oauth<br/>(OAuth 2.0 + PKCE)"]
         Q["@csisp-api/*<br/>(external npm)"]
     end
 
     subgraph Infra["基础设施"]
-        R["Supabase<br/>(PostgreSQL)"]
+        R["Supabase<br/>(PostgreSQL + Auth)"]
         S["Upstash Redis"]
     end
 
     Frontend -->|"HTTP/RPC"| BFF
+    B -->|"OAuth 2.0"| T
     BFF --> E
     E -->|"HTTP"| G
     BFF --> F
     F -->|"gRPC"| H
     G -.-> Q
     H -.-> Q
+    A -->|"Supabase Client"| N
     Packages --> J
     Packages --> K
     Packages --> L
@@ -455,6 +546,9 @@ flowchart TB
     Packages --> N
     Packages --> O
     Packages --> P
+    Packages --> T
+    T --> N
+    T --> R
     J --> R
     M --> S
     N --> R
